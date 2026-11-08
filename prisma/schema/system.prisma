@@ -1,0 +1,76 @@
+model Notification {
+  id         String               @id @default(uuid(7)) @db.Uuid
+  userId     String               @db.Uuid
+  type       String
+  titleKey   String
+  params     Json                 @default("{}")
+  link       String?
+  priority   NotificationPriority @default(NORMAL)
+  readAt     DateTime?            @db.Timestamptz
+  archivedAt DateTime?            @db.Timestamptz
+  createdAt  DateTime             @default(now()) @db.Timestamptz
+  user       User                 @relation(fields: [userId], references: [id])
+
+  @@index([userId, readAt])
+}
+
+model Broadcast {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  createdById String   @db.Uuid
+  audience    Role[]   @default([])
+  title       String
+  body        String
+  sentAt      DateTime @default(now()) @db.Timestamptz
+}
+
+model AuditLog {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  actorId      String?  @db.Uuid
+  actorRole    Role?
+  action       String
+  resourceType String
+  resourceId   String?
+  before       Json?
+  after        Json?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime @default(now()) @db.Timestamptz
+
+  @@index([resourceType, resourceId])
+  @@index([actorId, createdAt])
+}
+
+model PlatformSetting {
+  key      String  @id
+  value    Json
+  isSecret Boolean @default(false)
+}
+
+model CmsContent {
+  id     String @id @default(uuid(7)) @db.Uuid
+  key    String
+  locale String
+  data   Json
+
+  @@unique([key, locale])
+}
+
+model ContactInquiry {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  name      String
+  email     String
+  phone     String?
+  subject   String
+  message   String
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model OutboxEvent {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  type        String
+  payload     Json
+  processedAt DateTime? @db.Timestamptz
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+
+  @@index([processedAt, createdAt])
+}

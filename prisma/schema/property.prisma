@@ -1,0 +1,62 @@
+model Property {
+  id                 String                                @id @default(uuid(7)) @db.Uuid
+  ownerId            String                                @db.Uuid
+  name               String
+  type               String
+  description        String?
+  reviewNotes        String?
+  reviewedAt         DateTime?                             @db.Timestamptz
+  addressId          String?                               @db.Uuid
+  zoneId             String?                               @db.Uuid
+  totalFloors        Int
+  location           Unsupported("geography(Point,4326)")?
+  securityFeatures   String[]                              @default([])
+  status             PropertyStatus                        @default(ACTIVE)
+  verificationStatus VerificationStatus                    @default(UNVERIFIED)
+  archivedAt         DateTime?                             @db.Timestamptz
+  archiveReason      String?
+  createdAt          DateTime                              @default(now()) @db.Timestamptz
+  updatedAt          DateTime                              @updatedAt @db.Timestamptz
+
+  owner   User            @relation(fields: [ownerId], references: [id])
+  address Address?        @relation(fields: [addressId], references: [id])
+  zone    Zone?           @relation(fields: [zoneId], references: [id])
+  images  PropertyImage[]
+  units   Unit[]
+
+  @@index([ownerId, status])
+}
+
+model PropertyImage {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  propertyId String   @db.Uuid
+  storageKey String
+  order      Int      @default(0)
+  property   Property @relation(fields: [propertyId], references: [id])
+}
+
+model Unit {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  propertyId    String           @db.Uuid
+  unitNumber    String
+  floor         Int
+  bedrooms      Int              @default(0)
+  bathrooms     Int              @default(0)
+  areaSqft      Int?
+  rent          Decimal          @db.Decimal(12, 2)
+  description   String?
+  deposit       Decimal          @default(0) @db.Decimal(12, 2)
+  utilityCharge Decimal          @default(0) @db.Decimal(12, 2)
+  furnishing    Furnishing       @default(UNFURNISHED)
+  availability  UnitAvailability @default(AVAILABLE)
+  archivedAt    DateTime?        @db.Timestamptz
+  createdAt     DateTime         @default(now()) @db.Timestamptz
+  updatedAt     DateTime         @updatedAt @db.Timestamptz
+
+  property    Property             @relation(fields: [propertyId], references: [id])
+  agreements  RentalAgreement[]
+  invitations TenantInvitation[]
+  maintenance MaintenanceRequest[]
+
+  @@unique([propertyId, unitNumber])
+}

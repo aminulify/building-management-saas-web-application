@@ -1,0 +1,254 @@
+enum Role {
+  SUPER_ADMIN
+  GOV_ADMIN
+  OWNER
+  TENANT
+  GENERAL_USER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  BANNED
+  INACTIVE
+  DELETED
+}
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum DocOwnerType {
+  USER
+  PROPERTY
+  LISTING
+}
+
+enum DocKind {
+  NID_FRONT
+  NID_BACK
+  DEED
+  OTHER
+}
+
+enum FacilityType {
+  MOSQUE
+  SCHOOL
+  COLLEGE
+  UNIVERSITY
+  HOSPITAL
+  MARKET
+  PARK
+  PLAYGROUND
+  HIGHWAY
+}
+
+enum PropertyStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum Furnishing {
+  UNFURNISHED
+  SEMI_FURNISHED
+  FURNISHED
+}
+
+enum UnitAvailability {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  ARCHIVED
+}
+
+enum AgreementStatus {
+  INVITED
+  ACTIVE
+  ENDED
+  TERMINATED
+}
+
+enum RentStatus {
+  DUE
+  PARTIAL
+  PAID
+  OVERDUE
+}
+
+enum PaymentMethod {
+  CASH
+  BKASH
+  NAGAD
+  ROCKET
+  BANK
+  CARD
+}
+
+enum RecordPaymentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum MaintenanceStatus {
+  PENDING
+  APPROVED
+  IN_PROGRESS
+  COMPLETED
+  REJECTED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ComplaintStatus {
+  OPEN
+  IN_REVIEW
+  RESOLVED
+  REJECTED
+  REOPENED
+}
+
+enum PlanAudience {
+  OWNER
+  SELLER
+}
+
+enum BillingCycle {
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+enum SubscriptionStatus {
+  PENDING
+  ACTIVE
+  GRACE
+  EXPIRED
+  CANCELLED
+}
+
+enum PaymentPurpose {
+  SUBSCRIPTION
+  RENT
+  PROMOTION
+}
+
+enum PaymentGateway {
+  MANUAL_BKASH
+  SSLCOMMERZ
+  BKASH_TOKENIZED
+}
+
+enum TransactionStatus {
+  INITIATED
+  PENDING_REVIEW
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum UpgradeStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ListingType {
+  RENT
+  SALE
+}
+
+enum ListingCategory {
+  FLAT
+  APARTMENT
+  BUILDING
+  LAND
+  COMMERCIAL
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING
+  PUBLISHED
+  REJECTED
+  SUSPENDED
+  SOLD
+  RENTED
+  EXPIRED
+  ARCHIVED
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWED
+  DISMISSED
+}
+
+enum ConversationType {
+  DIRECT
+  SUPPORT
+  LISTING_INQUIRY
+  INSPECTION
+}
+
+enum CallKind {
+  AUDIO
+  VIDEO
+}
+
+enum CallStatus {
+  RINGING
+  ACCEPTED
+  REJECTED
+  MISSED
+  ENDED
+}
+
+enum AlertType {
+  FIRE
+  THEFT
+  SECURITY
+  LEAKAGE
+  MEDICAL
+  OTHER
+}
+
+enum AlertStatus {
+  NEED_ACTION
+  PROCESSING
+  SOLVED
+  FALSE_ALARM
+}
+
+enum AlertAction {
+  ACK
+  ASSIGN
+  FORWARD
+  STATUS
+  NOTE
+  ESCALATE
+}
+
+enum ForwardTarget {
+  POLICE_999
+  FIRE
+  AMBULANCE
+}
+
+enum NotificationPriority {
+  NORMAL
+  HIGH
+  CRITICAL
+}

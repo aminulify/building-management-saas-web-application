@@ -1,0 +1,51 @@
+model EmergencyAlert {
+  id                String                                @id @default(uuid(7)) @db.Uuid
+  reporterId        String                                @db.Uuid
+  propertyId        String?                               @db.Uuid
+  unitId            String?                               @db.Uuid
+  type              AlertType
+  description       String?
+  location          Unsupported("geography(Point,4326)")?
+  addressSnapshot   Json
+  reporterSnapshot  Json
+  status            AlertStatus                           @default(NEED_ACTION)
+  priority          Priority                              @default(HIGH)
+  escalated         Boolean                               @default(false)
+  assignedOfficerId String?                               @db.Uuid
+  acknowledgedAt    DateTime?                             @db.Timestamptz
+  resolvedAt        DateTime?                             @db.Timestamptz
+  dedupeKey         String?
+  createdAt         DateTime                              @default(now()) @db.Timestamptz
+
+  events    EmergencyAlertEvent[]
+  incidents IncidentReport[]
+
+  @@index([status, createdAt])
+  @@index([reporterId, type, createdAt])
+}
+
+model EmergencyAlertEvent {
+  id         String         @id @default(uuid(7)) @db.Uuid
+  alertId    String         @db.Uuid
+  actorId    String?        @db.Uuid
+  action     AlertAction
+  fromStatus AlertStatus?
+  toStatus   AlertStatus?
+  forwardTo  ForwardTarget?
+  forwardRef String?
+  note       String?
+  createdAt  DateTime       @default(now()) @db.Timestamptz
+  alert      EmergencyAlert @relation(fields: [alertId], references: [id])
+}
+
+model IncidentReport {
+  id         String          @id @default(uuid(7)) @db.Uuid
+  alertId    String?         @db.Uuid
+  type       AlertType
+  findings   String
+  resolution String?
+  officerId  String          @db.Uuid
+  status     String          @default("DRAFT")
+  createdAt  DateTime        @default(now()) @db.Timestamptz
+  alert      EmergencyAlert? @relation(fields: [alertId], references: [id])
+}

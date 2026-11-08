@@ -1,0 +1,105 @@
+model User {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  authId             String?            @unique
+  username           String             @unique
+  ownerCode          String?            @unique
+  role               Role               @default(GENERAL_USER)
+  status             UserStatus         @default(ACTIVE)
+  fullName           String
+  email              String?            @unique
+  phone              String?            @unique
+  nid                String?
+  nidHash            String?            @unique
+  nidLast4           String?
+  dateOfBirth        DateTime?          @db.Date
+  gender             String?
+  avatarKey          String?
+  addressId          String?            @db.Uuid
+  verificationStatus VerificationStatus @default(UNVERIFIED)
+  locale             String             @default("bn")
+  preferences        Json               @default("{}")
+  lastSeenAt         DateTime?          @db.Timestamptz
+  archivedAt         DateTime?          @db.Timestamptz
+  archiveReason      String?
+  createdAt          DateTime           @default(now()) @db.Timestamptz
+  updatedAt          DateTime           @updatedAt @db.Timestamptz
+
+  address             Address?           @relation(fields: [addressId], references: [id])
+  ownerProfile        OwnerProfile?
+  tenantProfile       TenantProfile?
+  govAdminProfile     GovAdminProfile?
+  permissionOverrides UserPermissionOverride[]
+  subscriptions       UserSubscription[]
+  upgradeRequests     UpgradeRequest[]
+  transactions        PaymentTransaction[]
+  properties          Property[]
+  listings            Listing[]
+  notifications       Notification[]
+
+  @@index([role, status])
+}
+
+model OwnerProfile {
+  id           String   @id @default(uuid(7)) @db.Uuid
+  userId       String   @unique @db.Uuid
+  businessName String?
+  addressId    String?  @db.Uuid
+  user         User     @relation(fields: [userId], references: [id])
+  address      Address? @relation(fields: [addressId], references: [id])
+}
+
+model TenantProfile {
+  id               String  @id @default(uuid(7)) @db.Uuid
+  userId           String  @unique @db.Uuid
+  emergencyContact String?
+  occupation       String?
+  user             User    @relation(fields: [userId], references: [id])
+}
+
+model GovAdminProfile {
+  id          String  @id @default(uuid(7)) @db.Uuid
+  userId      String  @unique @db.Uuid
+  department  String?
+  designation String?
+  createdById String? @db.Uuid
+  user        User    @relation(fields: [userId], references: [id])
+}
+
+model UserPermissionOverride {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  userId      String   @db.Uuid
+  permission  String
+  granted     Boolean  @default(true)
+  grantedById String   @db.Uuid
+  createdAt   DateTime @default(now()) @db.Timestamptz
+  user        User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, permission])
+}
+
+model Address {
+  id         String         @id @default(uuid(7)) @db.Uuid
+  division   String
+  district   String
+  upazila    String?
+  area       String?
+  street     String?
+  postalCode String?
+  properties Property[]
+  owners     OwnerProfile[]
+  users      User[]
+}
+
+model VerificationDocument {
+  id         String             @id @default(uuid(7)) @db.Uuid
+  ownerType  DocOwnerType
+  ownerId    String             @db.Uuid
+  kind       DocKind
+  storageKey String
+  status     VerificationStatus @default(PENDING)
+  reviewerId String?            @db.Uuid
+  notes      String?
+  createdAt  DateTime           @default(now()) @db.Timestamptz
+
+  @@index([ownerType, ownerId])
+}

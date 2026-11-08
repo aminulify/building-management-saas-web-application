@@ -1,0 +1,71 @@
+model RentalAgreement {
+  id               String          @id @default(uuid(7)) @db.Uuid
+  unitId           String          @db.Uuid
+  tenantId         String          @db.Uuid
+  ownerId          String          @db.Uuid
+  rent             Decimal         @db.Decimal(12, 2)
+  deposit          Decimal         @default(0) @db.Decimal(12, 2)
+  startDate        DateTime        @db.Date
+  endDate          DateTime?       @db.Date
+  status           AgreementStatus @default(INVITED)
+  settlementAmount Decimal?        @db.Decimal(12, 2)
+  agreementDocKey  String?
+  createdAt        DateTime        @default(now()) @db.Timestamptz
+  updatedAt        DateTime        @updatedAt @db.Timestamptz
+
+  unit        Unit                 @relation(fields: [unitId], references: [id])
+  rentRecords RentRecord[]
+  maintenance MaintenanceRequest[]
+
+  @@index([tenantId, status])
+  @@index([ownerId, status])
+}
+
+model TenantInvitation {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  ownerId    String    @db.Uuid
+  unitId     String    @db.Uuid
+  email      String?
+  phone      String?
+  tokenHash  String    @unique
+  rent       Decimal   @db.Decimal(12, 2)
+  deposit    Decimal   @default(0) @db.Decimal(12, 2)
+  startDate  DateTime  @db.Date
+  endDate    DateTime? @db.Date
+  expiresAt  DateTime  @db.Timestamptz
+  acceptedAt DateTime? @db.Timestamptz
+  unit       Unit      @relation(fields: [unitId], references: [id])
+}
+
+model RentRecord {
+  id           String     @id @default(uuid(7)) @db.Uuid
+  agreementId  String     @db.Uuid
+  billingMonth DateTime   @db.Date
+  rent         Decimal    @db.Decimal(12, 2)
+  utility      Decimal    @default(0) @db.Decimal(12, 2)
+  other        Decimal    @default(0) @db.Decimal(12, 2)
+  total        Decimal    @db.Decimal(12, 2)
+  paid         Decimal    @default(0) @db.Decimal(12, 2)
+  dueDate      DateTime   @db.Date
+  status       RentStatus @default(DUE)
+
+  agreement RentalAgreement @relation(fields: [agreementId], references: [id])
+  payments  RentPayment[]
+
+  @@unique([agreementId, billingMonth])
+}
+
+model RentPayment {
+  id           String              @id @default(uuid(7)) @db.Uuid
+  rentRecordId String              @db.Uuid
+  amount       Decimal             @db.Decimal(12, 2)
+  method       PaymentMethod
+  reference    String?
+  paidAt       DateTime            @db.Timestamptz
+  recordedById String              @db.Uuid
+  status       RecordPaymentStatus @default(VERIFIED)
+
+  rentRecord RentRecord @relation(fields: [rentRecordId], references: [id])
+
+  @@unique([method, reference])
+}

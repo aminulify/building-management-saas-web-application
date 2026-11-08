@@ -1,0 +1,95 @@
+
+> amaderghor@0.1.0 test:e2e
+> tsx --env-file=.env scripts/smoke.ts
+
+
+== public endpoints
+  ok   GET /health → ok
+  ok   GET /plans → 3 seeded owner plans
+  ok   PRIMARY prices: 159 / 429.30 / 1526.40
+  ok   fee-estimate 3 properties → MILLIONAIRE ৳299
+  ok   fee-estimate 1 property → PRIMARY ৳159
+  ok   fee-estimate invalid → 422
+  ok   GET /geo/divisions
+  ok   GET /geo/districts
+  ok   GET /geo/upazilas
+  ok   GET /geo/zones?q=Uttara
+  ok   missing query param → 422
+
+== auth: registration, login, validation
+  ok   register owner: Supabase email limit reached (reported as 429 RATE_LIMITED)
+  ok   register with bad data/role → 422
+  ok   register duplicate username → 409
+  ok   login wrong password → 401
+  ok   login super → 200
+  ok   login gov → 200
+  ok   login owner → 200
+  ok   login tenant → 200
+  ok   login general → 200
+  ok   GET /me without token → 401
+  ok   GET /me bad token → 401
+  ok   GET /me (owner) → role OWNER, entitlement NONE
+  ok   PATCH /me
+  ok   PATCH /me cannot change role (strict) → 422
+  ok   POST /auth/otp/send → sent (generic)
+  ok   POST /auth/password/forgot → sent
+
+== RBAC guards
+  ok   general → GET /admin/users 403
+  ok   gov → GET /admin/users 403
+  ok   tenant → POST /properties 403
+  ok   owner → admin dashboard 403
+  ok   owner → gov alerts 403
+  ok   gov → PATCH plan 403
+  ok   owner without plan → POST /properties 403 SUBSCRIPTION_REQUIRED
+  ok   general → listing eligibility 403 LISTING_ENTITLEMENT_REQUIRED
+  ok   cron without secret → 403
+
+== billing: plans admin, quote, upgrade requests, approval
+  ok   super → POST /admin/plans (seller plan)
+  ok   super → PATCH plan price bumps version
+  ok   deactivate plan
+  ok   quote on inactive plan → 409 PLAN_INACTIVE
+  ok   owner quote PRIMARY quarterly = 429.30, bKash reference = username
+  ok   owner cannot buy SELLER plan → 403
+  ok   GET /settings/payment-info
+  ok   upgrade request bad TrxID → 422
+  ok   owner → POST /upgrade-requests 201
+  ok   second pending → 409 UPGRADE_ALREADY_PENDING
+  ok   reused TrxID → 409 TRXID_ALREADY_USED
+  ok   super sees pending queue
+  ok   owner → admin queue 403
+  ok   owner cannot approve → 403
+  ok   super approves → ownerCode + invoice
+  ok   approve twice → 409
+  ok   owner subscription ACTIVE (PRIMARY)
+  ok   owner payment history has invoice
+  ok   general → seller plan request 201
+  ok   reject without reason → 422
+  ok   super rejects with reason
+  ok   general resubmits after rejection
+  ok   approve seller plan (role unchanged, no owner code)
+  ok   general stays GENERAL_USER
+
+== properties, floors, units
+  ok   property validation (totalFloors 0) → 422
+  ok   owner → POST /properties 201
+  ok   GET /properties/:id
+  ok   tenant → other's property 403
+  ok   gov can read property (read-only)
+  ok   gov cannot modify property → 403
+  ok   create unit A101 (1200 sqft, ৳15000)
+  ok   create unit A201
+  ok   duplicate unitNumber → 409
+  ok   floor above totalFloors → 422
+  ok   floors roll-up (floor 1: 1 unit, 1200 sqft)
+  ok   PATCH unit rent/sqft
+  ok   list units
+  ok   list properties
+
+== tenancy + rent
+  ok   invite without email/phone → 422
+  ok   tenant cannot invite → 403
+  ok   owner invites tenant → token
+  ok   wrong user cannot accept → 403
+  ok   tenant accepts → ACTIVE agreement

@@ -1,0 +1,113 @@
+model Listing {
+  id              String                                @id @default(uuid(7)) @db.Uuid
+  sellerId        String                                @db.Uuid
+  propertyId      String?                               @db.Uuid
+  unitId          String?                               @db.Uuid
+  type            ListingType
+  category        ListingCategory
+  title           String
+  description     String
+  price           Decimal                               @db.Decimal(14, 2)
+  negotiable      Boolean                               @default(false)
+  area            Decimal?                              @db.Decimal(12, 2)
+  areaUnit        String?
+  bedrooms        Int?
+  bathrooms       Int?
+  floor           Int?
+  totalFloors     Int?
+  furnishing      Furnishing?
+  landDetails     Json?
+  zoneId          String?                               @db.Uuid
+  location        Unsupported("geography(Point,4326)")?
+  amenities       String[]                              @default([])
+  status          ListingStatus                         @default(DRAFT)
+  isFeatured      Boolean                               @default(false)
+  expiresAt       DateTime?                             @db.Timestamptz
+  rejectionReason String?
+  condition       String?
+  availableFrom   DateTime?                             @db.Date
+  videoUrl        String?
+  fullAddress     String?
+  declaration     Boolean                               @default(false)
+  createdAt       DateTime                              @default(now()) @db.Timestamptz
+  updatedAt       DateTime                              @updatedAt @db.Timestamptz
+
+  seller    User                      @relation(fields: [sellerId], references: [id])
+  zone      Zone?                     @relation(fields: [zoneId], references: [id])
+  images    ListingImage[]
+  documents ListingDocument[]
+  distances ListingFacilityDistance[]
+  favorites Favorite[]
+  reports   ListingReport[]
+  stats     ListingStatDaily[]
+
+  @@index([status, type, zoneId])
+  @@index([sellerId, status])
+}
+
+model ListingImage {
+  id         String  @id @default(uuid(7)) @db.Uuid
+  listingId  String  @db.Uuid
+  storageKey String
+  order      Int     @default(0)
+  listing    Listing @relation(fields: [listingId], references: [id])
+}
+
+model ListingDocument {
+  id         String  @id @default(uuid(7)) @db.Uuid
+  listingId  String  @db.Uuid
+  storageKey String
+  order      Int     @default(0)
+  listing    Listing @relation(fields: [listingId], references: [id])
+}
+
+model ListingFacilityDistance {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  listingId         String       @db.Uuid
+  facilityType      FacilityType
+  nearestFacilityId String?      @db.Uuid
+  distanceM         Int
+  listing           Listing      @relation(fields: [listingId], references: [id])
+
+  @@unique([listingId, facilityType])
+}
+
+model Favorite {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  listingId String   @db.Uuid
+  createdAt DateTime @default(now()) @db.Timestamptz
+  listing   Listing  @relation(fields: [listingId], references: [id])
+
+  @@unique([userId, listingId])
+}
+
+model SavedSearch {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  userId    String   @db.Uuid
+  query     Json
+  createdAt DateTime @default(now()) @db.Timestamptz
+}
+
+model ListingReport {
+  id          String       @id @default(uuid(7)) @db.Uuid
+  listingId   String       @db.Uuid
+  reporterId  String       @db.Uuid
+  category    String
+  description String?
+  evidence    String[]     @default([])
+  status      ReportStatus @default(OPEN)
+  createdAt   DateTime     @default(now()) @db.Timestamptz
+  listing     Listing      @relation(fields: [listingId], references: [id])
+}
+
+model ListingStatDaily {
+  id        String   @id @default(uuid(7)) @db.Uuid
+  listingId String   @db.Uuid
+  date      DateTime @db.Date
+  views     Int      @default(0)
+  inquiries Int      @default(0)
+  listing   Listing  @relation(fields: [listingId], references: [id])
+
+  @@unique([listingId, date])
+}

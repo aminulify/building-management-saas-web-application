@@ -1,0 +1,74 @@
+model Conversation {
+  id            String           @id @default(uuid(7)) @db.Uuid
+  type          ConversationType
+  listingId     String?          @db.Uuid
+  lastMessageAt DateTime?        @db.Timestamptz
+  createdAt     DateTime         @default(now()) @db.Timestamptz
+
+  participants ConversationParticipant[]
+  messages     Message[]
+  calls        Call[]
+}
+
+model ConversationParticipant {
+  id                String       @id @default(uuid(7)) @db.Uuid
+  conversationId    String       @db.Uuid
+  userId            String       @db.Uuid
+  lastReadMessageId String?      @db.Uuid
+  archivedAt        DateTime?    @db.Timestamptz
+  pinned            Boolean      @default(false)
+  conversation      Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  conversationId String       @db.Uuid
+  senderId       String       @db.Uuid
+  clientId       String
+  body           String
+  attachments    Json         @default("[]")
+  deletedForIds  String[]     @default([])
+  createdAt      DateTime     @default(now()) @db.Timestamptz
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+
+  @@unique([senderId, clientId])
+  @@index([conversationId, createdAt])
+}
+
+model Call {
+  id             String       @id @default(uuid(7)) @db.Uuid
+  conversationId String       @db.Uuid
+  callerId       String       @db.Uuid
+  calleeId       String       @db.Uuid
+  kind           CallKind
+  status         CallStatus   @default(RINGING)
+  startedAt      DateTime?    @db.Timestamptz
+  endedAt        DateTime?    @db.Timestamptz
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+}
+
+enum CallRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+  DONE
+}
+
+/// "Call later": a scheduled callback request between two conversation participants.
+model CallRequest {
+  id             String            @id @default(uuid(7)) @db.Uuid
+  conversationId String            @db.Uuid
+  requesterId    String            @db.Uuid
+  recipientId    String            @db.Uuid
+  kind           CallKind          @default(AUDIO)
+  scheduledFor   DateTime          @db.Timestamptz
+  note           String?
+  status         CallRequestStatus @default(PENDING)
+  createdAt      DateTime          @default(now()) @db.Timestamptz
+
+  @@index([recipientId, status, scheduledFor])
+  @@index([requesterId, status])
+}

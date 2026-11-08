@@ -1,0 +1,50 @@
+model Division {
+  id        String     @id @default(uuid(7)) @db.Uuid
+  nameBn    String
+  nameEn    String     @unique
+  districts District[]
+}
+
+model District {
+  id         String    @id @default(uuid(7)) @db.Uuid
+  divisionId String    @db.Uuid
+  nameBn     String
+  nameEn     String
+  division   Division  @relation(fields: [divisionId], references: [id])
+  upazilas   Upazila[]
+
+  @@unique([divisionId, nameEn])
+}
+
+model Upazila {
+  id         String   @id @default(uuid(7)) @db.Uuid
+  districtId String   @db.Uuid
+  nameBn     String
+  nameEn     String
+  district   District @relation(fields: [districtId], references: [id])
+  zones      Zone[]
+
+  @@unique([districtId, nameEn])
+}
+
+model Zone {
+  id         String     @id @default(uuid(7)) @db.Uuid
+  upazilaId  String     @db.Uuid
+  nameBn     String
+  nameEn     String
+  upazila    Upazila    @relation(fields: [upazilaId], references: [id])
+  properties Property[]
+  listings   Listing[]
+
+  @@unique([upazilaId, nameEn])
+}
+
+model Facility {
+  id       String                                @id @default(uuid(7)) @db.Uuid
+  type     FacilityType
+  nameBn   String
+  nameEn   String
+  location Unsupported("geography(Point,4326)")?
+
+  @@index([type])
+}
