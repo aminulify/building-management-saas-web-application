@@ -10,7 +10,21 @@ import { randomUUID } from "node:crypto";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const BASE = process.env.BASE_URL ?? "http://localhost:3000/api/v1";
-const db = new PrismaClient();
+// the pooler (Tokyo) occasionally drops a connection for a moment: retry those, they never wrote anything
+const RETRYABLE = new Set(["P1001", "P1002", "P2024"]);
+const db = new PrismaClient().$extends({
+  query: {
+    $allOperations: async ({ args, query }) => {
+      for (let attempt = 0; ; attempt++) {
+        try { return await query(args); } catch (e) {
+          const code = (e as { code?: string }).code;
+          if (attempt >= 3 || !code || !RETRYABLE.has(code)) throw e;
+          await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
+        }
+      }
+    },
+  },
+});
 const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });
 const tag = Date.now().toString(36).slice(-6);
 const rnd = (n: number, a = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789") => Array.from({ length: n }, () => a[Math.floor(Math.random() * a.length)]).join("");
@@ -61,13 +75,18 @@ async function makePublic(key: "owner" | "tenant" | "general", role: string, nid
     users[key] = { key, id: u.id, authId: data.user.id, email, password, username, token: "" };
     return;
   }
-  const r = await call("POST", "/auth/register", null, { fullName: `Test ${key}`, username, email, phone: phone(), password, role, consent: true, ...(nid ? { nid } : {}) });
+  const r = await call("POST", "/auth/register", null, { fullName: `Test ${key}`, username, email, phone: phone(), password, role, consent: true, occupation: "Landlord", address: { division: "Dhaka", district: "Dhaka", upazila: "Uttara", union: "Sector 4", postOffice: "1230", street: "House 12, Road 5" }, ...(nid ? { nid } : {}) });
   if (r.status === 429 && r.body?.details?.reason === "email_send_limit") {
     // Supabase's built-in mailer allows only a few sign-up emails per hour; use custom SMTP in production
     check(`register ${key}: Supabase email limit reached (reported as 429 RATE_LIMITED)`, true);
     return makePublic(key, role, nid, false);
   }
   check(`register ${key} → 201`, r.status === 201, r.body);
+  if (r.status === 201) {
+    check("register response: id, needsEmailConfirmation flag, session or null", !!r.data?.id && typeof r.data?.needsEmailConfirmation === "boolean" && "session" in r.data, r.data);
+    const saved = await db.user.findUnique({ where: { username }, include: { address: true } });
+    check("register stored occupation + union + post office (4-digit code kept as postal code)", saved?.occupation === "Landlord" && saved?.address?.union === "Sector 4" && saved?.address?.postOffice === "1230" && saved?.address?.postalCode === "1230", saved);
+  }
   const row = await db.user.findUnique({ where: { username } });
   if (!row?.authId) throw new Error(`register ${key} failed: ${JSON.stringify(r.body)}`);
   authIds.push(row.authId);
@@ -147,8 +166,28 @@ async function cleanup() {
   console.log("  done");
 }
 
+/** Test users from a run that was killed before cleanup (server stopped, laptop slept…). Matched by their reserved pattern only. */
+async function sweepStale() {
+  const stale = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" }, username: { regex: "^((super|gov|govx|owner|tenant|general|clash|wizard)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$" } } as never, select: { id: true, authId: true, username: true } }).catch(async () => {
+    const all = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" } }, select: { id: true, authId: true, username: true } });
+    return all.filter((u) => /^((super|gov|govx|owner|tenant|general|clash|wizard)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$/.test(u.username));
+  });
+  stale.forEach((u, i) => {
+    users[`stale${i}`] = { key: `stale${i}`, id: u.id, authId: u.authId ?? "", email: "", password: "", username: u.username, token: "" };
+    if (u.authId) authIds.push(u.authId);
+  });
+  const plans = await db.subscriptionPlan.findMany({ where: { OR: [{ code: { startsWith: "TST" } }, { code: { startsWith: "TSL" } }] }, select: { id: true } });
+  plans.forEach((p) => planIds.push(p.id));
+  for (const u of stale) for (const purpose of ["AVATAR", "NID_FRONT", "NID_BACK", "AGREEMENT", "PROPERTY_DOC", "LISTING_DOC", "REPORT_EVIDENCE", "COMPLAINT_EVIDENCE"]) {
+    const { data } = await sb.storage.from(BUCKET).list(`${purpose}/${u.id}`);
+    if (data?.length) uploaded.push(...data.map((f) => `${purpose}/${u.id}/${f.name}`));
+  }
+  if (stale.length) console.log(`  swept ${stale.length} leftover test users from an interrupted run`);
+}
+
 async function main() {
   const CRON = process.env.CRON_SECRET!;
+  await sweepStale();
 
   section("public endpoints");
   let r = await call("GET", "/health");
@@ -180,7 +219,9 @@ async function main() {
   section("auth: registration, login, validation");
   await makeStaff("super");
   await makeStaff("gov");
-  await makePublic("owner", "OWNER", "1234567890", true); // the one real /auth/register call
+  // The real /auth/register call sends a confirmation e-mail and uses up Supabase's hourly e-mail quota,
+  // so it only runs on request: E2E_REAL_REGISTER=1 npm run test:e2e
+  await makePublic("owner", "OWNER", "1234567897890", process.env.E2E_REAL_REGISTER === "1");
   await makePublic("tenant", "TENANT");
   await makePublic("general", "GENERAL_USER");
   r = await call("POST", "/auth/register", null, { fullName: "X", username: "Bad Name", email: "nope", phone: "123", password: "abc", role: "SUPER_ADMIN", consent: false });
@@ -189,7 +230,7 @@ async function main() {
   check("register duplicate username → 409", r.status === 409, r.body);
   r = await call("POST", "/auth/login", null, { identifier: users.owner!.email, password: "wrong-password1" });
   check("login wrong password → 401", r.status === 401, r.body);
-  for (const u of Object.values(users)) await login(u);
+  for (const u of Object.values(users).filter((x) => !x.key.startsWith("stale"))) await login(u);
   const T = (k: string) => users[k]!.token;
   r = await call("GET", "/me");
   check("GET /me without token → 401", r.status === 401, r.body);
@@ -459,7 +500,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("POST", "/complaints", T("tenant"), { category: "NOISE", subject: "Evidence check", description: "Trying to attach somebody else's file as evidence", evidence: [`COMPLAINT_EVIDENCE/${users.owner!.id}/x.pdf`] });
   check("complaint evidence must be your own upload → 403", r.status === 403, r.body);
   void cidTmp;
-  const cid = r.data?.id;
+  const cid = cidTmp;
   r = await call("POST", `/complaints/${cid}/assign`, T("super"), { assigneeId: users.gov!.id });
   check("super assigns to gov admin", r.status === 200 && r.data?.assignedToId === users.gov!.id, r.body);
   r = await call("POST", `/complaints/${cid}/assign`, T("gov"), { assigneeId: users.gov!.id });
@@ -643,8 +684,8 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("filter: nearby mosque + school", has(r), r.body);
   r = await call("GET", `${base}&nearby=UNIVERSITY`);
   check("filter: nearby university (none close) excludes", r.status === 200 && !has(r), r.body);
-  r = await call("GET", `${base}&nearby=MOSQUE&nearbyM=50`);
-  check("filter: configurable proximity range (50 m) excludes", r.status === 200 && !has(r), r.body);
+  r = await call("GET", `${base}&nearby=MOSQUE&nearbyM=100`);
+  check("filter: configurable proximity range (100 m) excludes", r.status === 200 && !has(r), r.body);
   r = await call("GET", `${base}&bathrooms=2&minArea=1000&maxArea=1500`);
   check("filter: bathrooms + area range", has(r), r.body);
   r = await call("GET", `${base}&divisionId=${dhaka?.id}&zoneId=${zone?.id}`);
@@ -737,7 +778,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("GET", "/admin/users?role=OWNER", T("super"));
   check("super lists owners", r.status === 200 && r.data?.items?.some((u: any) => u.id === users.owner!.id), r.body);
   r = await call("GET", `/admin/users/${users.owner!.id}`, T("super"));
-  check("super views NID for manual verification (audited)", r.status === 200 && r.data?.nid === "1234567890", r.body);
+  check("super views NID for manual verification (audited)", r.status === 200 && r.data?.nid === "1234567897890", r.body);
   r = await call("GET", `/admin/users/${users.owner!.id}`, T("gov"));
   check("gov cannot view full NID → 403", r.status === 403, r.body);
   r = await call("POST", `/admin/users/${users.owner!.id}/verify`, T("super"), { status: "REJECTED" });
@@ -779,7 +820,8 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("PUT", "/admin/cms/about", T("owner"), { locale: "en", data: { x: 1 } });
   check("owner cannot edit CMS → 403", r.status === 403, r.body);
   r = await call("GET", "/listings/stats");
-  check("marketplace dashboard stats", r.status === 200 && r.data?.totalProperties >= 1 && Array.isArray(r.data?.popularZones) && r.data?.availableForRent >= 1, r.body);
+  const livePublished = await db.listing.count({ where: { status: "PUBLISHED" } });
+  check("marketplace dashboard stats match the database", r.status === 200 && r.data?.totalProperties === livePublished && Array.isArray(r.data?.popularZones) && Array.isArray(r.data?.featured), r.body);
   r = await call("GET", "/geo/facilities?type=MOSQUE");
   check("facilities by type", r.status === 200 && r.data?.length >= 1 && typeof r.data[0].lat === "number", r.body);
   r = await call("GET", "/geo/facilities?bbox=90.39,23.86,90.41,23.88");
@@ -833,7 +875,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("PATCH", "/me", T("owner"), { owner: { businessName: "Test Realty Ltd" } });
   check("owner updates business name", r.status === 200 && r.data?.ownerProfile?.businessName === "Test Realty Ltd", r.body);
   r = await call("GET", "/me", T("owner"));
-  check("GET /me masks NID, never returns it in full", /^•+7890$/.test(r.data?.nid ?? "") && JSON.stringify(r.data).includes("1234567890") === false, r.data?.nid);
+  check("GET /me masks NID, never returns it in full", /^•+7890$/.test(r.data?.nid ?? "") && JSON.stringify(r.data).includes("1234567897890") === false, r.data?.nid);
   r = await call("POST", "/auth/password/change", T("owner"), { currentPassword: "wrong-password-1", newPassword: "Brand9newpass" });
   check("password change with wrong current → 403", r.status === 403, r.body);
   r = await call("POST", "/auth/password/change", T("owner"), { currentPassword: users.owner!.password, newPassword: "short" });
@@ -844,6 +886,131 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("POST", "/auth/login", null, { identifier: users.owner!.email, password: newPw });
   check("login with the new password", r.status === 200, r.body);
   users.owner!.password = newPw;
+  const oldTokenRes = await call("GET", "/me", users.owner!.token);
+  check("password change signs out the old session", oldTokenRes.status === 401, oldTokenRes.body);
+  users.owner!.token = r.data?.session?.accessToken ?? ""; // continue with the fresh session
+
+  section("sign-up wizard: availability, public uploads, finalisation");
+  r = await call("GET", `/auth/availability?username=${users.owner!.username}`);
+  check("availability: taken username → false", r.status === 200 && r.data?.username === false, r.body);
+  r = await call("GET", `/auth/availability?username=free_name_${tag}`);
+  check("availability: free username with underscore → true", r.status === 200 && r.data?.username === true, r.body);
+  const ownerPhone = (await db.user.findUniqueOrThrow({ where: { id: users.owner!.id } })).phone;
+  r = await call("GET", `/auth/availability?email=${encodeURIComponent(users.owner!.email)}&phone=${ownerPhone}`);
+  check("availability: taken email + phone → false", r.status === 200 && r.data?.email === false && r.data?.phone === false, r.body);
+  r = await call("GET", "/auth/availability");
+  check("availability: no field → 422", r.status === 422, r.body);
+  r = await call("GET", "/auth/availability?phone=123");
+  check("availability: bad phone → 422", r.status === 422, r.body);
+
+  const regSession = randomUUID();
+  for (const purpose of ["NID_FRONT", "NID_BACK", "AVATAR"]) {
+    const sg = await call("POST", "/auth/register/uploads", null, { session: regSession, purpose, mime: "image/png", size: PNG.length });
+    check(`public upload URL for ${purpose} (no login needed)`, sg.status === 200 && sg.data?.key === `REG/${regSession}/${purpose}.png`, sg.body);
+    const up = await sb.storage.from(BUCKET).uploadToSignedUrl(sg.data.key, sg.data.token, new Blob([PNG as BlobPart], { type: "image/png" }), { contentType: "image/png" });
+    check(`${purpose} uploaded`, !up.error, up.error?.message);
+  }
+  r = await call("POST", "/auth/register/uploads", null, { session: regSession, purpose: "NID_FRONT", mime: "application/zip", size: 100 });
+  check("public upload: wrong type → 422", r.status === 422, r.body);
+  r = await call("POST", "/auth/register/uploads", null, { session: regSession, purpose: "AVATAR", mime: "image/png", size: 9 * 1024 * 1024 });
+  check("public upload: over 5 MB → 422", r.status === 422, r.body);
+  r = await call("POST", "/auth/register/uploads", null, { session: regSession, purpose: "AGREEMENT", mime: "application/pdf", size: 100 });
+  check("public upload: only NID_FRONT/NID_BACK/AVATAR allowed → 422", r.status === 422, r.body);
+  r = await call("POST", "/auth/register/uploads", null, { session: "not-a-uuid", purpose: "AVATAR", mime: "image/png", size: 100 });
+  check("public upload: session must be a uuid → 422", r.status === 422, r.body);
+
+  // register() ends by calling this; tested directly so the check does not depend on Supabase's hourly e-mail limit
+  const { data: wd, error: wErr } = await sb.auth.admin.createUser({ email: `wizard.${tag}@mailinator.com`, password: `Tt${rnd(8)}9a`, email_confirm: true });
+  if (wErr) throw wErr;
+  authIds.push(wd.user.id);
+  const wizRow = await db.user.create({ data: { authId: wd.user.id, username: `wizard${tag}`, fullName: "Test wizard", email: `wizard.${tag}@mailinator.com`, phone: phone(), role: "GENERAL_USER" } });
+  users.wizard = { key: "wizard", id: wizRow.id, authId: wd.user.id, email: "", password: "", username: wizRow.username, token: "" };
+  const { finalizeRegistrationUploads } = await import("../src/modules/auth/registration-uploads");
+  const fin = await finalizeRegistrationUploads(wizRow.id, regSession);
+  check("finalize moves NID front/back + photo to the new user", fin.nidFront && fin.nidBack && fin.avatar, fin);
+  const wAfter = await db.user.findUniqueOrThrow({ where: { id: wizRow.id } });
+  const wDocs = await db.verificationDocument.findMany({ where: { ownerType: "USER", ownerId: wizRow.id } });
+  check("…account queued for NID review (PENDING), avatar saved", wAfter.verificationStatus === "PENDING" && !!wAfter.avatarKey?.startsWith(`AVATAR/${wizRow.id}/`) && wDocs.length === 2 && wDocs.every((d) => d.storageKey.split("/")[1] === wizRow.id), { status: wAfter.verificationStatus, docs: wDocs.length });
+  uploaded.push(...wDocs.map((d) => d.storageKey), wAfter.avatarKey!);
+  const leftover = await sb.storage.from(BUCKET).list(`REG/${regSession}`);
+  check("…and the temporary REG/ files are gone", (leftover.data ?? []).length === 0, leftover.data);
+  const noFiles = await finalizeRegistrationUploads(wizRow.id, randomUUID());
+  check("finalize with an unknown session is harmless", !noFiles.nidFront && !noFiles.nidBack && !noFiles.avatar, noFiles);
+
+  section("sign-in page: username/phone login, refresh, providers, Google");
+  const ownerLogin = await db.user.findUniqueOrThrow({ where: { id: users.owner!.id } });
+  r = await call("POST", "/auth/login", null, { identifier: users.owner!.username, password: users.owner!.password });
+  check("login with USERNAME", r.status === 200 && r.data?.user?.id === users.owner!.id && !!r.data?.session?.refreshToken, r.body);
+  const ownerRefresh = r.data?.session?.refreshToken;
+  r = await call("POST", "/auth/login", null, { identifier: ownerLogin.phone, password: users.owner!.password });
+  check("login with PHONE", r.status === 200 && r.data?.user?.id === users.owner!.id, r.body);
+  r = await call("POST", "/auth/login", null, { identifier: "+88" + ownerLogin.phone, password: users.owner!.password });
+  check("login with +88 phone format", r.status === 200, r.body);
+  r = await call("POST", "/auth/login", null, { identifier: users.owner!.username, password: "WrongPass999" });
+  check("wrong password by username → 401", r.status === 401 && r.code === "UNAUTHENTICATED", r.body);
+  r = await call("POST", "/auth/login", null, { identifier: `nobody_${tag}`, password: "WrongPass999" });
+  check("unknown username → same 401 (no account enumeration)", r.status === 401 && r.code === "UNAUTHENTICATED", r.body);
+  r = await call("POST", "/auth/login", null, { identifier: "", password: "" });
+  check("empty credentials → 422", r.status === 422, r.body);
+
+  r = await call("POST", "/auth/refresh", null, { refreshToken: ownerRefresh });
+  check("refresh token → new session + user", r.status === 200 && !!r.data?.session?.accessToken && r.data?.user?.id === users.owner!.id, r.body);
+  const refreshedToken = r.data?.session?.accessToken;
+  r = await call("GET", "/me", refreshedToken);
+  check("the refreshed access token works", r.status === 200 && r.data?.id === users.owner!.id, r.body);
+  r = await call("POST", "/auth/refresh", null, { refreshToken: "x".repeat(40) });
+  check("invalid refresh token → 401", r.status === 401, r.body);
+  r = await call("POST", "/auth/refresh", null, {});
+  check("refresh without token → 422", r.status === 422, r.body);
+
+  r = await call("GET", "/auth/providers");
+  check("GET /auth/providers → { google: boolean }", r.status === 200 && typeof r.data?.google === "boolean", r.body);
+  const siteOrigin = new URL(BASE).origin;
+  r = await call("GET", `/auth/oauth/google/url?redirectTo=${encodeURIComponent("https://evil.example/en/auth/callback")}`);
+  check("Google URL: foreign redirect target refused (no open redirect) → 422", r.status === 422, r.body);
+  r = await call("GET", `/auth/oauth/google/url?redirectTo=${encodeURIComponent(siteOrigin + "/en/somewhere-else")}`);
+  check("Google URL: only /bn|en/auth/callback allowed → 422", r.status === 422, r.body);
+  r = await call("GET", `/auth/oauth/google/url?redirectTo=${encodeURIComponent(siteOrigin + "/en/auth/callback?x=1")}`);
+  check("Google URL: no query string on the callback → 422", r.status === 422, r.body);
+  r = await call("GET", "/auth/oauth/google/url");
+  check("Google URL: redirectTo required → 422", r.status === 422, r.body);
+  r = await call("GET", `/auth/oauth/google/url?redirectTo=${encodeURIComponent(siteOrigin + "/en/auth/callback")}`);
+  check("Google URL: valid target → Supabase URL, or a clear 'not enabled' answer", (r.status === 200 && /provider=google/.test(r.data?.url ?? "")) || (r.status === 409 && r.body?.details?.reason === "google_not_enabled"), r.body);
+
+  // first Google sign-in: a Supabase account without a local row becomes a free GENERAL_USER account
+  const anon = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_ANON_KEY!, { auth: { persistSession: false } });
+  const gPass = `Gg${rnd(8)}7z`;
+  const gMail = `google.${tag}@mailinator.com`;
+  const gUser = await sb.auth.admin.createUser({ email: gMail, password: gPass, email_confirm: true, user_metadata: { full_name: "Google Person" } });
+  if (gUser.error) throw gUser.error;
+  authIds.push(gUser.data.user.id);
+  const gTok = (await anon.auth.signInWithPassword({ email: gMail, password: gPass })).data.session!.access_token;
+  r = await call("POST", "/auth/oauth/complete", null, {});
+  check("oauth/complete without token → 401", r.status === 401, r.body);
+  r = await call("POST", "/auth/oauth/complete", "garbage", {});
+  check("oauth/complete with a bad token → 401", r.status === 401, r.body);
+  r = await call("POST", "/auth/oauth/complete", gTok, { locale: "en" });
+  check("first Google sign-in creates a free account (GENERAL_USER) named from Google", r.status === 200 && r.data?.isNew === true && r.data?.user?.role === "GENERAL_USER" && r.data?.user?.fullName === "Google Person" && /^[a-z0-9_]{3,20}$/.test(r.data?.user?.username ?? ""), r.body);
+  const gId = r.data?.user?.id;
+  if (gId) users.google = { key: "google", id: gId, authId: gUser.data.user.id, email: gMail, password: gPass, username: r.data.user.username, token: "" };
+  r = await call("POST", "/auth/oauth/complete", gTok, { locale: "en" });
+  check("second call returns the same account (isNew false)", r.status === 200 && r.data?.isNew === false && r.data?.user?.id === gId, r.body);
+  r = await call("GET", "/me", gTok);
+  check("the Google session works with the normal API", r.status === 200 && r.data?.id === gId && r.data?.email === gMail, r.body);
+  await db.user.update({ where: { id: gId }, data: { status: "SUSPENDED" } });
+  r = await call("POST", "/auth/oauth/complete", gTok, {});
+  check("suspended account cannot sign in with Google → 403", r.status === 403 && r.code === "ACCOUNT_SUSPENDED", r.body);
+
+  // same e-mail already registered locally under another login → never silently merged
+  const cMail = `clash.${tag}@mailinator.com`;
+  const clashLocal = await db.user.create({ data: { username: `clash${tag}`, fullName: "Local clash", email: cMail, phone: phone(), role: "GENERAL_USER" } });
+  users.clash = { key: "clash", id: clashLocal.id, authId: "", email: cMail, password: "", username: clashLocal.username, token: "" };
+  const cSb = await sb.auth.admin.createUser({ email: cMail, password: gPass, email_confirm: true });
+  if (cSb.error) throw cSb.error;
+  authIds.push(cSb.data.user.id);
+  const cTok = (await anon.auth.signInWithPassword({ email: cMail, password: gPass })).data.session!.access_token;
+  r = await call("POST", "/auth/oauth/complete", cTok, {});
+  check("Google e-mail already used by a different local account → 409 (not merged)", r.status === 409 && r.body?.details?.reason === "email_registered", r.body);
 
   section("oversight: gov directories, people search, property verification");
   const ownerRow = await db.user.findUniqueOrThrow({ where: { id: users.owner!.id } });

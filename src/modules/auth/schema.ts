@@ -12,6 +12,7 @@ export const passwordSchema = z
 const registerAddress = z.object({
   division: z.string().trim().min(2).max(60), district: z.string().trim().min(2).max(60),
   upazila: z.string().trim().max(60).optional(), area: z.string().trim().max(100).optional(),
+  union: z.string().trim().max(80).optional(), postOffice: z.string().trim().max(80).optional(),
   street: z.string().trim().max(200).optional(), postalCode: z.string().regex(/^\d{4}$/).optional(),
 });
 
@@ -23,6 +24,9 @@ export const registerSchema = z.object({
   password: passwordSchema,
   role: z.enum(PUBLIC_REGISTRATION_ROLES),
   nid: nidSchema.optional(),
+  occupation: z.string().trim().max(80).optional(),
+  /** random uuid chosen by the browser; ties pre-registration uploads (NID, photo) to this sign-up */
+  uploadSession: z.string().uuid().optional(),
   dateOfBirth: z.coerce.date().max(new Date()).optional(),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]).optional(),
   address: registerAddress.optional(),
@@ -80,3 +84,16 @@ export const userEditSchema = z.object({
   phone: bdPhoneSchema,
   locale: z.enum(["bn", "en"]),
 }).partial().strict().refine((v) => Object.keys(v).length > 0, { message: "empty_update" });
+
+export const availabilityQuery = z.object({
+  username: usernameSchema.optional(),
+  email: z.string().trim().toLowerCase().email().optional(),
+  phone: bdPhoneSchema.optional(),
+}).refine((v) => v.username || v.email || v.phone, { message: "one_field_required", path: ["username"] });
+
+export const regUploadSchema = z.object({
+  session: z.string().uuid(),
+  purpose: z.enum(["NID_FRONT", "NID_BACK", "AVATAR"]),
+  mime: z.string(),
+  size: z.coerce.number().int().positive(),
+});

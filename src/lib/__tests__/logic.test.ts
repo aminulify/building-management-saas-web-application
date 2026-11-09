@@ -113,3 +113,45 @@ describe("csv + masking", () => {
     expect(maskNid(null)).toBeNull();
   });
 });
+
+import { availabilityQuery, regUploadSchema } from "@/modules/auth/schema";
+import { nidSchema, usernameSchema } from "@/modules/users/schema";
+
+describe("sign-up field rules (design: username with underscore, NID 13-17 digits)", () => {
+  it("username allows lowercase letters, digits and underscore", () => {
+    expect(usernameSchema.safeParse("abdur_rahman24").success).toBe(true);
+    expect(usernameSchema.safeParse("Abdur Rahman").success).toBe(false);
+    expect(usernameSchema.safeParse("ab").success).toBe(false);
+  });
+  it("NID must be 13 to 17 digits", () => {
+    for (const ok of ["1234567890123", "12345678901234", "12345678901234567"]) expect(nidSchema.safeParse(ok).success).toBe(true);
+    for (const bad of ["1234567890", "123456789012", "123456789012345678", "12345678901ab"]) expect(nidSchema.safeParse(bad).success).toBe(false);
+  });
+  it("register accepts occupation, union and post office", () => {
+    const r = registerSchema.parse({ fullName: "Abdur Rahman", username: "abdur_rahman24", email: "rahman@example.com", phone: "01712345678", password: "abcd1234", role: "TENANT", consent: true, occupation: "Software Engineer", address: { division: "Dhaka", district: "Dhaka", union: "Sector 4", postOffice: "1000", street: "House 12, Road 5" }, uploadSession: crypto.randomUUID() });
+    expect(r.address?.union).toBe("Sector 4");
+  });
+  it("availability needs one valid field; public upload only allows NID/avatar", () => {
+    expect(availabilityQuery.safeParse({}).success).toBe(false);
+    expect(availabilityQuery.safeParse({ username: "abdur_rahman24" }).success).toBe(true);
+    expect(regUploadSchema.safeParse({ session: crypto.randomUUID(), purpose: "AGREEMENT", mime: "image/png", size: 1 }).success).toBe(false);
+  });
+});
+
+import { loginFormSchema } from "@/modules/auth/login/schema";
+import { safeNext } from "@/lib/auth-client";
+
+describe("sign-in form rules", () => {
+  it("requires identifier and password; remember is a plain boolean", () => {
+    const keys = (v: object) => loginFormSchema.safeParse(v).error?.issues.map((i) => i.message) ?? [];
+    expect(keys({ identifier: "", password: "", remember: false })).toEqual(expect.arrayContaining(["identifierRequired", "passwordRequiredLogin"]));
+    expect(keys({ identifier: "ab", password: "x", remember: false })).toContain("identifierShort");
+    expect(keys({ identifier: "abdur_rahman24", password: "x", remember: true })).toEqual([]);
+    expect(keys({ identifier: "name@example.com", password: "x", remember: false })).toEqual([]);
+  });
+  it("post-login redirect only accepts same-site relative paths", () => {
+    expect(safeNext("/account")).toBe("/account");
+    expect(safeNext("/en/owner/dashboard?tab=1")).toBe("/en/owner/dashboard?tab=1");
+    for (const bad of ["https://evil.example", "//evil.example", "javascript:alert(1)", "\\\\evil", "", null, undefined]) expect(safeNext(bad as string | null)).toBeNull();
+  });
+});

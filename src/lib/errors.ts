@@ -14,6 +14,7 @@ export type ErrorCode =
   | "TRXID_ALREADY_USED"
   | "UPGRADE_ALREADY_PENDING"
   | "INVALID_STATE"
+  | "EMAIL_NOT_CONFIRMED"
   | "INTERNAL";
 
 const STATUS: Record<ErrorCode, number> = {
@@ -32,6 +33,7 @@ const STATUS: Record<ErrorCode, number> = {
   TRXID_ALREADY_USED: 409,
   UPGRADE_ALREADY_PENDING: 409,
   INVALID_STATE: 409,
+  EMAIL_NOT_CONFIRMED: 403,
   INTERNAL: 500,
 };
 

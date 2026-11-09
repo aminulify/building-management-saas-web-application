@@ -6,6 +6,7 @@ import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { sha256 } from "@/lib/crypto";
 import { supabaseAdmin, supabaseAnon } from "@/lib/supabase";
 import { toActor } from "@/lib/auth/require-actor";
+import { finalizeRegistrationUploads } from "./registration-uploads";
 import { isEmail, type loginSchema, type registerSchema } from "./schema";
 
 type Register = z.infer<typeof registerSchema>;
@@ -45,14 +46,23 @@ export async function register(input: Register, req: Request) {
         locale: input.locale,
         dateOfBirth: input.dateOfBirth,
         gender: input.gender,
-        ...(input.address ? { address: { create: input.address } } : {}),
+        occupation: input.occupation,
+        // "Post Office" is free text; when the user typed a 4-digit code it is also kept as the postal code
+        ...(input.address ? { address: { create: { ...input.address, postalCode: input.address.postalCode ?? (/^\d{4}$/.test(input.address.postOffice ?? "") ? input.address.postOffice : undefined) } } } : {}),
         ...(input.nid ? { nid: input.nid, nidHash, nidLast4: input.nid.slice(-4) } : {}),
         ...(input.role === "OWNER" ? { ownerProfile: { create: {} } } : {}),
         ...(input.role === "TENANT" ? { tenantProfile: { create: {} } } : {}),
       },
       select: { id: true, username: true, role: true, email: true },
     });
-    return user;
+    const documents = input.uploadSession ? await finalizeRegistrationUploads(user.id, input.uploadSession) : null;
+    return {
+      ...user,
+      documents,
+      // when the project requires e-mail confirmation there is no session yet: the client must tell the user to confirm
+      needsEmailConfirmation: !data.session,
+      session: data.session ? { accessToken: data.session.access_token, refreshToken: data.session.refresh_token, expiresAt: data.session.expires_at } : null,
+    };
   } catch (e) {
     await supabaseAdmin().auth.admin.deleteUser(data.user.id); // no orphan auth accounts
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") throw new AppError("CONFLICT");
@@ -62,7 +72,9 @@ export async function register(input: Register, req: Request) {
 
 async function resolveEmail(identifier: string): Promise<string | null> {
   if (isEmail(identifier)) return identifier;
-  const u = await db.user.findUnique({ where: { phone: identifier }, select: { email: true } });
+  // username (a-z0-9_) or Bangladeshi phone, with or without +88
+  const phone = identifier.replace(/[\s\-]/g, "").replace(/^\+?88(?=01)/, "");
+  const u = await db.user.findFirst({ where: { OR: [{ username: identifier }, { phone }] }, select: { email: true } });
   return u?.email ?? null;
 }
 
@@ -74,6 +86,8 @@ export async function login(input: Login, req: Request) {
   if (!email) throw new AppError("UNAUTHENTICATED");
 
   const { data, error } = await supabaseAnon().auth.signInWithPassword({ email, password: input.password });
+  // Supabase only says "not confirmed" after the password was correct, so this does not reveal who has an account
+  if (error?.code === "email_not_confirmed") throw new AppError("EMAIL_NOT_CONFIRMED");
   if (error || !data.session) throw new AppError("UNAUTHENTICATED");
 
   const user = await db.user.findUnique({ where: { authId: data.user.id } });
@@ -128,4 +142,18 @@ export async function resetPassword(accessToken: string, password: string) {
   const { error: upErr } = await supabaseAdmin().auth.admin.updateUserById(data.user.id, { password });
   if (upErr) throw new AppError("VALIDATION_ERROR", [{ path: "password", code: "rejected" }]);
   return { ok: true };
+}
+
+/** Exchanges a refresh token for a new session ("Stay logged in"). */
+export async function refresh(refreshToken: string, req: Request) {
+  rateLimit(`refresh:${clientIp(req)}`, 60, 60_000);
+  const { data, error } = await supabaseAnon().auth.refreshSession({ refresh_token: refreshToken });
+  if (error || !data.session) throw new AppError("UNAUTHENTICATED");
+  const user = await db.user.findUnique({ where: { authId: data.session.user.id } });
+  if (!user) throw new AppError("UNAUTHENTICATED");
+  toActor(user); // a suspended account cannot keep refreshing
+  return {
+    session: { accessToken: data.session.access_token, refreshToken: data.session.refresh_token, expiresAt: data.session.expires_at },
+    user: { id: user.id, username: user.username, role: user.role, fullName: user.fullName, locale: user.locale },
+  };
 }

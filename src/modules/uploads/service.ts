@@ -5,7 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase";
 import { rateLimit } from "@/lib/rate-limit";
 import type { Actor } from "@/lib/auth/require-actor";
 
-const BUCKET = "amaderghor-private";
+export const BUCKET = "amaderghor-private";
 const IMAGE = ["image/jpeg", "image/png", "image/webp"] as const;
 const DOC = [...IMAGE, "application/pdf"] as const;
 const MB = 1024 * 1024;
@@ -34,10 +34,10 @@ export const signSchema = z.object({
   size: z.coerce.number().int().positive(),
 });
 
-const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+export const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
 let bucketReady = false;
 
-async function ensureBucket() {
+export async function ensureBucket() {
   if (bucketReady) return;
   const sb = supabaseAdmin();
   const { error } = await sb.storage.createBucket(BUCKET, { public: false, fileSizeLimit: 10 * MB, allowedMimeTypes: [...DOC] });
@@ -46,6 +46,7 @@ async function ensureBucket() {
 }
 
 /** Key layout `<purpose>/<userId>/<uuid>.<ext>`: the user id in the path is what ownership checks rely on. */
+export const PURPOSE_RULES = PURPOSES;
 export const keyBelongsTo = (key: string, userId: string) => key.split("/")[1] === userId;
 export const keyPurpose = (key: string) => key.split("/")[0] as UploadPurpose;
 

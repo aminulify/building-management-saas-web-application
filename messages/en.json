@@ -15,7 +15,8 @@
     "INTERNAL": "Something went wrong.",
     "TRXID_ALREADY_USED": "This Transaction ID has already been used.",
     "UPGRADE_ALREADY_PENDING": "You already have a request waiting for verification.",
-    "INVALID_STATE": "This action is not allowed in the current state."
+    "INVALID_STATE": "This action is not allowed in the current state.",
+    "EMAIL_NOT_CONFIRMED": "Please confirm your email address first. Check your inbox for the confirmation link."
   },
   "notifications": {
     "callRequested": "{from} asked for a call back",
@@ -52,5 +53,279 @@
     "subscriptionCancelled": "Subscription cancelled. Access continues until {endsAt}",
     "rentPaymentVerified": "Your rent payment of ৳{amount} was {decision}",
     "rentAdjusted": "Your rent bill changed: total ৳{total}"
+  },
+  "common": {
+    "language": "Language"
+  },
+  "auth": {
+    "register": {
+      "metaTitle": "Sign up",
+      "title": "Start your <hl>journey</hl> with us.",
+      "subtitle": "Join the most advanced apartment management ecosystem in Bangladesh.",
+      "haveAccount": "Already have an account?",
+      "login": "Login",
+      "stepperLabel": "Registration progress",
+      "stepOf": "Step {n} of {total}",
+      "completed": "completed",
+      "steps": {
+        "personal": "Personal Information",
+        "address": "Permanent Address",
+        "security": "Security",
+        "documents": "Document Verification"
+      },
+      "stepHints": {
+        "personal": "Basic details to identify your account.",
+        "address": "Your official address records for verification.",
+        "security": "Set a strong password to protect your assets.",
+        "documents": "Upload clear photos of your identification documents."
+      },
+      "next": "Next Step",
+      "back": "Back",
+      "complete": "Complete Registration",
+      "submitting": "Creating your account…",
+      "retry": "Retry",
+      "geoError": "Could not load the area list. Please check your connection.",
+      "replace": "Replace",
+      "remove": "Remove",
+      "uploading": "Uploading…",
+      "uploaded": "Uploaded",
+      "uploadFailed": "Upload failed",
+      "dragHint": "or drag and drop here",
+      "checking": "Checking…",
+      "available": "Available",
+      "taken": "Already taken",
+      "usernameTaken": "This username is already taken.",
+      "emailTaken": "An account with this email already exists.",
+      "phoneTaken": "An account with this phone number already exists.",
+      "nidTaken": "This NID is already registered.",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "passwordsMatch": "Passwords match",
+      "fields": {
+        "role": "I am registering as",
+        "fullName": "Full name",
+        "username": "Username",
+        "email": "Email address",
+        "phone": "Phone number",
+        "occupation": "Occupation",
+        "dateOfBirth": "Date of birth",
+        "nid": "NID number",
+        "division": "Division",
+        "district": "District",
+        "upazila": "Thana / Upazila",
+        "union": "Union",
+        "street": "Village / Street",
+        "postOffice": "Post office",
+        "password": "Password",
+        "confirmPassword": "Confirm password"
+      },
+      "placeholders": {
+        "fullName": "e.g. Abdur Rahman",
+        "username": "abdur_rahman24",
+        "email": "rahman@example.com",
+        "phone": "01XXXXXXXXX",
+        "occupation": "e.g. Software Engineer",
+        "nid": "13-digit to 17-digit NID",
+        "division": "Select Division",
+        "district": "Select District",
+        "upazila": "Select Thana / Upazila",
+        "upazilaFree": "Type your Thana / Upazila",
+        "union": "Your union (optional)",
+        "street": "House 12, Road 5...",
+        "postOffice": "e.g. 1000"
+      },
+      "hints": {
+        "username": "3–20 letters, digits or underscore. This is your payment reference.",
+        "phone": "Bangladesh mobile, e.g. 017XXXXXXXX",
+        "nid": "Only digits. Our team verifies it manually.",
+        "upazilaFree": "We do not have the list for this district yet. Please type it."
+      },
+      "roles": {
+        "OWNER": {
+          "title": "Apartment owner",
+          "hint": "Manage properties, units, tenants and rent"
+        },
+        "TENANT": {
+          "title": "Tenant",
+          "hint": "Rent a home, pay rent, raise requests"
+        },
+        "GENERAL_USER": {
+          "title": "Property seeker",
+          "hint": "Search homes and land for free"
+        }
+      },
+      "rules": {
+        "length": "At least 8 characters",
+        "letter": "Contains a letter",
+        "digit": "Contains a number"
+      },
+      "strength": {
+        "title": "Password strength",
+        "level0": "Too short",
+        "level1": "Weak",
+        "level2": "Fair",
+        "level3": "Good",
+        "level4": "Strong"
+      },
+      "docs": {
+        "frontLabel": "NID front side",
+        "backLabel": "NID back side",
+        "frontTitle": "Upload Front View",
+        "backTitle": "Upload Back View",
+        "hint": "PNG, JPG up to 5MB"
+      },
+      "photo": {
+        "title": "Your Photo",
+        "hint": "Clear portrait for profile verification.",
+        "choose": "Choose File"
+      },
+      "consent": {
+        "title": "I confirm these details are mine",
+        "text": "The information and documents I provided are true and belong to me. I agree to the Terms of Service and Privacy Policy."
+      },
+      "errors": {
+        "network": "Could not reach the server. Check your connection and try again.",
+        "emailLimit": "Our email service has reached its hourly sign-up limit, so your account could not be created yet. Nothing is lost: your details and uploaded documents are kept on this page. Please try again in about an hour.",
+        "uploadFailed": "A document could not be uploaded. Please try again.",
+        "nidFrontRequired": "Please upload the front side of your NID.",
+        "nidBackRequired": "Please upload the back side of your NID."
+      },
+      "success": {
+        "title": "Welcome to <hl>AmaderGhor</hl>!",
+        "confirmEmail": "We sent a confirmation link to {email}. Open it to activate your account, then log in.",
+        "ready": "Your account is ready. You can log in now.",
+        "documentsReceived": "Your NID and photo were received. Our team will verify them shortly.",
+        "goLogin": "Go to Login"
+      },
+      "stepTitles": {
+        "personal": "Personal <hl>Information</hl>",
+        "address": "Permanent <hl>Address</hl>",
+        "security": "<hl>Security</hl>",
+        "documents": "Document <hl>Verification</hl>"
+      }
+    },
+    "login": {
+      "metaTitle": "Sign in",
+      "title": "Welcome back to your <hl>home</hl>.",
+      "subtitle": "Manage your apartment, pay bills, and connect with neighbors in one place.",
+      "sectionTitle": "<hl>Sign In</hl>",
+      "sectionSubtitle": "Enter your credentials to access your account.",
+      "fields": {
+        "identifier": "Email or username",
+        "password": "Password"
+      },
+      "placeholders": {
+        "identifier": "name@example.com"
+      },
+      "forgot": "Forget password?",
+      "stayLoggedIn": "Stay Logged In",
+      "submit": "Sign In to Dashboard",
+      "submitting": "Signing in…",
+      "success": "Signed in! Redirecting…",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "orContinue": "Or continue with",
+      "google": "Continue With Google",
+      "googleSoon": "Google sign-in is not available yet.",
+      "noAccount": "Don't have an account?",
+      "createAccount": "Create Account",
+      "errors": {
+        "invalidCredentials": "Incorrect email, username or password. Please try again.",
+        "suspended": "This account is not active. Please contact support.",
+        "emailNotConfirmed": "Please confirm your email address first. Check your inbox for the confirmation link.",
+        "tooManyAttempts": "Too many attempts. Please try again in {minutes} minute(s).",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "generic": "Something went wrong. Please try again.",
+        "googleUnavailable": "Google sign-in is not available yet. Please use your email and password.",
+        "googleFailed": "Could not start Google sign-in. Please try again."
+      },
+      "callback": {
+        "title": "Signing you <hl>in</hl>…",
+        "signingIn": "Finishing your Google sign-in. One moment please.",
+        "failedTitle": "Sign-in <hl>failed</hl>",
+        "backToLogin": "Back to sign in",
+        "cancelled": "Google sign-in was cancelled or did not complete.",
+        "emailRegistered": "An account with this email already exists. Please sign in with your email and password.",
+        "suspended": "This account is not active. Please contact support.",
+        "emailNotVerified": "Google did not confirm your email address, so we could not sign you in.",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "failed": "We could not complete the sign-in. Please try again."
+      }
+    }
+  },
+  "validation": {
+    "roleRequired": "Please choose how you will use AmaderGhor.",
+    "fullNameMin": "Enter your full name (at least 2 characters).",
+    "fullNameMax": "Name is too long.",
+    "usernameFormat": "Use 3–20 lowercase letters, digits or underscore.",
+    "emailInvalid": "Enter a valid email address.",
+    "phoneInvalid": "Enter a valid Bangladesh mobile number (e.g. 017XXXXXXXX).",
+    "occupationMax": "Occupation is too long.",
+    "dobRequired": "Select your date of birth.",
+    "dobInvalid": "Enter a valid date of birth in the past.",
+    "nidFormat": "NID must be 13 to 17 digits.",
+    "divisionRequired": "Select a division.",
+    "districtRequired": "Select a district.",
+    "upazilaRequired": "Select or enter your Thana / Upazila.",
+    "streetRequired": "Enter your village / street address.",
+    "tooLong": "Too long.",
+    "passwordMin": "Use at least 8 characters.",
+    "passwordMax": "Use at most 72 characters.",
+    "passwordLetter": "Include at least one letter.",
+    "passwordDigit": "Include at least one number.",
+    "confirmRequired": "Confirm your password.",
+    "passwordMismatch": "Passwords do not match.",
+    "consentRequired": "Please confirm to continue.",
+    "fileType": "Only PNG, JPG or WEBP images are allowed.",
+    "fileSize": "File is larger than 5MB.",
+    "fileEmpty": "This file is empty.",
+    "serverInvalid": "Please check this field.",
+    "usernameTaken": "This username is already taken.",
+    "emailTaken": "An account with this email already exists.",
+    "phoneTaken": "An account with this phone number already exists.",
+    "nidTaken": "This NID is already registered.",
+    "identifierRequired": "Enter your email or username.",
+    "identifierShort": "Enter at least 3 characters.",
+    "passwordRequiredLogin": "Enter your password."
+  },
+  "errorPages": {
+    "notFound": {
+      "title": "This page took a <hl>wrong</hl> turn.",
+      "text": "The page you are looking for does not exist or may have moved.",
+      "signup": "Sign up",
+      "home": "Back to home"
+    },
+    "error": {
+      "title": "Something went <hl>wrong</hl>.",
+      "text": "An unexpected error stopped this page from loading. Your data is safe. Please try again.",
+      "retry": "Try again",
+      "home": "Back to home",
+      "reference": "Reference"
+    }
+  },
+  "account": {
+    "metaTitle": "My account",
+    "title": "You are <hl>signed in</hl>.",
+    "loading": "Loading your account",
+    "loadError": "We could not load your account. Please check your connection and try again.",
+    "retry": "Try again",
+    "role": "Account type",
+    "verification": "Identity verification",
+    "ownerId": "Owner ID",
+    "note": "Your dashboard will appear here as soon as it is ready.",
+    "signOut": "Sign out",
+    "roles": {
+      "SUPER_ADMIN": "Super Admin",
+      "GOV_ADMIN": "Government Admin",
+      "OWNER": "Apartment Owner",
+      "TENANT": "Tenant",
+      "GENERAL_USER": "Property Seeker"
+    },
+    "verifications": {
+      "UNVERIFIED": "Not submitted",
+      "PENDING": "Under review",
+      "VERIFIED": "Verified",
+      "REJECTED": "Rejected"
+    }
   }
 }

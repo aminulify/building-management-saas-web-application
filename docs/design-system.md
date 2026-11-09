@@ -23,20 +23,158 @@ The entire application must adopt a sleek **Glassmorphism (Frosted Glass)** visu
 
 The application requires strict separation and styling for English and Bengali typography.
 
-### **A. English Font Rules**
-* **General Text (Poppins):** Use **Poppins** for all standard English text, descriptions, table contents, and form inputs.
-  - *Weights:* Regular (400), Medium (500), SemiBold (600), Bold (700).
-* **Titles, Subtitles & Important Words (Playfair Display Italic):** 
-  - **Important Rule:** Every major page title, subtitle, or highlighted key phrase in English must use **Playfair Display italic** styled with a **vibrant gradient text**.
-  - *Weights:* Medium italic (500), Semibold italic (600), Bold italic (700).
-  - *Gradient Style CSS:*
-    ```css
-    font-family: 'Playfair Display', serif;
-    font-style: italic;
-    background: linear-gradient(135deg, #EC008C 0%, #7B2FF7 50%, #00AEEF 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    ```
+# Typography & Heading Styling Guidelines
+
+## A. English Font Rules
+
+### 1. General Text — Poppins
+
+Use **Poppins** as the primary font for all standard English content throughout the application.
+
+Apply Poppins to:
+- Paragraphs and descriptions
+- Navigation menus
+- Buttons and CTA text
+- Table contents
+- Form labels and inputs
+- Dashboard content
+- General UI text
+
+**Font Weights:**
+- Regular: 400
+- Medium: 500
+- SemiBold: 600
+- Bold: 700
+
+### 2. Titles, Subtitles & Important Words — Playfair Display Italic
+
+Use **Playfair Display Italic** to create visual emphasis in important English typography.
+
+Apply it to:
+- Major page titles
+- Hero section headings
+- Section titles and subtitles
+- Important phrases
+- Selected highlighted words within heading sentences
+
+**Font Weights:**
+- Medium Italic: 500
+- SemiBold Italic: 600
+- Bold Italic: 700
+
+### 3. Gradient Text Color
+
+All Playfair Display Italic text must use the application's existing brand gradient.
+
+**Brand Gradient:**
+
+`linear-gradient(135deg, #F413E6 0%, #48BDFA 100%)`
+
+**CSS Implementation:**
+
+```css
+.gradient-heading {
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
+  font-weight: 600;
+  background: linear-gradient(135deg, #F413E6 0%, #48BDFA 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+```
+
+---
+
+## B. Heading Sentence Styling Rules
+
+**Important:** Do not automatically apply Playfair Display to the entire heading sentence. Instead, analyze each heading and select its most meaningful word or phrase for special emphasis.
+
+Keep the remaining words in Poppins.
+
+### Example 1
+
+**Original Heading:**
+
+Start your journey with us.
+
+**Typography Breakdown:**
+
+| Text | Font | Style |
+|---|---|---|
+| Start your | Poppins | Original text color |
+| journey | Playfair Display Italic | Brand gradient |
+| with us. | Poppins | Original text color |
+
+**Visual Implementation:**
+
+```jsx
+<h1 className="font-poppins">
+  Start your{" "}
+  <span className="gradient-heading">
+    journey
+  </span>{" "}
+  with us.
+</h1>
+```
+
+### Example 2
+
+**Original Heading:**
+
+Find your perfect home today.
+
+**Typography Breakdown:**
+
+| Text | Font | Style |
+|---|---|---|
+| Find your | Poppins | Original text color |
+| perfect home | Playfair Display Italic | Brand gradient |
+| today. | Poppins | Original text color |
+
+### Example 3
+
+**Original Heading:**
+
+Manage your properties effortlessly.
+
+**Typography Breakdown:**
+
+| Text | Font | Style |
+|---|---|---|
+| Manage your | Poppins | Original text color |
+| properties | Playfair Display Italic | Brand gradient |
+| effortlessly. | Poppins | Original text color |
+
+---
+
+## C. Implementation Requirements
+
+1. Analyze every heading on the current page before implementing the typography.
+2. Identify the most meaningful, visually impactful, or emotionally engaging word or short phrase in each heading.
+3. Apply Playfair Display Italic and the brand gradient only to the selected word or phrase.
+4. Keep all remaining heading text in Poppins.
+5. Preserve the original heading sentence, wording, and meaning.
+6. Select one primary highlighted word or phrase per heading. Avoid excessive highlighting.
+7. Use the exact same gradient as the application's primary buttons: `#F413E6` to `#48BDFA`.
+8. Maintain consistent font weights, spacing, line heights, and visual hierarchy.
+9. Ensure highlighted text wraps naturally on smaller screens.
+10. Reuse existing font definitions and CSS/Tailwind utilities wherever possible.
+11. Do not introduce additional fonts or gradient colors.
+12. Apply the rules consistently across hero sections, page headers, section headings, feature sections, and CTA headings.
+
+## D. Final Design Direction
+
+The overall typography should combine:
+
+- **Poppins:** Clean, modern, readable, and professional.
+- **Playfair Display Italic:** Elegant, expressive, and visually distinctive.
+- **Brand Gradient:** Vibrant pink-to-blue gradient matching the application's buttons and primary branding.
+
+**Expected Result:** Every heading should maintain a clean Poppins typography foundation while its most important word or phrase stands out through elegant Playfair Display Italic typography and the existing brand gradient.
+
+Apply these guidelines only to the current page being implemented. Preserve the existing design system and do not modify unrelated components.
 
 ### **B. Bengali Font Rules**
 * **Bengali Text (Anek Bangla):** Use **Anek Bangla** for all Bengali UI elements, headers, tables, and buttons.
@@ -63,7 +201,7 @@ The application requires strict separation and styling for English and Bengali t
 ## 🧩 4. COMPONENT LIBRARY SPECIFICATIONS
 
 1. **Buttons:**
-   - **Primary CTA:** Gradient background (`linear-gradient(135deg, #EC008C, #7B2FF7)`), white text, `rounded-xl`, soft glow shadow on hover.
+   - **Primary CTA:** Gradient background (`linear-gradient(135deg, #F413E6, #48BDFA)`), white text, `rounded-xl`, soft glow shadow on hover.
    - **Glass Secondary Button:** `rgba(255, 255, 255, 0.5)` background, `1px solid rgba(255, 255, 255, 0.8)`, dark navy text.
    - **Destructive Button:** `rgba(239, 68, 68, 0.15)` background, `#DC2626` text, `1px solid rgba(239, 68, 68, 0.3)`.
 

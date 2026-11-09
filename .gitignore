@@ -1,8 +1,12 @@
 node_modules
 .next
+*.tsbuildinfo
+next-env.d.ts
+
+# secrets: real keys live only in .env (the example file is the only env file that may be committed)
 .env
 .env.*
 !.env.example
-*.tsbuildinfo
-next-env.d.ts
-.env.example
+
+# local test output
+e2e.log

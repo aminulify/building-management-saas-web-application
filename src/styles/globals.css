@@ -1,0 +1,144 @@
+@import "tailwindcss";
+
+/* ---------- design tokens (docs/design-system.md) ---------- */
+@theme {
+  --color-brand-magenta: #ec008c;
+  --color-brand-purple: #7b2fff;
+  --color-brand-sky: #00aeef;
+  --color-navy: #0f172a;
+  --color-label: #64748b;
+  --color-step-1: #00aeef;
+  --color-step-2: #7b2ff7;
+  --color-step-3: #ec008c;
+  --color-step-4: #f5b301;
+  --color-success: #16a34a;
+
+  --brand-gradient: linear-gradient(135deg, #f413e6 0%, #48bdfa 100%);
+  --color-brand-pink: #f413e6;
+  --color-brand-blue: #48bdfa;
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-playfair), Georgia, serif;
+  --font-bn: var(--font-anek), ui-sans-serif, system-ui, sans-serif;
+
+  --animate-float-a: float-a 22s ease-in-out infinite;
+  --animate-float-b: float-b 28s ease-in-out infinite;
+  --animate-float-c: float-c 25s ease-in-out infinite;
+  --animate-shimmer: shimmer 1.4s linear infinite;
+
+  @keyframes float-a { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(60px, 40px, 0) scale(1.08); } }
+  @keyframes float-b { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(-70px, 30px, 0) scale(1.1); } }
+  @keyframes float-c { 0%, 100% { transform: translate3d(0, 0, 0) scale(1); } 50% { transform: translate3d(40px, -50px, 0) scale(1.06); } }
+  @keyframes shimmer { 0% { background-position: -200% 0; } 100% { background-position: 200% 0; } }
+}
+
+/* ---------- base ---------- */
+html { color-scheme: light; }
+body {
+  min-height: 100vh;
+  font-family: var(--font-sans);
+  color: var(--color-navy);
+  background: linear-gradient(135deg, #e0f2fe 0%, #f3e8ff 40%, #fce7f3 70%, #ffedd5 100%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+/* Bangla pages use Anek Bangla everywhere */
+[data-locale="bn"] body { font-family: var(--font-bn); }
+[data-locale="bn"] input,
+[data-locale="bn"] select,
+[data-locale="bn"] button,
+[data-locale="bn"] textarea { font-family: var(--font-bn); }
+
+/* letter-spacing breaks Bangla conjuncts */
+[data-locale="bn"] [class*="tracking-"] { letter-spacing: normal; }
+
+:focus-visible { outline: 2px solid var(--color-brand-sky); outline-offset: 2px; }
+
+/* ---------- glass components ---------- */
+.glass-card {
+  background: rgba(255, 255, 255, 0.65);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.05), inset 0 0 12px rgba(255, 255, 255, 0.6);
+  border-radius: 24px;
+}
+/* low-end phones: cheaper blur */
+@media (max-width: 640px) {
+  .glass-card { -webkit-backdrop-filter: blur(10px) saturate(150%); backdrop-filter: blur(10px) saturate(150%); }
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-card { background: rgba(255, 255, 255, 0.92); }
+}
+
+.glass-input {
+  background: rgba(255, 255, 255, 0.5);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 1px solid #cbd5e1;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+.glass-input:hover { background: rgba(255, 255, 255, 0.75); }
+.glass-input:focus-within,
+.glass-input:focus {
+  border-color: var(--color-brand-sky);
+  box-shadow: 0 0 0 3px rgba(0, 174, 239, 0.25);
+  background: rgba(255, 255, 255, 0.9);
+}
+/* the wrapper already shows the focus halo; a second outline inside it looks broken */
+.glass-input input:focus-visible, .glass-input select:focus-visible { outline: none; }
+.glass-input[data-invalid="true"] { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
+
+/* design-system.md §2.A.3: Playfair Display Italic + the brand gradient, used only on the ONE highlighted word of a heading */
+.gradient-heading {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 600;
+  background: var(--brand-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  padding-right: 0.05em; /* keeps the italic tail from being clipped */
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone; /* the gradient repeats per line when the phrase wraps */
+}
+/* Bangla has no italic: same gradient, Anek Bangla SemiBold */
+[data-locale="bn"] .gradient-heading { font-family: var(--font-bn); font-style: normal; font-weight: 600; }
+
+/* single brand gradient (docs/design-system.md): buttons, active pills, accents */
+.bg-brand-gradient { background: var(--brand-gradient); }
+
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  height: 3rem; padding: 0 1.5rem; border-radius: 0.75rem; font-weight: 600; font-size: 0.95rem;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease, background-color 0.3s ease;
+  cursor: pointer; user-select: none;
+}
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.6; cursor: not-allowed; }
+.btn-primary, .btn-success { color: #fff; background: var(--brand-gradient); border-radius: 0.75rem; }
+.btn-primary:hover:not(:disabled), .btn-success:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 10px 30px -8px rgba(244, 19, 230, 0.55), 0 6px 18px -8px rgba(72, 189, 250, 0.6); filter: brightness(1.05); }
+.btn-primary:active:not(:disabled), .btn-success:active:not(:disabled) { transform: translateY(0); filter: brightness(0.97); }
+.btn-glass { color: var(--color-navy); background: rgba(255, 255, 255, 0.5); border: 1px solid rgba(255, 255, 255, 0.8); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
+.btn-glass:hover:not(:disabled) { background: rgba(255, 255, 255, 0.85); transform: translateY(-1px); }
+.btn-white { color: var(--color-navy); background: #fff; border: 1px solid #e2e8f0; }
+.btn-white:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 8px 22px -10px rgba(15, 23, 42, 0.25), 0 0 0 3px rgba(72, 189, 250, 0.15); border-color: #cbd5e1; }
+.btn-danger { color: #dc2626; background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0.6) 25%, rgba(255, 255, 255, 0.9) 50%, rgba(226, 232, 240, 0.6) 75%);
+  background-size: 200% 100%;
+  animation: var(--animate-shimmer);
+  border-radius: 0.5rem;
+}
+
+/* ---------- motion safety ---------- */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .btn-primary:hover:not(:disabled), .btn-glass:hover:not(:disabled), .btn-success:hover:not(:disabled), .btn-white:hover:not(:disabled) { transform: none; }
+}

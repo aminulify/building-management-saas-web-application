@@ -14,6 +14,7 @@ model User {
   dateOfBirth        DateTime?          @db.Date
   gender             String?
   avatarKey          String?
+  occupation         String?
   addressId          String?            @db.Uuid
   verificationStatus VerificationStatus @default(UNVERIFIED)
   locale             String             @default("bn")
@@ -84,6 +85,8 @@ model Address {
   upazila    String?
   area       String?
   street     String?
+  union      String?
+  postOffice String?
   postalCode String?
   properties Property[]
   owners     OwnerProfile[]

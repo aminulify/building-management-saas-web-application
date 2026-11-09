@@ -18,11 +18,20 @@
     "schema": "prisma/schema"
   },
   "dependencies": {
+    "@hookform/resolvers": "^5.9.2",
     "@prisma/client": "^6.19.3",
     "@supabase/supabase-js": "^2.119.0",
+    "@tailwindcss/postcss": "^4.3.5",
+    "clsx": "^2.1.1",
+    "framer-motion": "^12.43.0",
+    "lucide-react": "^1.70.0",
     "next": "^15.5.29",
+    "next-intl": "^4.14.9",
+    "postcss": "^8.5.32",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
+    "react-hook-form": "^7.91.0",
+    "tailwindcss": "^4.3.5",
     "zod": "^4.6.7"
   },
   "devDependencies": {

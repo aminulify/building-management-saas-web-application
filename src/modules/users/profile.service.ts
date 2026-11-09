@@ -22,6 +22,7 @@ export const profileUpdateSchema = z.object({
   locale: z.enum(["bn", "en"]),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
   dateOfBirth: z.coerce.date().max(new Date()),
+  occupation: z.string().trim().max(80),
   avatarKey: z.string().min(10).max(300),
   /** notification preferences, e.g. { email: true, sms: false, push: true } */
   preferences: z.record(z.string(), z.union([z.boolean(), z.string(), z.number()])).refine((v) => JSON.stringify(v).length < 2000, "too_large"),
@@ -33,7 +34,7 @@ export const profileUpdateSchema = z.object({
 
 const select = {
   id: true, username: true, ownerCode: true, role: true, status: true, fullName: true, email: true, phone: true, nidLast4: true,
-  verificationStatus: true, locale: true, gender: true, dateOfBirth: true, avatarKey: true, preferences: true, createdAt: true,
+  verificationStatus: true, locale: true, gender: true, occupation: true, dateOfBirth: true, avatarKey: true, preferences: true, createdAt: true,
   address: true, ownerProfile: { select: { businessName: true } }, tenantProfile: { select: { emergencyContact: true, occupation: true } }, govAdminProfile: { select: { department: true, designation: true } },
 } as const;
 

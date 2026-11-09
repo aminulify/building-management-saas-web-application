@@ -21,7 +21,8 @@ async function validateFilters(q: z.infer<typeof searchQuery>) {
   const bad = (path: string, code: string) => new AppError("VALIDATION_ERROR", [{ path, code }]);
   if (q.minPrice !== undefined && q.maxPrice !== undefined && q.minPrice > q.maxPrice) throw bad("maxPrice", "min_exceeds_max");
   if (q.minArea !== undefined && q.maxArea !== undefined && q.minArea > q.maxArea) throw bad("maxArea", "min_exceeds_max");
-  if ((q.lat === undefined) !== (q.lng === undefined) || (q.radiusKm !== undefined && q.lat === undefined)) throw bad("lat", "lat_lng_radius_together");
+  const geo = [q.lat, q.lng, q.radiusKm].filter((v) => v !== undefined).length;
+  if (geo !== 0 && geo !== 3) throw bad("radiusKm", "lat_lng_radius_together"); // a point without a radius (or the reverse) is meaningless
   if (q.districtId && q.divisionId && !(await db.district.count({ where: { id: q.districtId, divisionId: q.divisionId } }))) throw bad("districtId", "not_in_division");
   if (q.upazilaId && q.districtId && !(await db.upazila.count({ where: { id: q.upazilaId, districtId: q.districtId } }))) throw bad("upazilaId", "not_in_district");
   if (q.zoneId && q.upazilaId && !(await db.zone.count({ where: { id: q.zoneId, upazilaId: q.upazilaId } }))) throw bad("zoneId", "not_in_upazila");

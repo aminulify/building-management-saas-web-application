@@ -13,7 +13,7 @@ export const contactSchema = z.object({
   subject: z.string().trim().min(3).max(150),
   message: z.string().trim().min(10).max(3000),
   /** honeypot: real users never fill it */
-  website: z.string().max(0).optional(),
+  website: z.string().max(500).optional(),
 });
 
 export async function submitContact(input: z.infer<typeof contactSchema>, req: Request) {
