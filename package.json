@@ -13,9 +13,11 @@
     "db:deploy": "prisma migrate deploy",
     "test:e2e": "tsx --env-file=.env scripts/smoke.ts",
     "db:seed": "tsx --env-file=.env prisma/seed/index.ts",
+    "db:seed:listings": "tsx --env-file=.env prisma/seed/demo-listings.ts",
     "db:seed:demo": "tsx --env-file=.env prisma/seed/demo-owner.ts",
     "verify:tenants": "tsx --env-file=.env scripts/verify-tenants.ts",
-    "verify:rent": "tsx --env-file=.env scripts/verify-rent.ts"
+    "verify:rent": "tsx --env-file=.env scripts/verify-rent.ts",
+    "verify:findhome": "tsx --env-file=.env scripts/verify-findhome.ts"
   },
   "prisma": {
     "schema": "prisma/schema"
@@ -25,10 +27,12 @@
     "@prisma/client": "^6.19.3",
     "@supabase/supabase-js": "^2.119.0",
     "@tailwindcss/postcss": "^4.3.5",
+    "@types/leaflet": "^1.9.12",
     "clsx": "^2.1.1",
     "framer-motion": "^12.43.0",
     "jspdf": "^4.2.1",
     "jspdf-autotable": "^5.0.9",
+    "leaflet": "^1.9.4",
     "lucide-react": "^1.70.0",
     "next": "^15.5.29",
     "next-intl": "^4.14.9",

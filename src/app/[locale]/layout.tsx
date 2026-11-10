@@ -29,7 +29,8 @@ export default async function LocaleLayout({ children, params }: { children: Rea
 
   return (
     <html lang={locale} data-locale={locale} className={`${poppins.variable} ${playfair.variable} ${anek.variable}`}>
-      <body>
+      {/* browser extensions (Grammarly etc.) add attributes to <body> before React loads; that is not an app bug */}
+      <body suppressHydrationWarning>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <MotionProvider>{children}</MotionProvider>
           <HashAuthRedirect />

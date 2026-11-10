@@ -16,7 +16,7 @@ const landDetails = z.object({
 
 const base = z.object({
   type: z.enum(["RENT", "SALE"]),
-  category: z.enum(["FLAT", "APARTMENT", "BUILDING", "LAND", "COMMERCIAL"]),
+  category: z.enum(["FLAT", "APARTMENT", "BUILDING", "LAND", "COMMERCIAL", "DUPLEX", "STUDIO"]),
   title: z.string().trim().min(5).max(140),
   description: z.string().trim().min(20).max(5000),
   price: money,
@@ -35,10 +35,16 @@ const base = z.object({
   amenities: z.array(z.enum(AMENITIES)).max(AMENITIES.length),
   propertyId: uuid.optional(),
   unitId: uuid.optional(),
-  condition: z.enum(["NEW", "USED", "UNDER_CONSTRUCTION", "RENOVATED"]).optional(),
+  condition: z.enum(["NEW", "LIKE_NEW", "GOOD", "FAIR", "USED", "UNDER_CONSTRUCTION", "RENOVATED"]).optional(),
   availableFrom: dateOnly.optional(),
   videoUrl: z.string().url().max(300).startsWith("https://").optional(),
   fullAddress: z.string().trim().max(300).optional(),
+  division: z.string().trim().max(80).optional(),
+  district: z.string().trim().max(80).optional(),
+  upazila: z.string().trim().max(80).optional(),
+  unionName: z.string().trim().max(80).optional(),
+  postalCode: z.string().regex(/^\d{4}$/).optional(),
+  balconies: z.coerce.number().int().min(0).max(10).optional(),
   declaration: z.boolean(),
 });
 
@@ -52,7 +58,7 @@ export const listingUpdateSchema = base.partial().strict().refine((v) => Object.
 
 export const searchQuery = pageQuery.extend({
   type: z.enum(["RENT", "SALE"]).default("RENT"),
-  category: z.enum(["FLAT", "APARTMENT", "BUILDING", "LAND", "COMMERCIAL"]).optional(),
+  category: z.enum(["FLAT", "APARTMENT", "BUILDING", "LAND", "COMMERCIAL", "DUPLEX", "STUDIO"]).optional(),
   divisionId: uuid.optional(),
   districtId: uuid.optional(),
   upazilaId: uuid.optional(),
@@ -68,6 +74,20 @@ export const searchQuery = pageQuery.extend({
   lng: coords.lng.optional(),
   radiusKm: z.coerce.number().min(0.1).max(50).optional(),
   bathrooms: z.coerce.number().int().min(0).max(30).optional(),
+  /** place names exactly as the Bangladesh geo API spells them (case-insensitive) */
+  division: z.string().trim().max(80).optional(),
+  district: z.string().trim().max(80).optional(),
+  upazila: z.string().trim().max(80).optional(),
+  unionName: z.string().trim().max(80).optional(),
+  /** several categories at once, e.g. FLAT,APARTMENT for the "Apartment" choice */
+  categories: z.string().transform((s) => s.split(",").filter(Boolean)).pipe(z.array(z.enum(["FLAT", "APARTMENT", "BUILDING", "LAND", "COMMERCIAL", "DUPLEX", "STUDIO"])).max(7)).optional(),
+  /** exact bedroom counts, any of them: 2,3 */
+  bedroomList: z.string().transform((s) => s.split(",").filter(Boolean).map(Number)).pipe(z.array(z.number().int().min(0).max(30)).max(10)).optional(),
+  /** only listings the signed-in person saved */
+  saved: z.enum(["1", "true"]).transform(() => true).optional(),
+  /** land only: kind of land and the unit the area is written in */
+  landType: z.enum(["RESIDENTIAL", "COMMERCIAL", "AGRICULTURAL", "INDUSTRIAL"]).optional(),
+  areaUnit: z.enum(["SQFT", "KATHA", "DECIMAL", "BIGHA"]).optional(),
   minArea: z.coerce.number().positive().optional(),
   maxArea: z.coerce.number().positive().optional(),
   floor: z.coerce.number().int().min(0).max(100).optional(),
@@ -100,3 +120,9 @@ export const adminListingsQuery = z.object({
 });
 
 export const listingDocSchema = z.object({ storageKey: z.string().min(10).max(300), order: z.coerce.number().int().min(0).max(30).default(0) });
+
+export const visitCreateSchema = z.object({ scheduledFor: z.coerce.date(), note: z.string().trim().max(500).optional() });
+export const visitRespondSchema = z.object({ action: z.enum(["confirm", "decline"]), note: z.string().trim().max(300).optional() });
+export const visitListQuery = z.object({ as: z.enum(["seeker", "seller"]).default("seeker"), status: z.enum(["PENDING", "CONFIRMED", "DECLINED", "CANCELLED"]).optional() });
+export const aiSearchSchema = z.object({ query: z.string().trim().min(2).max(300), type: z.enum(["RENT", "SALE"]).optional() });
+export const geoBdQuery = z.object({ level: z.enum(["divisions", "districts", "upazilas", "unions"]), parent: z.string().regex(/^\d{1,6}$/).optional() });

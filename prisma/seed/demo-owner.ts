@@ -87,7 +87,7 @@ async function main() {
     const { id: _i, createdAt: _c, updatedAt: _u, ...planFields } = plan;
     await tx.userSubscription.create({
       data: {
-        userId: u.id, planId: plan.id, audience: "OWNER", cycle: "YEARLY", amount: plan.monthlyPrice, planSnapshot: JSON.parse(JSON.stringify({ ...planFields, planId: plan.id })),
+        userId: u.id, planId: plan.id, audience: "OWNER", cycle: "YEARLY", amount: plan.monthlyPrice.mul(9.6) /* yearly = 12 months − 20% */, planSnapshot: JSON.parse(JSON.stringify({ ...planFields, planId: plan.id })),
         startsAt: day(2026, 0, 1), endsAt: day(2027, 0, 1), graceEndsAt: new Date(day(2027, 0, 1).getTime() + 3 * 86400_000), status: "ACTIVE",
       },
     });
@@ -171,12 +171,7 @@ async function main() {
     })),
   });
 
-  await db.notification.createMany({
-    data: [
-      { userId: owner.id, type: "rent.overdue", titleKey: "notifications.rentOverdue", params: {}, priority: "HIGH" },
-      { userId: owner.id, type: "maintenance.new", titleKey: "notifications.maintenanceNew", params: {}, priority: "NORMAL" },
-    ],
-  });
+  // no placeholder notifications: the owner's Notification Center fills from real events (payments, repairs, emergencies)
 
   console.log(`Demo owner ready: ${DEMO_OWNER.email} (${PROPS.length} properties, ${units.length} units, ${tenants.length} tenants, Jan–${today.toLocaleString("en", { month: "short" })} 2026 rent history).`);
 }

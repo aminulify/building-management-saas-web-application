@@ -10,8 +10,8 @@ export const OWNER_NAV: NavItem[][] = [
     { key: "units", href: "/owner/units", icon: Box },
     { key: "tenants", href: "/owner/tenants", icon: UsersRound },
     { key: "rent", href: "/owner/rent", icon: BarChart3 },
-    { key: "findHome", href: "/find-home", icon: Home },
-    { key: "marketplace", href: "/marketplace", icon: Store },
+    { key: "findHome", href: "/owner/find-home", icon: Home },
+    { key: "marketplace", href: "/owner/marketplace", icon: Store },
     { key: "subscriptions", href: "/owner/subscription", icon: DollarSign },
   ],
   [

@@ -28,7 +28,7 @@
     "listingPending": "Listing awaiting review: {title}",
     "maintenanceComment": "New comment on '{title}'",
     "maintenanceNew": "New maintenance request: {title}",
-    "maintenanceStatus": "'{title}' is now {status}",
+    "maintenanceStatus": "'{title}' is now {status, select, PENDING {Pending} APPROVED {Approved} IN_PROGRESS {In progress} COMPLETED {Completed} REJECTED {Rejected} CANCELLED {Cancelled} other {{status}}}",
     "messageNew": "New message from {from}",
     "rentPaymentRecorded": "Rent payment of ৳{amount} recorded",
     "rentReminder": "Rent reminder: ৳{due} due for {month}",
@@ -53,7 +53,14 @@
     "subscriptionCancelled": "Subscription cancelled. Access continues until {endsAt}",
     "rentPaymentVerified": "Your rent payment of ৳{amount} was {decision}",
     "rentAdjusted": "Your rent bill changed: total ৳{total}",
-    "tenancyAssigned": "You were added as the tenant of unit {unit}"
+    "tenancyAssigned": "You were added as the tenant of unit {unit}",
+    "visitRequested": "{from} asked to visit “{title}”",
+    "visitConfirmed": "Your visit to “{title}” was confirmed",
+    "visitDeclined": "Your visit request for “{title}” was declined",
+    "visitCancelled": "{from} cancelled the visit to “{title}”",
+    "maintenanceDeleted": "Your maintenance request '{title}' was removed by the owner",
+    "rentReceived": "{tenantName} (Unit {unit}, {property}) paid ৳{amount}. Receipt {receipt}",
+    "rentOverdue": "Rent overdue: {tenantName} (Unit {unit}, {property}) owes ৳{due}"
   },
   "common": {
     "language": "Language",
@@ -1098,6 +1105,1064 @@
           "forbidden": "Your account cannot do this right now.",
           "generic": "Something went wrong. Please try again."
         }
+      }
+    },
+    "findHome": {
+      "metaTitle": "Find a Home",
+      "title": "Find a <hl>Home</hl>",
+      "subtitle": "Discover rental properties in your preferred area.",
+      "modeLabel": "Search mode",
+      "modeRent": "Rent Flat",
+      "modeSale": "Buy Flat",
+      "myVisits": "My Visits",
+      "aiButton": "AI Search Assistant",
+      "filters": {
+        "aria": "Search filters",
+        "location": "Location",
+        "division": "Division",
+        "district": "District",
+        "upazila": "Upazila",
+        "union": "Union",
+        "all": "All",
+        "chooseFirst": "Choose {parent} first",
+        "geoLoading": "Loading…",
+        "geoError": "Could not load places.",
+        "retry": "Retry",
+        "price": "Price range (BDT)",
+        "min": "Min",
+        "max": "Max",
+        "priceInvalid": "The minimum must not be higher than the maximum.",
+        "propertyType": "Property type",
+        "types": {
+          "any": "Any type",
+          "APARTMENT": "Apartment",
+          "DUPLEX": "Duplex",
+          "STUDIO": "Studio",
+          "COMMERCIAL": "Commercial",
+          "LAND": "Land"
+        },
+        "quick": "Quick select",
+        "bed2": "2 Bedrooms",
+        "bed3": "3 Bedrooms",
+        "bedN": "{n, plural, one {# Bedroom} other {# Bedrooms}}",
+        "hospital": "Near Hospital",
+        "park": "Near Park",
+        "parking": "Parking",
+        "mosque": "Mosque",
+        "security": "Security",
+        "more": "More filters",
+        "less": "Fewer filters",
+        "clearAll": "Clear all",
+        "nearby": {
+          "HOSPITAL": "Near Hospital",
+          "PARK": "Near Park",
+          "MOSQUE": "Near Mosque",
+          "SCHOOL": "Near School",
+          "MARKET": "Near Market",
+          "COLLEGE": "Near College",
+          "UNIVERSITY": "Near University",
+          "PLAYGROUND": "Near Playground",
+          "HIGHWAY": "Near Highway"
+        },
+        "amenity": {
+          "PARKING": "Parking",
+          "SECURITY": "Security",
+          "LIFT": "Lift",
+          "GENERATOR": "Generator",
+          "CCTV": "CCTV",
+          "GATED": "Gated community"
+        },
+        "furnishing": {
+          "FURNISHED": "Furnished",
+          "SEMI_FURNISHED": "Semi-furnished",
+          "UNFURNISHED": "Unfurnished"
+        },
+        "landType": "Kind of land",
+        "landTypes": {
+          "RESIDENTIAL": "Residential",
+          "COMMERCIAL": "Commercial",
+          "AGRICULTURAL": "Agricultural",
+          "INDUSTRIAL": "Industrial"
+        }
+      },
+      "results": {
+        "aria": "Search results",
+        "available": "Properties Available",
+        "updating": "Updating results",
+        "savedOnly": "Saved",
+        "sortBy": "Sort by",
+        "sort": {
+          "newest": "Newest",
+          "price_asc": "Price: low to high",
+          "price_desc": "Price: high to low",
+          "area_desc": "Largest first",
+          "popularity": "Most saved"
+        },
+        "showing": "Showing {shown} of {total}",
+        "loadMore": "Load More Properties",
+        "loadingMore": "Loading…",
+        "loadMoreError": "Could not load more homes. Try again."
+      },
+      "states": {
+        "loading": "Loading homes",
+        "error": "We could not load the homes.",
+        "retry": "Try again",
+        "emptyTitle": "No homes are listed yet",
+        "emptyText": "New homes appear here as soon as sellers publish them. Check back soon.",
+        "noResultsTitle": "No homes match these filters",
+        "noResultsText": "Try a wider area, a higher budget or fewer quick filters.",
+        "emptySavedTitle": "You have not saved any homes",
+        "emptySavedText": "Tap the heart on a home to keep it here.",
+        "askAi": "Ask the AI assistant"
+      },
+      "card": {
+        "noPhoto": "No photo",
+        "match": "{n}% match",
+        "share": "Share",
+        "save": "Save to wishlist",
+        "unsave": "Remove from wishlist",
+        "photos": "{n} photos",
+        "noLocation": "Location not set",
+        "beds": "{n, plural, one {# bed} other {# beds}}",
+        "baths": "{n, plural, one {# bath} other {# baths}}",
+        "sqft": "{n} sqft",
+        "sqftUnit": "sqft",
+        "perMonth": "Rent per month",
+        "salePrice": "Price",
+        "viewDetails": "View Details",
+        "savedToast": "Saved to your wishlist",
+        "unsavedToast": "Removed from your wishlist",
+        "saveForbidden": "Your account cannot save homes.",
+        "saveError": "Could not update your wishlist. Try again.",
+        "copied": "Link copied",
+        "shareError": "Could not share this home.",
+        "areaChip": "{n} {unit}",
+        "unit": {
+          "SQFT": "sqft",
+          "KATHA": "katha",
+          "DECIMAL": "decimal",
+          "BIGHA": "bigha"
+        },
+        "yours": "Your listing"
+      },
+      "category": {
+        "FLAT": "Flat",
+        "APARTMENT": "Apartment",
+        "BUILDING": "Building",
+        "LAND": "Land",
+        "COMMERCIAL": "Commercial",
+        "DUPLEX": "Duplex",
+        "STUDIO": "Studio"
+      },
+      "details": {
+        "gallery": "Photos",
+        "noPhotos": "No photos",
+        "photoOf": "Photo {n} of {total}: {title}",
+        "prev": "Previous photo",
+        "next": "Next photo",
+        "thumbs": "Photo thumbnails",
+        "showPhoto": "Show photo {n}",
+        "loading": "Loading home details",
+        "goneTitle": "This home is no longer available",
+        "goneText": "It may have been rented, sold or removed by the owner.",
+        "errorTitle": "Could not load this home",
+        "errorText": "Check your connection and try again.",
+        "bedrooms": "Bedrooms",
+        "bathrooms": "Bathrooms",
+        "area": "Area",
+        "floor": "Floor",
+        "floorOf": "{f} of {t}",
+        "balconies": "Balconies",
+        "furnishing": "Furnishing",
+        "negotiable": "Negotiable",
+        "specs": "Specifications",
+        "about": "About this home",
+        "amenities": "Amenities",
+        "nearby": "Nearby",
+        "meters": "{n} m",
+        "km": "{n} km",
+        "amenity": {
+          "SECURITY": "Security",
+          "PARKING": "Parking",
+          "MOSQUE": "Mosque",
+          "SCHOOL": "School",
+          "COLLEGE": "College",
+          "UNIVERSITY": "University",
+          "HIGHWAY": "Highway",
+          "PARK": "Park",
+          "PLAYGROUND": "Playground",
+          "HOSPITAL": "Hospital",
+          "MARKET": "Market",
+          "LIFT": "Lift",
+          "GENERATOR": "Generator",
+          "GATED": "Gated community",
+          "CCTV": "CCTV",
+          "SECURITY_GUARD": "Security guard"
+        },
+        "location": "Location",
+        "mapTitle": "Map showing {title}",
+        "openMap": "Open in Google Maps",
+        "noMap": "The owner has not pinned this home on the map.",
+        "owner": "Owner",
+        "verified": "Verified",
+        "ownerId": "ID {code}",
+        "call": "Call Owner",
+        "message": "Message Owner",
+        "schedule": "Schedule Visit",
+        "ownListing": "This is your own listing, so you cannot contact yourself or book a visit.",
+        "noPhone": "The owner has no phone number on file.",
+        "callLimit": "You have asked for many numbers. Please try again later.",
+        "callError": "Could not get the phone number. Try again.",
+        "landType": "Kind of land",
+        "landTypes": {
+          "RESIDENTIAL": "Residential",
+          "COMMERCIAL": "Commercial",
+          "AGRICULTURAL": "Agricultural",
+          "INDUSTRIAL": "Industrial"
+        },
+        "roadWidth": "Road width",
+        "feet": "{n} ft",
+        "ftShort": "ft",
+        "condition": "Condition",
+        "conditions": {
+          "NEW": "New",
+          "USED": "Used",
+          "UNDER_CONSTRUCTION": "Under construction",
+          "RENOVATED": "Renovated",
+          "LIKE_NEW": "Like New",
+          "GOOD": "Good",
+          "FAIR": "Fair"
+        }
+      },
+      "message": {
+        "starter": "Hello, I am interested in “{title}”. Is it still available?",
+        "label": "Your message to the owner",
+        "send": "Send message",
+        "sent": "Message sent to the owner",
+        "tooShort": "Write a short message first.",
+        "rate": "You are sending too fast. Please wait a moment.",
+        "error": "Could not send the message. Try again."
+      },
+      "visit": {
+        "title": "Schedule a visit",
+        "date": "Date",
+        "time": "Time",
+        "note": "Note (optional)",
+        "notePlaceholder": "Anything the owner should know?",
+        "hint": "Visits are between 8:00 AM and 9:00 PM (Bangladesh time), at least 30 minutes from now and within 60 days.",
+        "submit": "Request visit",
+        "sent": "Visit requested. The owner will confirm.",
+        "cancel": "Cancel visit",
+        "cancelled": "Visit cancelled",
+        "status": {
+          "PENDING": "Waiting for the owner",
+          "CONFIRMED": "Visit confirmed",
+          "DECLINED": "Declined by the owner",
+          "CANCELLED": "Cancelled"
+        },
+        "errors": {
+          "pickDate": "Choose a date.",
+          "too_soon": "Pick a time at least 30 minutes from now.",
+          "too_far": "Visits can be booked up to 60 days ahead.",
+          "outside_visiting_hours": "Visits are between 8:00 AM and 9:00 PM.",
+          "visit_already_requested": "You already have an open visit request for this home.",
+          "own_listing": "You cannot visit your own listing.",
+          "rate": "Too many requests. Please try again later.",
+          "generic": "Could not save the visit. Try again."
+        }
+      },
+      "visits": {
+        "title": "My visits",
+        "error": "Could not load your visits.",
+        "retry": "Try again",
+        "emptyTitle": "No visits yet",
+        "emptyText": "Open a home and tap Schedule Visit to book a time.",
+        "open": "Open {title}"
+      },
+      "ai": {
+        "title": "AI Search Assistant",
+        "subtitle": "Describe your ideal home in your own words",
+        "hello": "Hi! Tell me what you are looking for: rooms, area, budget and what should be nearby. English or Bangla both work.",
+        "try": "Try asking",
+        "ex1": "3 bed flat near hospital in Keraniganj under 30k BDT",
+        "ex2": "Furnished duplex with parking and security in Birulia",
+        "ex3": "২ বেডরুম ফ্ল্যাট ২০ হাজার টাকার মধ্যে",
+        "understood": "Here is what I understood",
+        "noFilters": "I could not find any filters in that sentence. Showing popular homes.",
+        "applied": "Filters updated on the page.",
+        "profile": "Matches are tuned to the {n} homes you saved.",
+        "best": "Best matches ({n})",
+        "showAll": "Show all results",
+        "noMatches": "No close matches. Try a bigger budget or another area.",
+        "thinking": "Finding homes…",
+        "rate": "Too many questions. Wait a minute and try again.",
+        "error": "I could not search right now. Try again.",
+        "placeholder": "e.g. 2 bed flat near park under 20k",
+        "inputLabel": "Describe the home you want",
+        "send": "Send",
+        "newChat": "New chat",
+        "close": "Close assistant",
+        "upTo": "Up to {v}",
+        "from": "From {v}"
+      }
+    },
+    "marketplace": {
+      "metaTitle": "Marketplace",
+      "title": "Property <hl>Marketplace</hl>",
+      "subtitle": "Discover, buy, sell, and rent verified homes and land.",
+      "sellFlat": "Sell Flat",
+      "sellLand": "Sell Land",
+      "myListings": "My Listings",
+      "available": "Properties found",
+      "tabs": {
+        "aria": "Property kind",
+        "all": "All",
+        "flats": "Flats",
+        "land": "Land"
+      },
+      "stats": {
+        "aria": "Marketplace numbers",
+        "forSale": "For sale",
+        "flats": "Flats",
+        "land": "Land plots",
+        "mine": "Your listings",
+        "forRent": "For rent"
+      },
+      "states": {
+        "error": "We could not load the marketplace.",
+        "emptyTitle": "Nothing is for sale yet",
+        "emptyText": "Be the first to list a flat or a piece of land."
+      },
+      "ai": {
+        "ex1": "3 bed flat near hospital in Keraniganj under 80 lakh",
+        "ex2": "residential land 5 katha in Savar under 1 crore",
+        "ex3": "২ বেডরুম ফ্ল্যাট ৫০ লাখ টাকার মধ্যে"
+      },
+      "sell": {
+        "loading": "Loading the form",
+        "loadError": "We could not open the form.",
+        "newFlat": "Sell a flat",
+        "newLand": "Sell land",
+        "editFlat": "Edit your flat",
+        "editLand": "Edit your land",
+        "subtitle": "Honest details and clear photos help buyers trust your listing.",
+        "quota": "{used} of {limit} listings in use",
+        "reviewAgain": "This listing is live. Changing the title, description, price or size sends it for review again.",
+        "wasRejected": "This listing was rejected. Fix the details, then publish again.",
+        "sections": {
+          "basics": "The basics",
+          "flatDetails": "About the flat",
+          "landDetails": "About the land",
+          "location": "Where is it?",
+          "amenities": "Facilities nearby",
+          "photos": "Photos",
+          "review": "Review"
+        },
+        "fields": {
+          "category": "Type",
+          "title": "Title",
+          "description": "Description",
+          "price": "Asking price (BDT)",
+          "negotiable": "Price is negotiable",
+          "area": "Size (sqft)",
+          "landArea": "Land size",
+          "areaUnit": "Unit",
+          "landType": "Kind of land",
+          "furnishing": "Furnishing",
+          "roadWidth": "Road width",
+          "plotNo": "Plot no.",
+          "mouza": "Mouza",
+          "bedrooms": "Bedrooms",
+          "bathrooms": "Bathrooms",
+          "balconies": "Balconies",
+          "floor": "Floor",
+          "totalFloors": "Total floors",
+          "condition": "Condition",
+          "division": "Division",
+          "district": "District",
+          "upazila": "Upazila",
+          "union": "Union",
+          "postalCode": "Postal code",
+          "address": "Street address",
+          "mapPoint": "Pin the place on the map",
+          "mode": "Listing mode",
+          "rent": "Monthly rent (BDT)",
+          "zone": "Zone"
+        },
+        "placeholders": {
+          "titleFlat": "e.g. 3-bed corner flat with open view",
+          "titleLand": "e.g. 5 katha residential plot near the main road",
+          "address": "House, road, landmark",
+          "coords": "Paste a Google Maps link or 23.8103, 90.4125",
+          "title": "e.g. 3BHK Luxury Apartment"
+        },
+        "descHint": "{n} characters (at least 20)",
+        "choose": "Choose…",
+        "mapHint": "Click the map or drag the pin to set the exact place, or paste a Google Maps link / coordinates below.",
+        "applyPoint": "Use this point",
+        "useMyLocation": "Use my location",
+        "clearPoint": "Remove pin",
+        "mapPreview": "Map preview of the pin",
+        "amenityHint": "Tick what is true for this property. It powers the filters buyers use.",
+        "declaration": "I confirm that I own this property or am allowed to sell it, and that the details are true.",
+        "cancel": "Cancel",
+        "saveDraft": "Save draft",
+        "publish": "Publish Listing",
+        "saveChanges": "Save changes",
+        "reviewNote": "New listings are checked by our team before buyers can see them.",
+        "progress": {
+          "saving": "Saving your listing…",
+          "photo": "Uploading photo {n} of {total}…",
+          "submitting": "Sending for review…"
+        },
+        "toast": {
+          "draft": "Draft saved",
+          "published": "Listing sent for review",
+          "updated": "Changes saved"
+        },
+        "gate": {
+          "planTitle": "A seller plan is needed",
+          "planText": "Listing a property needs an active subscription that includes marketplace listings. Choose a plan to continue.",
+          "limitTitle": "You reached your listing limit",
+          "limitText": "Your plan has no free listing slots left. Remove a listing or upgrade your plan.",
+          "cta": "See plans"
+        },
+        "photoAlt": "Photo {n}",
+        "cover": "Cover",
+        "removePhoto": "Remove photo",
+        "addPhotos": "Add photos",
+        "photoHint": "{count} of {max} photos · JPG, PNG or WebP up to {mb} MB. The first photo is the cover.",
+        "errors": {
+          "titleShort": "Write a title of at least 5 characters.",
+          "titleLong": "The title can have at most 140 characters.",
+          "descShort": "Describe the property in at least 20 characters.",
+          "descLong": "The description is too long (5000 characters at most).",
+          "priceInvalid": "Enter a price above zero.",
+          "postalInvalid": "A postal code has 4 digits.",
+          "placeRequired": "Choose this from the list.",
+          "areaRequired": "Enter the size of the land.",
+          "areaInvalid": "Enter a size above zero.",
+          "bedroomsRequired": "Enter the number of bedrooms.",
+          "coordsTogether": "Set both latitude and longitude, or remove the pin.",
+          "coordsInvalid": "That map point is not valid.",
+          "roadInvalid": "Road width must be between 1 and 500 ft.",
+          "declaration": "Please confirm the declaration to publish.",
+          "photosRequired": "Add at least one photo to publish.",
+          "photoType": "Only JPG, PNG or WebP photos are allowed.",
+          "photoSize": "A photo is larger than 5 MB.",
+          "photoMax": "You can add up to 10 photos.",
+          "serverField": "Please check this field.",
+          "fixFields": "Please fix the highlighted fields.",
+          "rate": "Too many requests. Please wait a minute.",
+          "photoUpload": "A photo could not be attached. Add it again.",
+          "generic": "Something went wrong. Please try again.",
+          "coordsParse": "We could not find a map point in that text.",
+          "noGeo": "Your browser cannot share its location.",
+          "geoDenied": "Location permission was denied.",
+          "conditionRequired": "Choose the condition."
+        },
+        "createTitle": "Create New Property Listing",
+        "editTitle": "Edit your listing",
+        "stepsLabel": "Steps",
+        "steps": {
+          "basics": "Photos & basics",
+          "details": "Details",
+          "location": "Location",
+          "finish": "Review"
+        },
+        "categories": {
+          "BUILDING": "Home / Building",
+          "APARTMENT": "Flat / Apartment",
+          "LAND": "Land / Plot",
+          "COMMERCIAL": "Commercial",
+          "FLAT": "Flat",
+          "DUPLEX": "Duplex",
+          "STUDIO": "Studio"
+        },
+        "modes": {
+          "SALE": "Sale",
+          "RENT": "Rent"
+        },
+        "noZone": "No zone",
+        "back": "Back",
+        "next": "Next",
+        "pinSet": "Pin placed",
+        "pinNotSet": "No pin yet",
+        "amenities": {
+          "SECURITY": "Security",
+          "PARKING": "Parking",
+          "MOSQUE": "Mosque",
+          "SCHOOL": "School / College",
+          "UNIVERSITY": "University",
+          "HIGHWAY": "Highway",
+          "PARK": "Playground / Park"
+        }
+      },
+      "mine": {
+        "title": "My listings",
+        "subtitle": "Everything you are selling, with its review status.",
+        "error": "We could not load your listings.",
+        "emptyTitle": "You have no listings yet",
+        "emptyText": "Use Sell Flat or Sell Land to add your first one.",
+        "status": {
+          "DRAFT": "Draft",
+          "PENDING": "In review",
+          "PUBLISHED": "Live",
+          "REJECTED": "Rejected",
+          "SOLD": "Sold",
+          "ARCHIVED": "Archived",
+          "EXPIRED": "Expired",
+          "SUSPENDED": "Suspended"
+        },
+        "visits": "{n, plural, one {# visit request} other {# visit requests}}",
+        "reason": "Reason: {text}",
+        "pendingNote": "Waiting for approval. You will be notified.",
+        "confirmDelete": "Delete this listing?",
+        "confirmSold": "Mark as sold?",
+        "yes": "Yes",
+        "no": "No",
+        "edit": "Edit",
+        "publish": "Publish",
+        "markSold": "Mark sold",
+        "renew": "Renew",
+        "deactivate": "Take down",
+        "view": "View",
+        "delete": "Delete",
+        "toast": {
+          "deleted": "Listing removed",
+          "sold": "Marked as sold",
+          "submitted": "Sent for review",
+          "renewed": "Listing renewed",
+          "deactivated": "Listing taken down (saved as draft)",
+          "error": "That did not work. Try again."
+        }
+      },
+      "createListing": "Create Listing",
+      "guard": {
+        "toast": "Buy a subscription for listing your item.",
+        "error": "We could not check your plan. Please try again."
+      },
+      "toolbar": {
+        "aria": "Search the marketplace",
+        "searchLabel": "Search properties",
+        "searchPlaceholder": "Search properties by title, location, or owner ID...",
+        "clearSearch": "Clear search",
+        "modeLabel": "Listing type",
+        "modes": {
+          "SALE": "Buy / Sell",
+          "RENT": "Rent"
+        },
+        "category": "Category",
+        "categories": {
+          "all": "All Properties",
+          "flat": "Flat / Apartment",
+          "land": "Land / Plot",
+          "commercial": "Commercial Space",
+          "building": "Building"
+        },
+        "zone": "Location / Zone",
+        "allZones": "All zones",
+        "price": "Price range (BDT)",
+        "min": "Min price",
+        "max": "Max price",
+        "amenities": "Amenities",
+        "amenity": {
+          "SECURITY": "Security",
+          "PARKING": "Parking",
+          "MOSQUE": "Mosque",
+          "SCHOOL": "School / College",
+          "UNIVERSITY": "University",
+          "HIGHWAY": "Highway Road",
+          "PARK": "Playground / Park"
+        },
+        "moreFilters": "More filters",
+        "lessFilters": "Fewer filters",
+        "bedrooms": "Bedrooms",
+        "removeFilter": "Remove filter {name}"
+      },
+      "card": {
+        "verifiedNid": "Verified NID",
+        "notVerified": "NID not verified",
+        "viewDetails": "View Details",
+        "contactOwner": "Contact Owner"
+      },
+      "contact": {
+        "owner": "Owner",
+        "verifiedNid": "Verified NID",
+        "reveal": "Show phone and e-mail",
+        "limit": "You have asked for many contacts. Please try again later.",
+        "error": "Could not get the contact details. Try again.",
+        "none": "The owner has not shared a phone or e-mail.",
+        "privacy": "Contact details are shown only to signed-in people and every request is logged."
+      },
+      "details": {
+        "nid": "NID clearance",
+        "nidStatus": {
+          "VERIFIED": "Verified",
+          "PENDING": "Under review",
+          "UNVERIFIED": "Not verified",
+          "REJECTED": "Not cleared"
+        },
+        "contact": "Contact",
+        "showContact": "Show phone and e-mail",
+        "close": "Close"
+      },
+      "upgrade": {
+        "planTitle": "Subscribe to list your property",
+        "planText": "Listing a flat, land or building needs an active subscription. Pick a plan to start selling and renting.",
+        "limitTitle": "You reached your listing limit",
+        "limitText": "Your plan has no free listing slots left. Take a listing down or move to a bigger plan.",
+        "perMonth": " / month",
+        "listings": "{n} listings",
+        "properties": "{n} properties",
+        "cta": "Choose a plan",
+        "plansError": "We could not load the plans. Please try again later."
+      }
+    },
+    "subscription": {
+      "metaTitle": "Plan & Subscriptions",
+      "title": "Plan & <hl>Subscriptions</hl>",
+      "loading": "Loading your plan",
+      "error": "We could not load your subscription.",
+      "retry": "Try again",
+      "yes": "Yes",
+      "no": "No",
+      "toast": {
+        "planCancelled": "Plan cancelled. It stays active until the end of the paid period.",
+        "requestCancelled": "Upgrade request cancelled.",
+        "error": "That did not work. Try again."
+      },
+      "pending": {
+        "title": "Your {plan} upgrade is waiting for approval",
+        "text": "{amount} · TrxID {trx} · sent {when}. The Super Admin is checking your payment, and this page updates by itself.",
+        "cancel": "Cancel request",
+        "confirm": "Cancel this request?"
+      },
+      "current": {
+        "aria": "Your current plan",
+        "title": "The {name} Package",
+        "noPlanTitle": "No active plan",
+        "noneNew": "You do not have a plan yet. Choose one below to start managing your properties, units and tenants.",
+        "noneEnded": "Your last plan has ended. Renew below to add properties, units and tenants again.",
+        "grace": "Your plan has expired. You have {days, plural, one {# day} other {# days}} of grace: everything stays readable, but you cannot add new items until you renew.",
+        "scale": "You're currently managing {properties, plural, one {# property} other {# properties}} and {units, plural, one {# unit} other {# units}}. Scale your business to the {next} plan for higher rent tracking tools.",
+        "top": "You're currently managing {properties, plural, one {# property} other {# properties}} and {units, plural, one {# unit} other {# units}} on our biggest plan. Need more? Ask us about an enterprise plan.",
+        "monthlyBill": "Monthly Bill",
+        "renewsIn": "Renews In",
+        "graceEnds": "Grace ends in",
+        "days": "{n, plural, one {Day} other {Days}}",
+        "usageAria": "Plan usage",
+        "activePlan": "Active Plan",
+        "tier": "{name} Tier",
+        "noTier": "No plan",
+        "unitsLabel": "Units",
+        "unitsUsed": "{used} of {limit} units used",
+        "cycleLabel": "Billing cycle",
+        "daysLeft": "{left} of {total} days left",
+        "propsLabel": "Properties",
+        "propsUsed": "{used} of {limit} properties used",
+        "listingsLabel": "Marketplace listings",
+        "listingsUsed": "{used} of {limit} listings used",
+        "noUsage": "Pick a plan to see your usage here."
+      },
+      "choose": {
+        "aria": "Choose a plan",
+        "title": "Choose the perfect plan for your needs.",
+        "cycleAria": "Billing period"
+      },
+      "cycle": {
+        "MONTHLY": "Monthly",
+        "QUARTERLY": "Quarterly",
+        "YEARLY": "Yearly"
+      },
+      "plans": {
+        "none": "No plans are available right now. Please check back soon.",
+        "props": "Manage {range} properties",
+        "units": "Manage total {range} units",
+        "rent": {
+          "basic": "Basic rent tracking",
+          "high": "High rent tracking",
+          "super": "Super rent tracking"
+        },
+        "maintenance": "Maintenance request",
+        "messaging": "Personal messaging with tenants",
+        "listings": "List up to {n} homes in the marketplace",
+        "popular": "Most Popular",
+        "perMonth": "/ month",
+        "perMonths": "/ {n} months",
+        "perYear": "/ year",
+        "save": "You save {amount}",
+        "activePlan": "Active Plan",
+        "renew": "Renew {name}",
+        "upgrade": "Upgrade to {name}",
+        "switch": "Switch to {name}",
+        "choose": "Get {name}",
+        "pending": "Request pending",
+        "lockedHint": "Wait for your pending request to be reviewed first."
+      },
+      "billing": {
+        "title": "Billing History",
+        "subtitle": "Manage and download your past invoices",
+        "support": "Contact Support",
+        "loading": "Loading billing history",
+        "error": "We could not load your billing history.",
+        "retry": "Try again",
+        "emptyTitle": "No invoices yet",
+        "emptyText": "Your payments and invoices will appear here after your first plan.",
+        "invoice": "Invoice ID",
+        "date": "Date",
+        "amount": "Amount",
+        "status": "Status",
+        "cycle": {
+          "MONTHLY": "Monthly",
+          "QUARTERLY": "Quarterly",
+          "YEARLY": "Yearly"
+        },
+        "state": {
+          "SUCCESS": "Paid",
+          "PENDING_REVIEW": "In review",
+          "INITIATED": "Started",
+          "FAILED": "Rejected",
+          "REFUNDED": "Refunded"
+        },
+        "download": "Download invoice {number}",
+        "downloadTitle": "Download PDF",
+        "downloadError": "Could not create the invoice PDF. Try again.",
+        "page": "Page {page} of {pages}",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "renewal": {
+        "title": "Next Renewal",
+        "endsTitle": "Plan ends",
+        "note": "Renewal is by bKash payment. We remind you 7, 3 and 1 day before.",
+        "cancelledNote": "Cancelled: you keep access until this date.",
+        "cancel": "Cancel Plan",
+        "confirm": "Cancel your plan?",
+        "noneTitle": "No plan to renew",
+        "noneText": "Choose a plan above to get started."
+      },
+      "enterprise": {
+        "title": "Enterprise & custom plans",
+        "text": "If you manage more than {units, number} units or have unique corporate requirements, we offer custom enterprise pricing with dedicated support.",
+        "cta": "Talk to us"
+      },
+      "support": {
+        "title": "Contact Support",
+        "subtitle": "Ask about billing, invoices or an enterprise plan. We reply by e-mail.",
+        "defaultSubject": "Billing question",
+        "name": "Your name",
+        "email": "E-mail",
+        "subject": "Subject",
+        "message": "Message",
+        "messagePlaceholder": "How can we help?",
+        "cancel": "Cancel",
+        "send": "Send message",
+        "close": "Close",
+        "doneTitle": "Message sent",
+        "doneText": "Thank you. Our team will reply to your e-mail soon.",
+        "errors": {
+          "name": "Enter your name.",
+          "email": "Enter a valid e-mail.",
+          "subject": "Add a short subject.",
+          "message": "Write at least 10 characters.",
+          "rate": "You sent a few messages already. Please try again later.",
+          "generic": "Could not send your message. Try again."
+        }
+      },
+      "bkash": {
+        "title": "Upgrade Account to {name}",
+        "loading": "Preparing your payment details",
+        "retry": "Try again",
+        "period": {
+          "MONTHLY": "Billed monthly",
+          "QUARTERLY": "Billed every {n} months",
+          "YEARLY": "Billed yearly"
+        },
+        "credit": "{credit} credit from your current plan (price {total})",
+        "savings": "You save {amount}",
+        "quoteError": {
+          "usageExceeds": "You currently use more properties or units than this plan allows. Archive some first, then switch.",
+          "tenancy": "You have an active tenancy, so your account cannot become an owner account yet.",
+          "inactive": "This plan is not available any more. Please pick another one.",
+          "generic": "We could not prepare the payment. Check your connection and try again."
+        },
+        "personal": "bKash Personal",
+        "noNumber": "Number not set",
+        "copy": "Copy",
+        "copied": "Copied",
+        "copyFailed": "Could not copy. Select the number and copy it by hand.",
+        "steps": {
+          "open": "Open the bKash app (or dial *247#).",
+          "send": "Select Send Money.",
+          "number": "Enter the number: {number}",
+          "amount": "Enter the amount: {amount}",
+          "reference": "Enter the reference: {ref}",
+          "pin": "Confirm with your bKash PIN.",
+          "trx": "Copy the Transaction ID (TrxID) you receive."
+        },
+        "sender": "Sender bKash number",
+        "trx": "Transaction ID (TrxID)",
+        "trxPlaceholder": "e.g. 9J28XK120A",
+        "note": "Your plan starts only after our team matches your TrxID with the bKash statement and approves it.",
+        "cancel": "Cancel",
+        "submit": "Submit Upgrade Request",
+        "sent": "Upgrade request sent to Super-Admin for verification.",
+        "errors": {
+          "sender": "Enter the 11-digit bKash number you paid from (013–019).",
+          "trx": "The TrxID has 10 letters and digits.",
+          "trxUsed": "This TrxID was already used.",
+          "pending": "You already have an upgrade request waiting for review.",
+          "inactive": "This plan is not available any more.",
+          "rate": "Too many attempts. Please wait a while.",
+          "generic": "Could not send your request. Try again."
+        }
+      }
+    },
+    "maintenance": {
+      "metaTitle": "Maintenance",
+      "title": "<hl>Maintenance</hl>",
+      "subtitle": "Track and manage repair requests and property upkeep.",
+      "loading": "Loading maintenance requests",
+      "error": "We could not load the maintenance requests.",
+      "retry": "Try again",
+      "photoAlt": "Photo for {title}",
+      "noPhoto": "No photo",
+      "unit": "Unit - {unit}",
+      "delete": "Delete",
+      "stats": {
+        "aria": "Maintenance numbers",
+        "open": "Open request",
+        "inProgress": "In progress",
+        "critical": "Critical issue",
+        "error": "The numbers could not be loaded."
+      },
+      "tabs": {
+        "aria": "Filter by status",
+        "all": "All",
+        "pending": "Pending",
+        "progress": "In Progress",
+        "completed": "Completed"
+      },
+      "list": {
+        "aria": "Maintenance requests",
+        "loadMore": "Load More Issues",
+        "loadingMore": "Loading…",
+        "end": "All {n} issues are shown.",
+        "moreError": "Could not load more issues. Try again."
+      },
+      "empty": {
+        "allTitle": "No maintenance requests yet",
+        "allText": "When a tenant reports a problem it appears here, and you can follow it from Pending to Completed.",
+        "tabTitle": "Nothing here",
+        "tabText": "No requests have this status right now.",
+        "showAll": "Show all requests"
+      },
+      "priority": {
+        "CRITICAL": "Critical",
+        "HIGH": "High",
+        "MEDIUM": "Medium",
+        "LOW": "Low"
+      },
+      "status": {
+        "PENDING": "Pending",
+        "APPROVED": "Approved",
+        "IN_PROGRESS": "In Progress",
+        "COMPLETED": "Completed",
+        "REJECTED": "Rejected",
+        "CANCELLED": "Cancelled",
+        "menu": "Change status",
+        "change": "Status: {status}. Change status"
+      },
+      "contact": {
+        "button": "Contact",
+        "cardLabel": "Contact {name}",
+        "unit": "Unit {unit}",
+        "noPhone": "No phone number on file",
+        "message": "Message",
+        "messageLabel": "Message to the tenant",
+        "placeholder": "About “{title}”…",
+        "send": "Send",
+        "back": "Back",
+        "sent": "Message sent to {name}",
+        "rate": "You are sending too fast. Wait a moment.",
+        "cannot": "You can only message tenants with an active rental.",
+        "error": "Could not send the message. Try again."
+      },
+      "deleteModal": {
+        "title": "Delete Maintenance Issue?",
+        "text": "Are you sure you want to delete this issue? This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "toast": {
+        "status": "Marked as {status}. The tenant was notified.",
+        "deleted": "Maintenance issue deleted.",
+        "error": "That did not work. Please try again."
+      }
+    },
+    "notifications": {
+      "metaTitle": "Notification Center",
+      "title": "Notification <hl>Center</hl>",
+      "newBadge": "{n} NEW",
+      "markAll": "Mark all as read",
+      "unread": "Unread",
+      "loading": "Loading notifications",
+      "error": "We could not load your notifications.",
+      "retry": "Try again",
+      "tabs": {
+        "aria": "Filter notifications",
+        "all": "All",
+        "payment": "Payment",
+        "maintenance": "Maintenance"
+      },
+      "fresh": "{n, plural, one {# new notification} other {# new notifications}}: tap to dismiss",
+      "list": {
+        "aria": "Notifications",
+        "loadMore": "Load More Notifications",
+        "loadingMore": "Loading…",
+        "end": "That is everything: {n} notifications.",
+        "moreError": "Could not load more. Try again."
+      },
+      "empty": {
+        "allTitle": "You are all caught up",
+        "allText": "Rent payments, repair requests and emergency alerts for your properties will appear here.",
+        "tabTitle": "Nothing in this tab",
+        "tabText": "There are no notifications of this kind yet.",
+        "showAll": "Show all notifications"
+      },
+      "view": "View Details",
+      "viewShort": "View Details",
+      "markRead": "Mark as Read",
+      "toast": {
+        "allRead": "All notifications marked as read.",
+        "error": "That did not work. Please try again."
+      },
+      "time": {
+        "justNow": "just now",
+        "min": "{n, plural, one {# min ago} other {# mins ago}}",
+        "hour": "{n, plural, one {# hour ago} other {# hours ago}}",
+        "yesterday": "yesterday",
+        "day": "{n, plural, one {# day ago} other {# days ago}}",
+        "week": "{n, plural, one {# week ago} other {# weeks ago}}",
+        "lastMonth": "last month",
+        "month": "{n, plural, one {# month ago} other {# months ago}}",
+        "year": "{n, plural, one {# year ago} other {# years ago}}"
+      },
+      "sosTypes": {
+        "FIRE": "Fire Emergency",
+        "THEFT": "Thief Attack",
+        "SECURITY": "Security Threat",
+        "LEAKAGE": "Water Leakage",
+        "MEDICAL": "Medical Emergency",
+        "OTHER": "Other Emergency"
+      },
+      "methods": {
+        "CASH": "Cash",
+        "BKASH": "bKash",
+        "NAGAD": "Nagad",
+        "ROCKET": "Rocket",
+        "BANK": "Bank transfer",
+        "CARD": "Card"
+      },
+      "kinds": {
+        "received": {
+          "title": "Rent Received",
+          "body": "{tenant} (Unit {unit}) {property} just paid {amount}. Receipt {receipt}."
+        },
+        "overdue": {
+          "title": "Rent Overdue",
+          "body": "{tenant} (Unit {unit}) {property} has not paid {due} for {month}."
+        },
+        "emergency": {
+          "title": "Emergency: {alert}",
+          "body": "Urgent: {tenant} (Unit {unit}) at {property} reported {alert}."
+        },
+        "solve": {
+          "title": "Accept solved issue: {alert}",
+          "body": "We solved your issue at {property}. Now “Accept” the notification."
+        },
+        "quick": {
+          "title": "Quick update: {alert}",
+          "body": "Your alert at {property} is being handled by our team."
+        },
+        "maintenance": {
+          "title": "Maintenance: {title}",
+          "body": "{tenant} (Unit {unit}) {property} sent a repair update: {title}."
+        },
+        "tenancy": {
+          "title": "New tenant moved in",
+          "body": "{tenant} accepted Unit {unit} at {property}."
+        }
+      },
+      "message": {
+        "label": "Message to {name}",
+        "send": "Send",
+        "cancel": "Cancel",
+        "sent": "Message sent to {name}",
+        "rate": "You are sending too fast. Wait a moment.",
+        "cannot": "You can only message tenants with an active rental.",
+        "error": "Could not send the message. Try again."
+      },
+      "story": {
+        "loading": "Loading details",
+        "goneTitle": "This is no longer available",
+        "goneText": "The record behind this notification was removed or you no longer have access.",
+        "error": "We could not load the details.",
+        "retry": "Try again",
+        "close": "Close",
+        "open": "Open",
+        "receipt": "Digital receipt",
+        "receiptNo": "Receipt {no}",
+        "method": "Payment method",
+        "reference": "Transaction ID",
+        "paidOn": "Paid on",
+        "forMonth": "For month",
+        "monthTotal": "Month's rent",
+        "balance": "Balance left",
+        "call": "Call Tenant",
+        "noPhone": "No phone number on file",
+        "message": "Message Tenant",
+        "messageHint": "About your payment of {amount}…",
+        "pdf": "Download PDF Receipt",
+        "pdfError": "Could not create the PDF. Try again.",
+        "unitIn": "Unit {unit}, {property}",
+        "unitOnly": "Unit {unit}",
+        "severity": "Severity: {level}",
+        "critical": "Critical",
+        "photos": "Photos",
+        "photoAlt": "Photo of the problem",
+        "property": "Property",
+        "unit": "Unit",
+        "phone": "Tenant phone",
+        "comments": "Latest comments",
+        "updateStatus": "Update status",
+        "alertStatus": {
+          "NEED_ACTION": "Waiting for action",
+          "PROCESSING": "Being handled",
+          "SOLVED": "Solved",
+          "FALSE_ALARM": "False alarm"
+        },
+        "reportedBy": "Reported by",
+        "noPlace": "Location not recorded",
+        "incidentLog": "Incident log",
+        "log": {
+          "raised": "Alert raised",
+          "accepted": "Accepted and closed by the reporter",
+          "forwarded": "Passed to the responding service",
+          "seen": "Seen by the response team",
+          "to": {
+            "NEED_ACTION": "",
+            "PROCESSING": "Response team is handling it",
+            "SOLVED": "Marked as solved",
+            "FALSE_ALARM": "Marked as a false alarm"
+          }
+        },
+        "accept": "Accept & Close Issue ✓",
+        "acceptHint": "The team says this is solved. If you agree, accept it to close the issue.",
+        "accepted": "Issue accepted and closed.",
+        "acceptError": "Could not close the issue. Try again.",
+        "closed": "Closed on {when}"
       }
     }
   }

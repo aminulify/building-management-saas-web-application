@@ -70,7 +70,7 @@ export async function act(actor: Actor, id: string, action: AlertActionName, bod
       const rule = STATUS_RULES[body.status!]!;
       if (!rule.from.includes(a.status)) throw new AppError("INVALID_STATE", { from: a.status, to: body.status });
       if (rule.needsNote) need(body.note, "note");
-      alertData = { status: body.status, ...(body.status === "SOLVED" ? { resolvedAt: new Date() } : {}), ...(body.status === "PROCESSING" ? { resolvedAt: null } : {}) };
+      alertData = { status: body.status, ...(body.status === "SOLVED" ? { resolvedAt: new Date() } : {}), ...(body.status === "PROCESSING" ? { resolvedAt: null, acceptedAt: null } : {}) }; // reopening cancels an earlier "accepted"
       event = { action: "STATUS", toStatus: body.status as AlertStatus, note: body.note };
       break;
     }
@@ -83,7 +83,8 @@ export async function act(actor: Actor, id: string, action: AlertActionName, bod
     const out = Object.keys(alertData).length ? await tx.emergencyAlert.update({ where: { id }, data: alertData }) : a;
     await tx.emergencyAlertEvent.create({ data: { alertId: id, actorId: actor.id, fromStatus: a.status, ...event } }); // append-only
     if (action !== "notes" && action !== "assign") {
-      await notify([a.reporterId], { type: "sos.update", titleKey: "notifications.sosUpdate", params: { action, status: out.status }, link: "/tenant/sos", priority: "CRITICAL" }, tx);
+      const snap = a.addressSnapshot as { property?: string | null; unit?: string | null };
+      await notify([a.reporterId], { type: "sos.update", titleKey: "notifications.sosUpdate", params: { action, status: out.status, alertId: id, alertType: a.type, property: snap.property ?? null, unit: snap.unit ?? null, note: body.note ?? null }, link: "/owner/notifications", priority: "CRITICAL" }, tx);
       await tx.outboxEvent.create({ data: { type: "sos.update", payload: { alertId: id, reporterId: a.reporterId } } }); // socket sos:update
     }
     await writeAudit({ actor, action: `sos.${action}`, resourceType: "EmergencyAlert", resourceId: id, before: { status: a.status }, after: { status: out.status, ...(body.target ? { target: body.target, ref: body.reference ?? null } : {}) }, req }, tx);

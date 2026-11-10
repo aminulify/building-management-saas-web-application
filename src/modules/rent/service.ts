@@ -6,11 +6,47 @@ import { writeAudit } from "@/lib/audit";
 import { authorize } from "@/lib/authz/authorize";
 import { notify } from "@/lib/notify";
 import { rateLimit } from "@/lib/rate-limit";
+import { signStorageKey } from "@/modules/uploads/service";
 import type { Actor } from "@/lib/auth/require-actor";
 import { computeStatus, ensureRentRecords, monthStart } from "./billing";
 import type { paymentSchema } from "./schema";
 
 const D = Prisma.Decimal;
+
+/** "RC-202611-AB12CD34": the number printed on a receipt and quoted in the notification. */
+export const receiptNumber = (paymentId: string, billingMonth: Date) => `RC-${billingMonth.toISOString().slice(0, 7).replace("-", "")}-${paymentId.slice(-8).toUpperCase()}`;
+
+/** Unit, property and tenant of a rent record: every notification to the owner must name them. */
+async function rentContext(tx: Prisma.TransactionClient, recordId: string) {
+  const r = await tx.rentRecord.findUniqueOrThrow({
+    where: { id: recordId },
+    select: { billingMonth: true, agreement: { select: { tenantId: true, ownerId: true, unit: { select: { unitNumber: true, property: { select: { name: true } } } } } } },
+  });
+  const tenant = await tx.user.findUnique({ where: { id: r.agreement.tenantId }, select: { fullName: true } });
+  return { billingMonth: r.billingMonth, ownerId: r.agreement.ownerId, tenantName: tenant?.fullName ?? "", unit: r.agreement.unit.unitNumber, property: r.agreement.unit.property.name };
+}
+
+/** Daily: one "overdue" alert per unpaid, past-due rent record for its owner (never twice for the same record). */
+export async function notifyOverdue(now = new Date()) {
+  const rows = await db.rentRecord.findMany({
+    where: { status: { not: "PAID" }, dueDate: { lt: now }, agreement: { status: "ACTIVE" } },
+    select: { id: true, total: true, paid: true, billingMonth: true, agreement: { select: { tenantId: true, ownerId: true, unit: { select: { unitNumber: true, property: { select: { name: true } } } } } } },
+    take: 500,
+  });
+  if (!rows.length) return 0;
+  const done = new Set((await db.notification.findMany({ where: { type: "rent.overdue", userId: { in: [...new Set(rows.map((r) => r.agreement.ownerId))] } }, select: { params: true } })).map((n) => (n.params as { recordId?: string }).recordId));
+  const names = new Map((await db.user.findMany({ where: { id: { in: [...new Set(rows.map((r) => r.agreement.tenantId))] } }, select: { id: true, fullName: true } })).map((u) => [u.id, u.fullName]));
+  let n = 0;
+  for (const r of rows) {
+    if (done.has(r.id)) continue;
+    await notify([r.agreement.ownerId], {
+      type: "rent.overdue", titleKey: "notifications.rentOverdue", priority: "HIGH", link: "/owner/rent",
+      params: { recordId: r.id, tenantName: names.get(r.agreement.tenantId) ?? "", unit: r.agreement.unit.unitNumber, property: r.agreement.unit.property.name, due: r.total.minus(r.paid).toFixed(2), month: r.billingMonth.toISOString().slice(0, 7) },
+    });
+    n++;
+  }
+  return n;
+}
 
 /** Monthly job: one RentRecord per ACTIVE agreement, then flag overdue ones. Safe to re-run. */
 export async function generateMonthlyRecords(month = monthStart()) {
@@ -100,6 +136,11 @@ export async function recordPayment(actor: Actor, recordId: string, input: z.inf
       const paid = input.verified ? cur.paid.plus(amount) : cur.paid;
       const record = input.verified ? await tx.rentRecord.update({ where: { id: recordId }, data: { paid, status: computeStatus(cur.total, paid, cur.dueDate) } }) : cur;
       await notify([rec.agreement.tenantId], { type: "rent.payment", titleKey: "notifications.rentPaymentRecorded", params: { amount: amount.toFixed(2) } }, tx);
+      const ctx = await rentContext(tx, recordId);
+      await notify([rec.agreement.ownerId], {
+        type: "rent.received", titleKey: "notifications.rentReceived", link: "/owner/rent",
+        params: { tenantName: ctx.tenantName, unit: ctx.unit, property: ctx.property, amount: amount.toFixed(2), method: input.method, receipt: receiptNumber(payment.id, ctx.billingMonth), paymentId: payment.id, verified: !!input.verified },
+      }, tx);
       await writeAudit({ actor, action: "rent.payment", resourceType: "RentPayment", resourceId: payment.id, after: { recordId, amount: amount.toFixed(2), method: input.method }, req }, tx);
       return { payment, record };
     });
@@ -120,13 +161,17 @@ export async function receipt(actor: Actor, paymentId: string) {
 
   const [owner, tenant] = await Promise.all([
     db.user.findUnique({ where: { id: a.ownerId }, select: { fullName: true, ownerCode: true } }),
-    db.user.findUnique({ where: { id: a.tenantId }, select: { fullName: true, username: true } }),
+    db.user.findUnique({ where: { id: a.tenantId }, select: { id: true, fullName: true, username: true, phone: true, avatarKey: true } }),
   ]);
+  // the landlord gets the tenant's phone and photo for "Call / Message Tenant"; the tenant already knows their own
+  const ownerSide = actor.role === "OWNER" || actor.role === "SUPER_ADMIN";
+  const avatarUrl = ownerSide && tenant?.avatarKey ? await signStorageKey(tenant.avatarKey, 3600).then((r) => r.url).catch(() => null) : null;
   const month = p.rentRecord.billingMonth.toISOString().slice(0, 7);
   return {
-    receiptNo: `RC-${month.replace("-", "")}-${p.id.slice(-8).toUpperCase()}`,
+    receiptNo: receiptNumber(p.id, p.rentRecord.billingMonth),
     issuedAt: p.paidAt, billingMonth: month,
-    owner, tenant,
+    owner, tenant: tenant ? { id: tenant.id, fullName: tenant.fullName, username: tenant.username, phone: ownerSide ? tenant.phone : null, avatarUrl } : null,
+    paymentId: p.id, status: p.status,
     property: a.unit.property.name, unit: a.unit.unitNumber, floor: a.unit.floor,
     amount: p.amount.toFixed(2), method: p.method, reference: p.reference,
     recordTotal: p.rentRecord.total.toFixed(2), recordPaid: p.rentRecord.paid.toFixed(2),

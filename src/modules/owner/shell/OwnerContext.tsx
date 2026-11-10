@@ -3,7 +3,7 @@
 import { createContext, useContext } from "react";
 
 export interface OwnerMe { id: string; username: string; fullName: string; phone: string | null; role: string; status: string }
-export interface OwnerCtx { me: OwnerMe; unread: number; refreshUnread: () => void }
+export interface OwnerCtx { me: OwnerMe; unread: number; refreshUnread: () => void; /** the Notification Center tells the sidebar badge the new number at once */ setUnread: (n: number) => void }
 
 const Ctx = createContext<OwnerCtx | null>(null);
 export const OwnerProvider = Ctx.Provider;

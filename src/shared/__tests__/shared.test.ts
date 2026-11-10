@@ -8,9 +8,14 @@ describe("pricing", () => {
   const primary = { monthlyPricePaisa: 15900, quarterlyDiscount: 10, yearlyDiscount: 20 };
   it("matches the architecture table", () => {
     expect(computePrice(primary, "MONTHLY").totalPaisa).toBe(15900);
-    expect(computePrice(primary, "QUARTERLY").totalPaisa).toBe(42930);
+    expect(computePrice(primary, "QUARTERLY").totalPaisa).toBe(57240); // 159 × 4 months − 10%
     expect(computePrice(primary, "YEARLY").totalPaisa).toBe(152640);
     expect(computePrice({ ...primary, monthlyPricePaisa: 69900 }, "YEARLY").totalPaisa).toBe(671040);
+  });
+  it("quarterly is 4 months, yearly 12", () => {
+    expect(computePrice(primary, "QUARTERLY").months).toBe(4);
+    expect(computePrice(primary, "YEARLY").months).toBe(12);
+    expect(computePrice({ ...primary, monthlyPricePaisa: 29900 }, "QUARTERLY").totalPaisa).toBe(107640);
   });
   it("reports savings", () => {
     expect(computePrice(primary, "YEARLY").savingsPaisa).toBe(38160);

@@ -29,3 +29,6 @@ CREATE INDEX "Facility_location_gix" ON "Facility" USING GIST ("location");
 -- AuditLog is append-only. Run as a DB owner after creating the app role (replace app_user):
 -- REVOKE UPDATE, DELETE, TRUNCATE ON "AuditLog" FROM app_user;
 -- REVOKE UPDATE, DELETE, TRUNCATE ON "EmergencyAlertEvent" FROM app_user;
+
+-- Find Home: one live visit request per person and listing (also created by migration 20261112090000_find_home)
+CREATE UNIQUE INDEX IF NOT EXISTS "VisitRequest_active_unique" ON "VisitRequest"("listingId", "requesterId") WHERE "status" IN ('PENDING', 'CONFIRMED');

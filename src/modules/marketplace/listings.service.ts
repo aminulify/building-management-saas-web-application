@@ -10,6 +10,7 @@ import { activeUserIds, notify } from "@/lib/notify";
 import type { Actor } from "@/lib/auth/require-actor";
 import { pageArgs, pageResult, type pageQuery } from "@/lib/api/common";
 import { getSetting } from "@/modules/admin/settings.service";
+import { removeStorageKeys, signStorageKeys } from "@/modules/uploads/service";
 import type { ListingAction, imageSchema, listingDocSchema, listingCreateSchema, listingUpdateSchema, myListingsQuery } from "./schema";
 
 type Create = z.infer<typeof listingCreateSchema>;
@@ -121,8 +122,58 @@ export async function ownerAction(actor: Actor, id: string, action: ListingActio
 
 export async function myListings(actor: Actor, q: z.infer<typeof myListingsQuery>, page: z.infer<typeof pageQuery>) {
   await authorize(actor, "listing:manage", { ownerId: actor.id });
-  const rows = await db.listing.findMany({ where: { sellerId: actor.id, status: q.status }, include: { images: { take: 1, orderBy: { order: "asc" } } }, ...pageArgs(page) });
-  return pageResult(rows, page.limit);
+  const rows = await db.listing.findMany({
+    where: { sellerId: actor.id, status: q.status }, ...pageArgs(page),
+    include: { images: { take: 1, orderBy: { order: "asc" } }, _count: { select: { images: true, favorites: true, visits: true } } },
+  });
+  const res = pageResult(rows, page.limit);
+  const covers = await signStorageKeys(res.items.flatMap((l) => (l.images[0] ? [l.images[0].storageKey] : [])), 3600);
+  return {
+    ...res,
+    items: res.items.map(({ _count, ...l }) => ({ ...l, photos: _count.images, saves: _count.favorites, visitRequests: _count.visits, coverUrl: (l.images[0] && covers.get(l.images[0].storageKey)) || null })),
+  };
+}
+
+/**
+ * "Delete" for the seller. A draft or rejected listing (or an archived one nobody ever wrote about) is removed for real,
+ * together with its photos; anything that was live, sold or discussed is archived so the history stays. Admin-suspended
+ * listings cannot be removed by the seller.
+ */
+export async function deleteListing(actor: Actor, id: string, req: Request) {
+  const l = await loadOwn(actor, id);
+  if (l.status === "SUSPENDED") throw new AppError("INVALID_STATE", { from: l.status });
+  const discussed = (await db.conversation.count({ where: { listingId: id } })) > 0;
+  const hard = ["DRAFT", "REJECTED", "ARCHIVED"].includes(l.status) && !discussed;
+  if (!hard) {
+    if (l.status === "ARCHIVED") return { deleted: false, archived: true };
+    await ownerAction(actor, id, "archive", req);
+    return { deleted: false, archived: true };
+  }
+  await db.$transaction(async (tx) => {
+    await tx.visitRequest.deleteMany({ where: { listingId: id } });
+    await tx.favorite.deleteMany({ where: { listingId: id } });
+    await tx.listingReport.deleteMany({ where: { listingId: id } });
+    await tx.listingStatDaily.deleteMany({ where: { listingId: id } });
+    await tx.listingFacilityDistance.deleteMany({ where: { listingId: id } });
+    await tx.listingDocument.deleteMany({ where: { listingId: id } });
+    await tx.listingImage.deleteMany({ where: { listingId: id } });
+    await tx.listing.delete({ where: { id } });
+    await writeAudit({ actor, action: "listing.delete", resourceType: "Listing", resourceId: id, before: { status: l.status, title: l.title }, req }, tx);
+  });
+  // the pictures are private storage objects: remove them too (a failure here only leaves an orphan file)
+  if (l.images.length) await removeStorageKeys(l.images.map((i) => i.storageKey)).catch(() => undefined);
+  return { deleted: true, archived: false };
+}
+
+/** Remove one photo of the seller's own listing (drafts and live listings alike; a live listing keeps at least one). */
+export async function deleteListingImage(actor: Actor, id: string, imageId: string) {
+  const l = await loadOwn(actor, id);
+  const img = l.images.find((i) => i.id === imageId);
+  if (!img) throw new AppError("NOT_FOUND");
+  if (l.status !== "DRAFT" && l.status !== "REJECTED" && l.images.length <= 1) throw new AppError("VALIDATION_ERROR", [{ path: "images", code: "at_least_one_image" }]);
+  await db.listingImage.delete({ where: { id: imageId } });
+  await removeStorageKeys([img.storageKey]).catch(() => undefined);
+  return { deleted: true };
 }
 
 export async function addListingDocument(actor: Actor, id: string, input: z.infer<typeof listingDocSchema>) {

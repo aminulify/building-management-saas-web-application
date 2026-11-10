@@ -6,6 +6,8 @@ import { authorize } from "@/lib/authz/authorize";
 import { notify } from "@/lib/notify";
 import type { Actor } from "@/lib/auth/require-actor";
 import { findOrCreatePair } from "@/modules/messaging/service";
+import { rateLimit } from "@/lib/rate-limit";
+import { writeAudit } from "@/lib/audit";
 import type { inquirySchema, reportSchema, savedSearchSchema } from "./schema";
 
 const published = async (id: string) => {
@@ -77,4 +79,18 @@ export async function deleteSavedSearch(actor: Actor, id: string) {
   const r = await db.savedSearch.deleteMany({ where: { id, userId: actor.id } });
   if (r.count === 0) throw new AppError("NOT_FOUND");
   return { deleted: true };
+}
+
+/**
+ * "Call Owner": the phone number is only handed to a signed-in person who asks for it on a published listing
+ * (20 per hour, written to the audit log), so crawlers cannot harvest numbers from the public pages.
+ */
+export async function revealContact(actor: Actor, listingId: string, req: Request) {
+  rateLimit(`contact:${actor.id}`, 20, 3600_000);
+  const l = await published(listingId);
+  if (l.sellerId === actor.id) throw new AppError("FORBIDDEN", { reason: "own_listing" });
+  const seller = await db.user.findFirst({ where: { id: l.sellerId, status: "ACTIVE" }, select: { fullName: true, phone: true, email: true } });
+  if (!seller || (!seller.phone && !seller.email)) throw new AppError("NOT_FOUND", { reason: "no_contact" });
+  await writeAudit({ actor, action: "listing.contact_reveal", resourceType: "Listing", resourceId: listingId, req });
+  return { name: seller.fullName, phone: seller.phone, email: seller.email };
 }

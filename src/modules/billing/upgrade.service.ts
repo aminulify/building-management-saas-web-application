@@ -8,6 +8,7 @@ import { activeUserIds, notify } from "@/lib/notify";
 import { rateLimit } from "@/lib/rate-limit";
 import { getSetting } from "@/modules/admin/settings.service";
 import type { Actor } from "@/lib/auth/require-actor";
+import { CYCLE_MONTHS } from "@/shared/pricing";
 import { buildQuote, assertCanBuy } from "./quote.service";
 import type { upgradeRequestSchema } from "./upgrade-schema";
 
@@ -100,7 +101,7 @@ export async function approve(actor: Actor, id: string, req: Request) {
     const r = await tx.upgradeRequest.findUniqueOrThrow({ where: { id }, include: { plan: true } });
     if (r.status !== "PENDING") throw new AppError("INVALID_STATE", { from: r.status });
 
-    const months = r.cycle === "MONTHLY" ? 1 : r.cycle === "QUARTERLY" ? 3 : 12;
+    const months = CYCLE_MONTHS[r.cycle];
     const live = await tx.userSubscription.findFirst({ where: { userId: r.userId, audience: r.plan.audience, status: { in: ["ACTIVE", "GRACE"] } } });
     const now = new Date();
     // renewal of the same plan stacks onto the remaining time; plan changes start now

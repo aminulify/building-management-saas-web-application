@@ -62,7 +62,11 @@ export async function raiseSos(actor: Actor, input: z.infer<typeof sosCreateSche
     else if (ctx.propertyId) await tx.$executeRaw`UPDATE "EmergencyAlert" SET "location" = (SELECT "location" FROM "Property" WHERE id = ${ctx.propertyId}::uuid) WHERE id = ${a.id}::uuid`;
 
     const recipients = [...(await activeUserIds("GOV_ADMIN", tx)), ...(await activeUserIds("SUPER_ADMIN", tx))];
-    await notify(recipients, { type: "sos.new", titleKey: "notifications.sosNew", params: { type: input.type, reporter: me.fullName }, link: `/gov/quick-alert/${a.id}`, priority: "CRITICAL" }, tx);
+    const where = { type: input.type, reporter: me.fullName, alertId: a.id, unit: ctx.snapshot.unit, property: ctx.snapshot.property, description: input.description ?? null };
+    await notify(recipients, { type: "sos.new", titleKey: "notifications.sosNew", params: where, link: `/gov/quick-alert/${a.id}`, priority: "CRITICAL" }, tx);
+    // the landlord of the property where it happened is told too (unless they raised it themselves)
+    const ownerId = ctx.propertyId ? (await tx.property.findUnique({ where: { id: ctx.propertyId }, select: { ownerId: true } }))?.ownerId : undefined;
+    if (ownerId && ownerId !== actor.id) await notify([ownerId], { type: "sos.new", titleKey: "notifications.sosNew", params: where, link: "/owner/notifications", priority: "CRITICAL" }, tx);
     await tx.outboxEvent.create({ data: { type: "sos.new", payload: { alertId: a.id, type: input.type } } }); // socket sos:new + SMS to on-duty phones
     await writeAudit({ actor, action: "sos.create", resourceType: "EmergencyAlert", resourceId: a.id, after: { type: input.type }, req }, tx);
     return a;
@@ -71,6 +75,46 @@ export async function raiseSos(actor: Actor, input: z.infer<typeof sosCreateSche
 }
 
 /** What the reporter sees. Never claims police received it unless a forward reference exists (spec 5.8, D11). */
+/** Who may look at an alert: the person who raised it, or the landlord of the property it happened at. */
+async function viewerAlert(actor: Actor, id: string) {
+  const a = await db.emergencyAlert.findUnique({ where: { id }, include: { events: { orderBy: { id: "asc" } } } });
+  if (!a) throw new AppError("NOT_FOUND");
+  const isReporter = a.reporterId === actor.id;
+  const isLandlord = !isReporter && actor.role === "OWNER" && !!a.propertyId && (await db.property.count({ where: { id: a.propertyId, ownerId: actor.id } })) > 0;
+  if (!isReporter && !isLandlord) throw new AppError("NOT_FOUND"); // existence is not revealed to anyone else
+  return { a, isReporter };
+}
+
+/** The incident log shown in the Notification Center: status, who/where, and the steps taken (no internal notes, no forward references). */
+export async function alertDetail(actor: Actor, id: string) {
+  const { a, isReporter } = await viewerAlert(actor, id);
+  const snap = a.addressSnapshot as { property?: string | null; unit?: string | null; floor?: number | null };
+  const rep = a.reporterSnapshot as { name?: string; phone?: string | null };
+  return {
+    id: a.id, type: a.type, description: a.description, status: a.status, priority: a.priority, createdAt: a.createdAt, acknowledgedAt: a.acknowledgedAt, resolvedAt: a.resolvedAt, acceptedAt: a.acceptedAt,
+    ...stageOf(a), isReporter, canAccept: isReporter && a.status === "SOLVED" && !a.acceptedAt,
+    property: snap.property ?? null, unit: snap.unit ?? null, floor: snap.floor ?? null,
+    reporter: { name: rep.name ?? "", phone: rep.phone ?? null },
+    log: a.events.filter((e) => e.action === "STATUS" || e.action === "ACK" || e.action === "FORWARD" || (e.action === "NOTE" && e.actorId === a.reporterId))
+      .map((e) => ({ action: e.action, toStatus: e.toStatus, note: e.action === "FORWARD" ? null : e.note, at: e.createdAt, byReporter: e.actorId === a.reporterId })),
+  };
+}
+
+/** "Accept & Close Issue ✓": only the person who raised the alert, only once it is SOLVED. */
+export async function acceptSolved(actor: Actor, id: string, req: Request) {
+  const { a, isReporter } = await viewerAlert(actor, id);
+  if (!isReporter) throw new AppError("FORBIDDEN", { reason: "reporter_only" });
+  if (a.status !== "SOLVED") throw new AppError("INVALID_STATE", { from: a.status });
+  if (a.acceptedAt) return { accepted: true, acceptedAt: a.acceptedAt };
+  const at = new Date();
+  await db.$transaction(async (tx) => {
+    await tx.emergencyAlert.update({ where: { id }, data: { acceptedAt: at } });
+    await tx.emergencyAlertEvent.create({ data: { alertId: id, actorId: actor.id, action: "NOTE", fromStatus: a.status, note: "Accepted and closed by the reporter" } });
+    await writeAudit({ actor, action: "sos.accept", resourceType: "EmergencyAlert", resourceId: id, before: { acceptedAt: null }, after: { acceptedAt: at.toISOString() }, req }, tx);
+  });
+  return { accepted: true, acceptedAt: at };
+}
+
 export function stageOf(a: { status: AlertStatus; acknowledgedAt: Date | null; events: { action: string; forwardRef: string | null; forwardTo: string | null }[] }) {
   if (a.status === "SOLVED") return { stage: "SOLVED" as const };
   const fwd = a.events.find((e) => e.action === "FORWARD");

@@ -1,6 +1,7 @@
 export type Cycle = "MONTHLY" | "QUARTERLY" | "YEARLY";
 
-export const CYCLE_MONTHS: Record<Cycle, number> = { MONTHLY: 1, QUARTERLY: 3, YEARLY: 12 };
+/** Quarterly is sold as 4 months at the quarterly discount (product decision); the same number sets how long the subscription runs. */
+export const CYCLE_MONTHS: Record<Cycle, number> = { MONTHLY: 1, QUARTERLY: 4, YEARLY: 12 };
 
 export interface PriceInput {
   /** Monthly price in paisa (BDT × 100) to avoid float errors. */

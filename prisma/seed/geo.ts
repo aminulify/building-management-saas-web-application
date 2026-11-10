@@ -10,13 +10,18 @@ const DATA = [
       { nameEn: "Dhanmondi", nameBn: "ধানমন্ডি", zones: [{ nameEn: "Dhanmondi", nameBn: "ধানমন্ডি" }] },
       { nameEn: "Bashundhara", nameBn: "বসুন্ধরা", zones: [{ nameEn: "Bashundhara R/A", nameBn: "বসুন্ধরা আর/এ" }] },
       { nameEn: "Keraniganj", nameBn: "কেরানীগঞ্জ", zones: [{ nameEn: "Keraniganj", nameBn: "কেরানীগঞ্জ" }] },
-      { nameEn: "Gulshan", nameBn: "গুলশান", zones: [] },
-      { nameEn: "Mohammadpur", nameBn: "মোহাম্মদপুর", zones: [] },
-      { nameEn: "Tejgaon", nameBn: "তেজগাঁও", zones: [] },
-      { nameEn: "Savar", nameBn: "সাভার", zones: [] },
+      { nameEn: "Gulshan", nameBn: "গুলশান", zones: [{ nameEn: "Gulshan", nameBn: "গুলশান" }] },
+      { nameEn: "Mohammadpur", nameBn: "মোহাম্মদপুর", zones: [{ nameEn: "Mohammadpur", nameBn: "মোহাম্মদপুর" }] },
+      { nameEn: "Tejgaon", nameBn: "তেজগাঁও", zones: [{ nameEn: "Tejgaon", nameBn: "তেজগাঁও" }] },
+      { nameEn: "Savar", nameBn: "সাভার", zones: [{ nameEn: "Savar", nameBn: "সাভার" }] },
       { nameEn: "Dohar", nameBn: "দোহার", zones: [] },
       { nameEn: "Nawabganj", nameBn: "নবাবগঞ্জ", zones: [] },
       { nameEn: "Dhamrai", nameBn: "ধামরাই", zones: [] },
+    ] },
+  ] },
+  { nameEn: "Sylhet", nameBn: "সিলেট", districts: [
+    { nameEn: "Sylhet", nameBn: "সিলেট", upazilas: [
+      { nameEn: "Sylhet Sadar", nameBn: "সিলেট সদর", zones: [{ nameEn: "Sylhet Sadar", nameBn: "সিলেট সদর" }] },
     ] },
   ] },
 ];

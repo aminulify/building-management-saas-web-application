@@ -142,3 +142,10 @@ body {
   }
   .btn-primary:hover:not(:disabled), .btn-glass:hover:not(:disabled), .btn-success:hover:not(:disabled), .btn-white:hover:not(:disabled) { transform: none; }
 }
+
+/* every clickable control shows the hand cursor, app-wide; disabled ones show "not-allowed". Base layer, so a utility such as cursor-help can still win. */
+@layer base {
+  button:not(:disabled), [role="button"]:not([aria-disabled="true"]), [role="tab"], [role="menuitem"], [role="option"], summary,
+  select:not(:disabled), label[for], input:is([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="file"], [type="range"]):not(:disabled) { cursor: pointer; }
+  button:disabled, [role="button"][aria-disabled="true"], input:is([type="button"], [type="submit"], [type="reset"], [type="checkbox"], [type="radio"], [type="file"]):disabled { cursor: not-allowed; }
+}

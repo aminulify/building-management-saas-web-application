@@ -65,7 +65,7 @@ export async function acceptInvitation(actor: Actor, token: string) {
     await tx.tenantProfile.upsert({ where: { userId: actor.id }, update: {}, create: { userId: actor.id } });
 
     await ensureRentRecords(tx, [{ id: agreement.id, rent: agreement.rent, unit: { utilityCharge: unit.utilityCharge } }], monthStart());
-    await notify([inv.ownerId], { type: "tenancy.accepted", titleKey: "notifications.tenancyAccepted", params: { unit: unit.unitNumber }, link: `/owner/tenants` }, tx);
+    await notify([inv.ownerId], { type: "tenancy.accepted", titleKey: "notifications.tenancyAccepted", params: { unit: unit.unitNumber, tenantName: actor.fullName, property: inv.unit.property.name }, link: `/owner/tenants` }, tx);
     await writeAudit({ actor, action: "tenancy.accept", resourceType: "RentalAgreement", resourceId: agreement.id }, tx);
     return agreement;
   });

@@ -13,19 +13,31 @@ export async function mySubscription(actor: Actor) {
     getEntitlement(actor.id, "OWNER"),
     getEntitlement(actor.id, "SELLER"),
     db.userSubscription.findMany({ where: { userId: actor.id }, orderBy: { id: "desc" }, take: 10, include: { plan: { select: { code: true, nameEn: true, nameBn: true } } } }),
-    db.upgradeRequest.findFirst({ where: { userId: actor.id, status: "PENDING" }, select: { id: true, planId: true, cycle: true, createdAt: true } }),
+    db.upgradeRequest.findFirst({ where: { userId: actor.id, status: "PENDING" }, select: { id: true, planId: true, cycle: true, createdAt: true, expectedAmount: true, trxId: true, plan: { select: { code: true, nameEn: true, nameBn: true } } } }),
   ]);
   const live = subs.find((s) => s.status === "ACTIVE" || s.status === "GRACE");
   return { owner, seller, current: live ?? null, pendingRequest: pending, history: subs };
 }
 
-export const myPayments = (actor: Actor) =>
-  db.paymentTransaction.findMany({
-    where: { userId: actor.id },
-    include: { invoice: { select: { number: true } } },
+/** Billing history: only what the person needs (no raw gateway payload), with the plan each payment bought. */
+export async function myPayments(actor: Actor) {
+  const rows = await db.paymentTransaction.findMany({
+    where: { userId: actor.id, purpose: "SUBSCRIPTION" },
+    select: {
+      id: true, amount: true, status: true, gateway: true, gatewayTxnId: true, createdAt: true, verifiedAt: true,
+      invoice: { select: { id: true, number: true } },
+      subscription: { select: { cycle: true, startsAt: true, endsAt: true, planSnapshot: true } },
+      upgradeRequest: { select: { cycle: true, status: true, rejectionReason: true, plan: { select: { code: true, nameEn: true, nameBn: true } } } },
+    },
     orderBy: { id: "desc" },
     take: 50,
   });
+  return rows.map(({ subscription, upgradeRequest, ...p }) => {
+    const snap = (subscription?.planSnapshot ?? {}) as { code?: string; nameEn?: string; nameBn?: string };
+    const plan = upgradeRequest?.plan ?? (snap.code ? { code: snap.code, nameEn: snap.nameEn ?? snap.code, nameBn: snap.nameBn ?? snap.code } : null);
+    return { ...p, plan, cycle: subscription?.cycle ?? upgradeRequest?.cycle ?? null, period: subscription ? { startsAt: subscription.startsAt, endsAt: subscription.endsAt } : null, rejectionReason: upgradeRequest?.rejectionReason ?? null };
+  });
+}
 
 /**
  * Daily job (09:00 Asia/Dhaka): reminders at 7/3/1 days, ACTIVE→GRACE at endsAt, GRACE→EXPIRED after grace

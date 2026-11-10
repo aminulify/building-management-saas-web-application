@@ -176,6 +176,16 @@ enum ListingCategory {
   BUILDING
   LAND
   COMMERCIAL
+  DUPLEX
+  STUDIO
+}
+
+/** A seeker's request to visit a listing at a chosen date and time. */
+enum VisitStatus {
+  PENDING
+  CONFIRMED
+  DECLINED
+  CANCELLED
 }
 
 enum ListingStatus {

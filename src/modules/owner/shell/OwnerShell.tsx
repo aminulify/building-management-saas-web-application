@@ -91,7 +91,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-      <OwnerProvider value={{ me, unread, refreshUnread }}>
+      <OwnerProvider value={{ me, unread, refreshUnread, setUnread }}>
         <AmbientBackground />
         <div className="mx-auto flex min-h-screen max-w-[1500px] gap-4 p-3 sm:p-4 lg:gap-5 lg:p-5">
           {/* desktop sidebar */}

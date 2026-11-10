@@ -70,8 +70,41 @@ export async function signRead(actor: Actor, key: string) {
   return signStorageKey(key);
 }
 
+/** Recently signed read URLs, so a list page does not ask Supabase again for pictures it just signed. */
+const signed = new Map<string, { url: string; exp: number }>();
+const fresh = (key: string, seconds: number) => {
+  const c = signed.get(key);
+  return c && c.exp - Date.now() > Math.max(60, seconds / 2) * 1000 ? c.url : null;
+};
+const remember = (key: string, url: string, seconds: number) => {
+  if (signed.size > 3000) signed.clear();
+  signed.set(key, { url, exp: Date.now() + seconds * 1000 });
+};
+
 export async function signStorageKey(key: string, seconds = 300) {
+  const hit = fresh(key, seconds);
+  if (hit) return { url: hit, expiresInSeconds: seconds };
   const { data, error } = await supabaseAdmin().storage.from(BUCKET).createSignedUrl(key, seconds);
   if (error || !data) throw new AppError("NOT_FOUND");
+  remember(key, data.signedUrl, seconds);
   return { url: data.signedUrl, expiresInSeconds: seconds };
+}
+
+/** Delete private storage objects (best effort, used when a listing or photo is removed). */
+export async function removeStorageKeys(keys: string[]) {
+  if (!keys.length) return;
+  await supabaseAdmin().storage.from(BUCKET).remove(keys);
+  for (const k of keys) signed.delete(k);
+}
+
+/** Many keys in ONE request (list pages show 9+ pictures). Keys that cannot be signed are simply missing from the result. */
+export async function signStorageKeys(keys: string[], seconds = 300): Promise<Map<string, string>> {
+  const out = new Map<string, string>();
+  const todo: string[] = [];
+  for (const k of new Set(keys)) { const hit = fresh(k, seconds); if (hit) out.set(k, hit); else todo.push(k); }
+  if (todo.length) {
+    const { data } = await supabaseAdmin().storage.from(BUCKET).createSignedUrls(todo, seconds);
+    for (const r of data ?? []) if (r.path && r.signedUrl && !r.error) { out.set(r.path, r.signedUrl); remember(r.path, r.signedUrl, seconds); }
+  }
+  return out;
 }
