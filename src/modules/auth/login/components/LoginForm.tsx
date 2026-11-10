@@ -13,7 +13,7 @@ import { hl } from "@/components/typography/highlight";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { Link, useRouter } from "@/i18n/navigation";
 import { api, ApiError } from "@/lib/api-client";
-import { POST_LOGIN_PATH, safeNext, setSession } from "@/lib/auth-client";
+import { homeFor, safeNext, setSession } from "@/lib/auth-client";
 import { loginFormSchema, type LoginFormValues } from "../schema";
 import { GoogleButton } from "./GoogleButton";
 
@@ -53,7 +53,7 @@ export function LoginForm() {
       const res = await api<LoginResult>("/auth/login", { method: "POST", body: { identifier: values.identifier.trim().toLowerCase(), password: values.password } });
       setSession(res.session, values.remember);
       setDone(true);
-      setTimeout(() => router.replace((next ?? POST_LOGIN_PATH) as never), 700);
+      setTimeout(() => router.replace((next ?? homeFor(res.user.role)) as never), 700);
     } catch (e) {
       setSubmitting(false);
       if (!(e instanceof ApiError)) { setBanner(t("errors.generic")); return; }

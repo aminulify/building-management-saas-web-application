@@ -1,10 +1,18 @@
 import { z } from "zod";
 import { coords, uuid } from "@/lib/api/common";
+import { bdPhoneSchema } from "@/modules/users/schema";
 
 export const sosCreateSchema = z
   .object({
     type: z.enum(["FIRE", "THEFT", "SECURITY", "LEAKAGE", "MEDICAL", "OTHER"]),
     description: z.string().trim().max(500).optional(),
+    /** which service the reporter asked for (owner dashboard buttons); informs the Gov hub, it is not a forward */
+    service: z.enum(["POLICE", "FIRE"]).optional(),
+    contactPhone: bdPhoneSchema.optional(),
+    reporterName: z.string().trim().min(2).max(100).optional(),
+    thana: z.string().trim().max(100).optional(),
+    locationText: z.string().trim().max(300).optional(),
+    district: z.string().trim().max(60).optional(),
     lat: coords.lat.optional(),
     lng: coords.lng.optional(),
   })

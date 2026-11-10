@@ -9,6 +9,10 @@ model Property {
   addressId          String?                               @db.Uuid
   zoneId             String?                               @db.Uuid
   totalFloors        Int
+  /** owner-entered figures shown on the Properties list; units and areas of real unit rows win when larger */
+  totalSqft          Int?
+  locationText       String?
+  declaredUnits      Int?
   location           Unsupported("geography(Point,4326)")?
   securityFeatures   String[]                              @default([])
   status             PropertyStatus                        @default(ACTIVE)

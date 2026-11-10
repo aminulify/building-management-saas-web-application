@@ -131,8 +131,20 @@ export async function logout(accessToken: string) {
 
 export async function forgotPassword(email: string, req: Request) {
   rateLimit(`forgot:${clientIp(req)}`, 5, 15 * 60_000);
-  await supabaseAnon().auth.resetPasswordForEmail(email); // always {sent:true}: no account enumeration
+  rateLimit(`forgot-email:${email}`, 3, 15 * 60_000);
+  // the response is always {sent:true} (no account enumeration), but a failed send must not be silent for the operator
+  const { error } = await supabaseAnon().auth.resetPasswordForEmail(email);
+  if (error) console.error("[auth] recovery email not sent:", error.code ?? error.status, error.message);
   return { sent: true };
+}
+
+/** Step 2 of recovery: swaps the 6-digit code from the recovery email for a short-lived recovery token (sent to /password/reset). */
+export async function verifyRecoveryCode(email: string, token: string, req: Request) {
+  rateLimit(`recovery-verify:${email}`, 5, 10 * 60_000);
+  rateLimit(`recovery-verify-ip:${clientIp(req)}`, 20, 10 * 60_000);
+  const { data, error } = await supabaseAnon().auth.verifyOtp({ email, token, type: "recovery" });
+  if (error || !data.session) throw new AppError("UNAUTHENTICATED");
+  return { verified: true, accessToken: data.session.access_token };
 }
 
 /** Called with the recovery session's bearer token. */
@@ -141,6 +153,7 @@ export async function resetPassword(accessToken: string, password: string) {
   if (error || !data.user) throw new AppError("UNAUTHENTICATED");
   const { error: upErr } = await supabaseAdmin().auth.admin.updateUserById(data.user.id, { password });
   if (upErr) throw new AppError("VALIDATION_ERROR", [{ path: "password", code: "rejected" }]);
+  await supabaseAdmin().auth.admin.signOut(accessToken).catch(() => undefined); // the recovery token is single-purpose: revoke it
   return { ok: true };
 }
 

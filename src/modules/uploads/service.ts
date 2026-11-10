@@ -70,8 +70,8 @@ export async function signRead(actor: Actor, key: string) {
   return signStorageKey(key);
 }
 
-export async function signStorageKey(key: string) {
-  const { data, error } = await supabaseAdmin().storage.from(BUCKET).createSignedUrl(key, 300);
+export async function signStorageKey(key: string, seconds = 300) {
+  const { data, error } = await supabaseAdmin().storage.from(BUCKET).createSignedUrl(key, seconds);
   if (error || !data) throw new AppError("NOT_FOUND");
-  return { url: data.signedUrl, expiresInSeconds: 300 };
+  return { url: data.signedUrl, expiresInSeconds: seconds };
 }

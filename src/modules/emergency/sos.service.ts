@@ -51,8 +51,8 @@ export async function raiseSos(actor: Actor, input: z.infer<typeof sosCreateSche
     const a = await tx.emergencyAlert.create({
       data: {
         reporterId: actor.id, propertyId: ctx.propertyId, unitId: ctx.unitId, type: input.type, description: input.description,
-        addressSnapshot: JSON.parse(JSON.stringify(ctx.snapshot)),
-        reporterSnapshot: { name: me.fullName, username: me.username, phone: me.phone, nidLast4: me.nidLast4 },
+        addressSnapshot: JSON.parse(JSON.stringify({ ...ctx.snapshot, reported: { service: input.service ?? null, thana: input.thana ?? null, locationText: input.locationText ?? null, district: input.district ?? null } })),
+        reporterSnapshot: { name: input.reporterName ?? me.fullName, username: me.username, phone: input.contactPhone ?? me.phone, nidLast4: me.nidLast4, accountName: me.fullName },
         priority: input.type === "FIRE" || input.type === "MEDICAL" ? "CRITICAL" : "HIGH",
         dedupeKey: `${actor.id}:${input.type}`,
         events: { create: { actorId: actor.id, action: "STATUS", toStatus: "NEED_ACTION", note: "created" } },

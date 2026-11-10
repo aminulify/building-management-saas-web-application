@@ -12,7 +12,8 @@
     "db:migrate": "prisma migrate dev",
     "db:deploy": "prisma migrate deploy",
     "test:e2e": "tsx --env-file=.env scripts/smoke.ts",
-    "db:seed": "tsx --env-file=.env prisma/seed/index.ts"
+    "db:seed": "tsx --env-file=.env prisma/seed/index.ts",
+    "db:seed:demo": "tsx --env-file=.env prisma/seed/demo-owner.ts"
   },
   "prisma": {
     "schema": "prisma/schema"

@@ -9,7 +9,7 @@ import { hl } from "@/components/typography/highlight";
 import { FadeIn } from "@/components/motion/FadeIn";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api-client";
-import { authApi, clearSession, getSession } from "@/lib/auth-client";
+import { authApi, clearSession, getSession, homeFor } from "@/lib/auth-client";
 
 interface Me {
   id: string; username: string; fullName: string; email: string | null; role: string; status: string;
@@ -30,7 +30,9 @@ export function AccountView() {
     if (!getSession()) { router.replace("/login?next=/account" as never); return; }
     setState("loading");
     try {
-      setMe(await authApi<Me>("/me"));
+      const profile = await authApi<Me>("/me");
+      if (profile.role === "OWNER") { router.replace(homeFor("OWNER") as never); return; } // owners have their own dashboard
+      setMe(profile);
       setState("ready");
     } catch (e) {
       if (e instanceof ApiError && (e.status === 401 || e.status === 403)) { clearSession(); router.replace("/login?next=/account" as never); return; }

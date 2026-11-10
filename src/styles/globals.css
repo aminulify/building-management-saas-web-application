@@ -86,7 +86,7 @@ body {
   background: rgba(255, 255, 255, 0.9);
 }
 /* the wrapper already shows the focus halo; a second outline inside it looks broken */
-.glass-input input:focus-visible, .glass-input select:focus-visible { outline: none; }
+.glass-input input:focus-visible, .glass-input select:focus-visible, .glass-input textarea:focus-visible { outline: none; }
 .glass-input[data-invalid="true"] { border-color: #ef4444; box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.15); }
 
 /* design-system.md §2.A.3: Playfair Display Italic + the brand gradient, used only on the ONE highlighted word of a heading */

@@ -46,6 +46,9 @@ export const ROLE_HOME: Record<string, string> = {
   GENERAL_USER: "/user/dashboard",
 };
 
+/** Dashboards built so far; every other role still lands on the account page. */
+export const homeFor = (role: string | undefined): string => (role === "OWNER" ? ROLE_HOME.OWNER! : POST_LOGIN_PATH);
+
 interface Refreshed { session: StoredSession }
 
 let refreshing: Promise<StoredSession | null> | null = null;

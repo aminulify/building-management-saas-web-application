@@ -10,16 +10,30 @@ const address = z.object({
   postalCode: z.string().regex(/^\d{4}$/).optional(),
 });
 
+/** Owner-entered figures from the Properties list form. */
+const listFields = {
+  totalSqft: z.coerce.number().int().min(1).max(10_000_000),
+  locationText: z.string().trim().min(3).max(200),
+  /** how many units the building has; the list shows max(this, real unit rows) */
+  declaredUnits: z.coerce.number().int().min(1).max(1000),
+};
+
 export const propertyCreateSchema = z.object({
   name: z.string().trim().min(2).max(120),
-  type: z.enum(["APARTMENT_BUILDING", "HOUSE", "COMMERCIAL", "MIXED"]),
-  totalFloors: z.coerce.number().int().min(1).max(100),
+  type: z.enum(["APARTMENT_BUILDING", "HOUSE", "COMMERCIAL", "MIXED"]).default("APARTMENT_BUILDING"),
+  /** optional: derived from declaredUnits (about 4 units per floor) when omitted */
+  totalFloors: z.coerce.number().int().min(1).max(100).optional(),
   description: z.string().trim().max(2000).optional(),
-  address,
+  address: address.optional(),
+  totalSqft: listFields.totalSqft.optional(),
+  locationText: listFields.locationText.optional(),
+  declaredUnits: listFields.declaredUnits.optional(),
   zoneId: uuid.optional(),
   ...{ lat: coords.lat.optional(), lng: coords.lng.optional() },
   securityFeatures: z.array(z.enum(["GATED", "CCTV", "GUARD_24_7", "FIRE_ALARM", "GENERATOR"])).max(10).default([]),
-}).refine((v) => (v.lat === undefined) === (v.lng === undefined), { message: "lat_lng_together", path: ["lat"] });
+})
+  .refine((v) => (v.lat === undefined) === (v.lng === undefined), { message: "lat_lng_together", path: ["lat"] })
+  .refine((v) => !!v.address || !!v.locationText, { message: "location_required", path: ["locationText"] });
 
 export const propertyUpdateSchema = z
   .object({
@@ -30,6 +44,7 @@ export const propertyUpdateSchema = z
     zoneId: uuid.nullable(),
     securityFeatures: z.array(z.enum(["GATED", "CCTV", "GUARD_24_7", "FIRE_ALARM", "GENERATOR"])).max(10),
     status: z.enum(["ACTIVE", "INACTIVE"]),
+    ...listFields,
   })
   .partial()
   .strict()

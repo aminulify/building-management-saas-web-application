@@ -55,7 +55,8 @@
     "rentAdjusted": "Your rent bill changed: total ৳{total}"
   },
   "common": {
-    "language": "Language"
+    "language": "Language",
+    "close": "Close"
   },
   "auth": {
     "register": {
@@ -251,6 +252,77 @@
         "network": "Could not reach the server. Check your connection and try again.",
         "failed": "We could not complete the sign-in. Please try again."
       }
+    },
+    "recovery": {
+      "backToLogin": "Back to Login",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "fields": {
+        "email": "Email",
+        "newPassword": "New password",
+        "confirmPassword": "Confirm password"
+      },
+      "placeholders": {
+        "email": "name@example.com",
+        "newPassword": "Create a strong password",
+        "confirmPassword": "Repeat password"
+      },
+      "forgot": {
+        "metaTitle": "Forgot password",
+        "title": "Security first, <hl>always</hl>.",
+        "subtitle": "If you've lost your access, don't worry. We'll get you back to your dashboard in just a few minutes.",
+        "sectionTitle": "Forgot <hl>Password</hl>?",
+        "sectionSubtitle": "No worries! Enter your email and we'll send you reset instructions.",
+        "submit": "Send Recovery Link",
+        "submitting": "Sending…",
+        "sent": "Sent! Check your email…"
+      },
+      "otp": {
+        "metaTitle": "Check your email",
+        "title": "Check your <hl>email</hl>",
+        "subtitle": "We've sent a 6-digit verification code to your email address. Please enter it below.",
+        "label": "6-digit verification code",
+        "digit": "Digit {n}",
+        "submit": "Confirm Code",
+        "submitting": "Checking…",
+        "verified": "Verified! Continuing…",
+        "noEmail": "Didn't receive the email?",
+        "resend": "Resend Code",
+        "resending": "Sending…",
+        "resendIn": "Resend available in {seconds}s",
+        "resent": "A new code is on its way."
+      },
+      "reset": {
+        "metaTitle": "Reset password",
+        "bannerTitle": "Congratulations!",
+        "bannerText": "Identity verified. You are authorized to reset your password.",
+        "title": "Secure Your <hl>Account</hl>",
+        "subtitle": "Please enter your new security credentials below.",
+        "submit": "Update Password",
+        "submitting": "Updating…",
+        "success": "Password updated",
+        "successNote": "Your password has been changed. Taking you to sign in…",
+        "expiredTitle": "Session <hl>expired</hl>",
+        "expiredText": "This reset session is no longer valid. Please request a new verification code.",
+        "startAgain": "Start again",
+        "rules": {
+          "label": "Password requirements",
+          "length": "At least 8 characters",
+          "number": "Contains a number",
+          "case": "Using Letter Uppercase & Lowercase",
+          "match": "Passwords match",
+          "met": "(done)",
+          "unmet": "(not yet)"
+        }
+      },
+      "errors": {
+        "generic": "Something went wrong. Please try again.",
+        "network": "Could not reach the server. Check your connection and try again.",
+        "tooManyAttempts": "Too many attempts. Please try again in {minutes} minute(s).",
+        "invalidCode": "That code is incorrect or has expired. Please try again or request a new one.",
+        "codeIncomplete": "Please enter all 6 digits.",
+        "passwordRejected": "This password was not accepted. Please choose a stronger one."
+      }
     }
   },
   "validation": {
@@ -265,7 +337,7 @@
     "dobInvalid": "Enter a valid date of birth in the past.",
     "nidFormat": "NID must be 13 to 17 digits.",
     "divisionRequired": "Select a division.",
-    "districtRequired": "Select a district.",
+    "districtRequired": "Please select a district.",
     "upazilaRequired": "Select or enter your Thana / Upazila.",
     "streetRequired": "Enter your village / street address.",
     "tooLong": "Too long.",
@@ -286,7 +358,21 @@
     "nidTaken": "This NID is already registered.",
     "identifierRequired": "Enter your email or username.",
     "identifierShort": "Enter at least 3 characters.",
-    "passwordRequiredLogin": "Enter your password."
+    "passwordRequiredLogin": "Enter your password.",
+    "emailRequired": "Email is required.",
+    "alertMessageShort": "Please describe the emergency (at least 5 characters).",
+    "thanaRequired": "Thana area is required.",
+    "locationRequired": "Enter the address or use your GPS location.",
+    "propertyNameMin": "Enter the property name (at least 2 characters).",
+    "propertyLocationMin": "Enter the location (at least 3 characters).",
+    "sqftRequired": "Total sqft is required.",
+    "wholeNumber": "Use a whole number, digits only.",
+    "sqftRange": "Enter an area between 1 and 10,000,000 sqft.",
+    "unitsRequired": "Total units is required.",
+    "unitsRange": "Enter between 1 and 1,000 units.",
+    "unitsBelowExisting": "You already have more units than this in the property. Enter a larger number.",
+    "imageType": "Only PNG, JPG or WebP images are allowed.",
+    "imageSize": "The image must be 5MB or smaller."
   },
   "errorPages": {
     "notFound": {
@@ -326,6 +412,240 @@
       "PENDING": "Under review",
       "VERIFIED": "Verified",
       "REJECTED": "Rejected"
+    }
+  },
+  "owner": {
+    "navLabel": "Owner navigation",
+    "unread": "{count} unread notifications",
+    "roleOwner": "Owner",
+    "loadError": "We could not load your dashboard. Please check your connection and try again.",
+    "retry": "Try again",
+    "loading": "Loading…",
+    "sectionError": "This section could not be loaded.",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "nav": {
+      "dashboard": "Dashboard",
+      "properties": "Properties",
+      "units": "Units",
+      "tenants": "Tenants",
+      "rent": "Rent Overview",
+      "findHome": "Find Home",
+      "subscriptions": "Subscriptions",
+      "maintenance": "Maintenance",
+      "notifications": "Notifications",
+      "messages": "Message",
+      "previousTenants": "Previous Tenants",
+      "logout": "Logout",
+      "loggingOut": "Signing out…",
+      "marketplace": "Marketplace"
+    },
+    "dashboard": {
+      "metaTitle": "Owner dashboard",
+      "title": "Welcome back, <hl>{name}</hl>!",
+      "subtitle": "Here's how your properties are doing.",
+      "emptyTitle": "Add your first property",
+      "emptyText": "Your numbers will appear here as soon as you add a property, its units and your tenants.",
+      "emptyCta": "Add Property"
+    },
+    "cards": {
+      "properties": "Total Properties",
+      "propertiesSub": "{n} active tenant(s)",
+      "units": "Total Units",
+      "unitsSub": "{occupied} occupied · {vacant} not occupied",
+      "unpaid": "Unpaid Units",
+      "unpaidSub": "Last 30 days",
+      "maintenance": "Maintenance Issues Solved",
+      "maintenanceSub": "{solved} of {total} requests",
+      "totalRent": "Total Rent",
+      "totalRentSub": "This month · {collected} collected",
+      "rentPaid": "Rent Paid",
+      "rentPaidSub": "{outstanding} still to collect"
+    },
+    "insights": {
+      "occupancy": "Occupancy",
+      "occupancySub": "{n} active tenant(s)",
+      "plan": "Plan usage",
+      "noPlan": "You have no active plan yet.",
+      "choosePlan": "Choose a plan",
+      "planNearLimit": "You are close to your unit limit. Consider upgrading.",
+      "planSub": "{n} of {limit} properties used",
+      "attention": "Needs attention",
+      "allClear": "All clear. Nothing needs attention.",
+      "overdue": "{n} overdue rent record(s)",
+      "leases": "{n} lease(s) ending within 60 days"
+    },
+    "chart": {
+      "title": "Revenue Growth",
+      "year": "Year",
+      "summary": "{collected} collected of {expected} expected",
+      "empty": "No rent records for {year} yet. Collected rent will appear here month by month.",
+      "collected": "Collected",
+      "expected": "Expected",
+      "monthLabel": "{month}: {collected} collected of {expected}",
+      "rate": "{rate}% collected"
+    },
+    "quick": {
+      "title": "Quick Actions",
+      "addProperty": "Add Property",
+      "addUnit": "Add Unit",
+      "inviteTenant": "Invite a tenant",
+      "maintenance": "View maintenance",
+      "messages": "Open messages",
+      "recordPayment": "Record a rent payment"
+    },
+    "activity": {
+      "title": "Recent Activities",
+      "empty": "No activity yet. New tenants, payments and requests will show up here.",
+      "viewMore": "View More",
+      "loading": "Loading…",
+      "tenantAdded": "New tenant added to unit {unit}.",
+      "rentPaid": "Rent of {amount} paid for unit {unit}.",
+      "maintenance": "Maintenance request for unit {unit}: {title}",
+      "alertSent": "Emergency alert sent ({type}).",
+      "alertType": {
+        "FIRE": "fire",
+        "THEFT": "theft",
+        "SECURITY": "police",
+        "LEAKAGE": "leakage",
+        "MEDICAL": "medical",
+        "OTHER": "other"
+      }
+    },
+    "emergency": {
+      "label": "Alert",
+      "police": "Need Quickly Police",
+      "fire": "Need Fire Service",
+      "modalTitle": "Alert",
+      "reportingTo": "Reporting to: {service}",
+      "policeName": "Police Emergency",
+      "fireName": "Fire Service",
+      "fields": {
+        "message": "Write your alert message",
+        "contact": "Contact",
+        "name": "Name",
+        "thana": "Thana area",
+        "location": "Location",
+        "district": "District"
+      },
+      "placeholders": {
+        "message": "Write your alert message...",
+        "name": "e.g. Abdur Rahman",
+        "thana": "e.g. Mirpur Model Thana",
+        "location": "House 12, Road 5, Block C...",
+        "district": "Select district"
+      },
+      "gpsUse": "Use current GPS location",
+      "gpsLoading": "Finding your location…",
+      "gpsOk": "Location captured ({lat}, {lng})",
+      "gpsClear": "Remove",
+      "gpsDenied": "Location access was denied. Type your address instead.",
+      "gpsUnsupported": "This device cannot share its location. Type your address instead.",
+      "districtError": "Could not load districts",
+      "retry": "Try again",
+      "cancel": "Cancel",
+      "send": "Send Alert",
+      "sending": "Sending…",
+      "close": "Close",
+      "sent": "Alert sent. Our response team has received it and will pass it to the nearest station.",
+      "duplicate": "You already sent this alert a moment ago. Our team has it.",
+      "errors": {
+        "limit": "You have sent too many alerts in the last hour. If it is a life-threatening emergency, call 999 now.",
+        "network": "Could not reach the server. If it is urgent, call 999 now.",
+        "forbidden": "Your account cannot send alerts right now.",
+        "invalid": "Please check the form and try again.",
+        "generic": "The alert could not be sent. If it is urgent, call 999 now."
+      }
+    },
+    "properties": {
+      "metaTitle": "Properties",
+      "title": "Properties <hl>List</hl>",
+      "search": "Search",
+      "searchLabel": "Search properties by name or location",
+      "clearSearch": "Clear search text",
+      "clearSearchButton": "Clear Search",
+      "add": "Add Property",
+      "loading": "Loading your properties…",
+      "error": "We could not load your properties. Please check your connection and try again.",
+      "retry": "Try again",
+      "emptyTitle": "No properties yet",
+      "emptyText": "Add your first property to start managing units, tenants and rent.",
+      "noResultsTitle": "No properties found",
+      "noResultsText": "Nothing matches “{query}”. Try a different name or location.",
+      "stats": {
+        "properties": "Properties",
+        "units": "Total units",
+        "occupied": "Occupied",
+        "vacant": "Vacant"
+      },
+      "cols": {
+        "name": "Property Name",
+        "location": "Location",
+        "sqft": "Total Sqft",
+        "units": "Total Units",
+        "occupied": "Occupied",
+        "vacant": "Vacant",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "image": {
+        "label": "Property image",
+        "title": "Click or drag to upload property photo",
+        "hint": "PNG, JPG or WebP, up to 5MB",
+        "previewAlt": "Property photo preview",
+        "replace": "Replace",
+        "remove": "Remove"
+      },
+      "form": {
+        "addTitle": "Add Property",
+        "editTitle": "Edit Property",
+        "fields": {
+          "name": "Property name",
+          "location": "Location",
+          "sqft": "Total sqft",
+          "units": "Total units"
+        },
+        "placeholders": {
+          "name": "e.g. Dhali Monzil",
+          "location": "e.g. Keraniganj, Dhaka, Bangladesh",
+          "sqft": "e.g. 12000",
+          "units": "e.g. 20"
+        },
+        "cancel": "Cancel",
+        "save": "Save Property",
+        "saveChanges": "Save Changes",
+        "saving": "Saving…",
+        "created": "Property added successfully.",
+        "updated": "Property updated.",
+        "photoFailed": "The property was saved, but the photo could not be uploaded. Edit the property to try again.",
+        "viewPlans": "View plans",
+        "errors": {
+          "PLAN_LIMIT_REACHED": "You have reached the property limit of your plan.",
+          "SUBSCRIPTION_REQUIRED": "An active subscription is needed to add properties.",
+          "SUBSCRIPTION_GRACE_RESTRICTED": "Your subscription is in the grace period. Renew it to add new properties.",
+          "RATE_LIMITED": "Too many requests. Please wait a moment and try again.",
+          "network": "Could not reach the server. Check your connection and try again.",
+          "forbidden": "Your account cannot do this right now.",
+          "generic": "Something went wrong. Please try again."
+        }
+      },
+      "delete": {
+        "title": "Are you sure?",
+        "text": "“{name}” will be deleted from your properties list.",
+        "note": "Its units are hidden too. The history stays stored for your records.",
+        "cancel": "Cancel",
+        "yes": "Yes, delete",
+        "deleting": "Deleting…",
+        "done": "“{name}” was deleted.",
+        "errors": {
+          "activeTenants": "This property still has {count} active tenant(s). End their tenancy first, then delete it.",
+          "network": "Could not reach the server. Please try again.",
+          "generic": "The property could not be deleted. Please try again."
+        }
+      }
     }
   }
 }

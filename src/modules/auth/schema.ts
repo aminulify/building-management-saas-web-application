@@ -46,6 +46,7 @@ export const otpVerifySchema = z.object({
   token: z.string().regex(/^\d{4,8}$/),
 });
 export const forgotSchema = z.object({ email: z.string().trim().toLowerCase().email() });
+export const recoveryVerifySchema = z.object({ email: z.string().trim().toLowerCase().email(), token: z.string().regex(/^\d{6,8}$/) });
 export const resetSchema = z.object({ password: passwordSchema });
 
 export const adminCreateUserSchema = z.object({

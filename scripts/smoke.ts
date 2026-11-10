@@ -39,6 +39,10 @@ function check(label: string, ok: boolean, info?: unknown) {
 }
 const section = (s: string) => console.log("\n== " + s);
 
+function jwtExpired(t: string) {
+  try { return JSON.parse(Buffer.from(t.split(".")[1]!, "base64url").toString()).exp * 1000 < Date.now() + 5_000; } catch { return false; }
+}
+
 async function call(method: string, path: string, token?: string | null, body?: unknown, headers: Record<string, string> = {}, attempt = 0): Promise<any> {
   const res = await fetch(BASE + path, {
     method,
@@ -48,6 +52,16 @@ async function call(method: string, path: string, token?: string | null, body?: 
   let json: any = null;
   try { json = await res.json(); } catch { /* empty */ }
   if (res.status === 500 && attempt < 2) return call(method, path, token, body, headers, attempt + 1); // pooler hiccup, nothing was written
+  // a long run can outlive the 1-hour access token: renew it ONLY when it has really expired (revoked tokens must stay rejected)
+  if (res.status === 401 && token && attempt < 2 && jwtExpired(token)) {
+    const u = Object.values(users).find((x) => x.token === token);
+    if (u) {
+      const lr = await fetch(BASE + "/auth/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ identifier: u.email, password: u.password }) });
+      const lj: any = await lr.json().catch(() => null);
+      const fresh = lj?.data?.session?.accessToken;
+      if (fresh) { u.token = fresh; return call(method, path, fresh, body, headers, attempt + 1); }
+    }
+  }
   return { status: res.status, body: json, data: json?.data, code: json?.code };
 }
 
@@ -213,8 +227,8 @@ async function main() {
   r = await call("GET", "/geo/zones?q=Uttara");
   const zone = r.data?.[0];
   check("GET /geo/zones?q=Uttara", r.status === 200 && !!zone, r.body);
-  r = await call("GET", "/geo/districts");
-  check("missing query param → 422", r.status === 422, r.body);
+  r = await call("GET", "/geo/districts?division=not-a-uuid");
+  check("bad division id → 422", r.status === 422, r.body);
 
   section("auth: registration, login, validation");
   await makeStaff("super");
@@ -246,6 +260,27 @@ async function main() {
   check("POST /auth/otp/send → sent (generic)", r.status === 200 && r.data?.sent === true, r.body);
   r = await call("POST", "/auth/password/forgot", null, { email: users.owner!.email });
   check("POST /auth/password/forgot → sent", r.status === 200 && r.data?.sent === true, r.body);
+  // recovery by 6-digit code: the code is fetched with the admin API (the real one arrives by email)
+  r = await call("POST", "/auth/password/verify", null, { email: users.general!.email, token: "000000" });
+  check("POST /auth/password/verify wrong code → 401", r.status === 401, r.body);
+  r = await call("POST", "/auth/password/verify", null, { email: "nope", token: "abc" });
+  check("POST /auth/password/verify bad body → 422", r.status === 422, r.body);
+  const gl = await sb.auth.admin.generateLink({ type: "recovery", email: users.general!.email });
+  const code = gl.data?.properties?.email_otp;
+  r = await call("POST", "/auth/password/verify", null, { email: users.general!.email, token: code ?? "" });
+  check("POST /auth/password/verify real code → recovery token", r.status === 200 && r.data?.verified === true && !!r.data?.accessToken, r.body);
+  const recTok = r.data?.accessToken as string;
+  r = await call("POST", "/auth/password/reset", recTok, { password: "short" });
+  check("POST /auth/password/reset weak password → 422", r.status === 422, r.body);
+  const recoveredPw = "NewPassw0rd" + tag;
+  r = await call("POST", "/auth/password/reset", recTok, { password: recoveredPw });
+  check("POST /auth/password/reset → ok", r.status === 200 && r.data?.ok === true, r.body);
+  r = await call("POST", "/auth/login", null, { identifier: users.general!.email, password: recoveredPw });
+  check("login with the new password works", r.status === 200, r.body);
+  users.general!.password = recoveredPw;
+  users.general!.token = r.data?.session?.accessToken ?? users.general!.token; // the reset revoked the old session
+  r = await call("POST", "/auth/password/reset", null, { password: recoveredPw });
+  check("POST /auth/password/reset without token → 401", r.status === 401, r.body);
 
   section("RBAC guards");
   r = await call("GET", "/admin/users", T("general"));
@@ -363,6 +398,36 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("list units", r.status === 200 && r.data?.items?.length === 2, r.body);
   r = await call("GET", "/properties", T("owner"));
   check("list properties", r.status === 200 && r.data?.items?.length === 1, r.body);
+  const row0 = r.data?.items?.[0];
+  check("list row has figures: 2 real units, 0 occupied, 2 vacant, sqft = sum of unit areas, location label", row0?.totalUnits === 2 && row0?.occupiedUnits === 0 && row0?.vacantUnits === 2 && row0?.sqft === 2250 && /Uttara/.test(row0?.locationLabel ?? ""), row0);
+  r = await call("POST", "/properties", T("owner"), { name: "List Form Tower", locationText: "Keraniganj, Dhaka, Bangladesh", totalSqft: 12000, declaredUnits: 20 });
+  check("create property from the list form (no address/floors) → 201, floors derived", r.status === 201 && r.data?.totalFloors === 5 && r.data?.locationText === "Keraniganj, Dhaka, Bangladesh", r.body);
+  const formProp = r.data;
+  r = await call("POST", "/properties", T("owner"), { name: "No Location" });
+  check("create without any location → 422", r.status === 422, r.body);
+  r = await call("GET", "/properties", T("owner"));
+  const fr = r.data?.items?.find((x: any) => x.id === formProp?.id);
+  check("declared 20 units, none real: total 20, vacant 20, sqft 12000", fr?.totalUnits === 20 && fr?.vacantUnits === 20 && fr?.sqft === 12000 && fr?.locationLabel === "Keraniganj, Dhaka, Bangladesh", fr);
+  r = await call("PATCH", `/properties/${prop?.id}`, T("owner"), { declaredUnits: 1 });
+  check("declaredUnits below existing unit rows → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/properties/${formProp?.id}`, T("owner"), { name: "List Form Tower 2", totalSqft: 9000, declaredUnits: 12, locationText: "Mirpur, Dhaka" });
+  check("edit list fields", r.status === 200 && r.data?.totalSqft === 9000 && r.data?.declaredUnits === 12, r.body);
+  r = await call("POST", `/properties/${formProp?.id}/images`, T("owner"), { storageKey: `PROPERTY_IMAGE/${users.tenant!.id}/x.png` });
+  check("attach someone else's upload → 403", r.status === 403, r.body);
+  const up = await uploadVia(T("owner"), "PROPERTY_IMAGE", "image/png", PNG);
+  r = await call("POST", `/properties/${formProp?.id}/images`, T("owner"), { storageKey: up.key, order: 0 });
+  check("attach own PROPERTY_IMAGE upload → 201", r.status === 201, r.body);
+  const imgId = r.data?.id;
+  r = await call("GET", "/properties", T("owner"));
+  check("list row carries a signed cover URL", /^https?:\/\//.test(r.data?.items?.find((x: any) => x.id === formProp?.id)?.coverUrl ?? ""), r.data?.items?.[0]);
+  r = await call("DELETE", `/properties/${formProp?.id}/images/${imgId}`, T("tenant"));
+  check("tenant cannot remove the image → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/properties/${formProp?.id}/images/${imgId}`, T("owner"));
+  check("owner removes the image", r.status === 200 && r.data?.removed === true, r.body);
+  r = await call("POST", `/properties/${formProp?.id}/archive`, T("owner"), { reason: "Deleted by the owner from the Properties list" });
+  check("delete (archive) the form property → hidden from the list", r.status === 200, r.body);
+  r = await call("GET", "/properties", T("owner"));
+  check("archived property no longer listed", r.data?.items?.length === 1, r.data?.items?.length);
 
   section("tenancy + rent");
   r = await call("POST", "/tenancies/invite", T("owner"), { unitId: unitA?.id, startDate: today });
@@ -754,6 +819,24 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   }
   r = await call("GET", "/dashboard/owner", T("owner"));
   check("owner dashboard numbers: 1 property, 2 units, 50% occupancy, ৳16,500 collected", r.data?.portfolio?.properties === 1 && r.data?.portfolio?.totalUnits === 2 && r.data?.portfolio?.occupancyRate === 50 && Number(r.data?.rentThisMonth?.collected) === 17000, r.data);
+  r = await call("GET", "/dashboard/owner/stats", T("owner"));
+  check("owner stats: unpaid units + maintenance rate", r.status === 200 && typeof r.data?.unpaidUnitsLast30Days === "number" && typeof r.data?.maintenance?.solvedRate === "number", r.body);
+  r = await call("GET", `/dashboard/owner/revenue?year=${new Date().getUTCFullYear()}`, T("owner"));
+  check("owner revenue: 12 months, collected > 0, years list", r.status === 200 && r.data?.months?.length === 12 && Number(r.data?.totals?.collected) > 0 && r.data?.years?.length >= 1, r.body);
+  r = await call("GET", "/dashboard/owner/revenue?year=1800", T("owner"));
+  check("owner revenue: bad year → 422", r.status === 422, r.body);
+  r = await call("GET", "/dashboard/owner/activities?limit=20", T("owner"));
+  check("owner activities: payment + alert entries", r.status === 200 && r.data?.items?.some((a: { kind: string }) => a.kind === "RENT_PAID") && r.data?.items?.some((a: { kind: string }) => a.kind === "ALERT_SENT"), r.body);
+  for (const p of ["stats", "revenue", "activities"]) {
+    r = await call("GET", `/dashboard/owner/${p}`, T("tenant"));
+    check(`tenant → owner ${p} 403`, r.status === 403, r.body);
+  }
+  r = await call("POST", "/sos", T("owner"), { type: "SECURITY", service: "POLICE", description: "Suspicious people at the gate", contactPhone: "01712345678", reporterName: "Abdur Rahman", thana: "Mirpur Model", locationText: "House 12, Road 5", district: "Dhaka", lat: 23.8, lng: 90.4 });
+  check("owner SOS with police form fields → 201/200", r.status === 201 || r.status === 200, r.body);
+  r = await call("POST", "/sos", T("owner"), { type: "FIRE", service: "FIRE", contactPhone: "123" });
+  check("SOS bad contact phone → 422", r.status === 422, r.body);
+  r = await call("GET", "/geo/districts", null);
+  check("districts without division → all (≥ 60)", r.status === 200 && r.data?.length >= 60, r.body);
   r = await call("GET", "/dashboard/tenant", T("tenant"));
   check("tenant dashboard: rent PAID, owner shown", r.data?.rent?.status === "PAID" && r.data?.tenancy?.owner?.id === users.owner!.id, r.data);
   r = await call("GET", "/dashboard/admin", T("super"));
