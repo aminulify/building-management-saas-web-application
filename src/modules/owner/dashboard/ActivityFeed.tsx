@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckCircle2, Siren, Wrench, type LucideIcon } from "lucide-react";
+import { BellRing, CheckCircle2, Siren, Wrench, type LucideIcon } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useLocale, useTranslations } from "next-intl";
 import { formatNumber, formatTaka, timeAgo } from "./format";
@@ -12,6 +12,7 @@ const ICON: Record<ActivityKind, { icon: LucideIcon; tone: string }> = {
   RENT_PAID: { icon: CheckCircle2, tone: "text-emerald-500" },
   MAINTENANCE_REQUESTED: { icon: Wrench, tone: "text-amber-500" },
   ALERT_SENT: { icon: Siren, tone: "text-red-500" },
+  REMINDERS_SENT: { icon: BellRing, tone: "text-sky-500" },
 };
 
 interface Props { data: OwnerActivities | null; state: "loading" | "ready" | "error"; fetching: boolean; onMore: () => void; onRetry: () => void }
@@ -21,12 +22,14 @@ export function ActivityFeed({ data, state, fetching, onMore, onRetry }: Props) 
   const locale = useLocale();
   const reduce = useReducedMotion();
   const taka = formatTaka(locale), num = formatNumber(locale);
+  const n = num;
 
   const line = (a: OwnerActivities["items"][number]) => {
     switch (a.kind) {
       case "TENANT_ADDED": return t("tenantAdded", { unit: a.unit ?? "" });
       case "RENT_PAID": return t("rentPaid", { unit: a.unit ?? "", amount: taka(Number(a.amount ?? 0)) });
       case "MAINTENANCE_REQUESTED": return t("maintenance", { unit: a.unit ?? "", title: a.text ?? "" });
+      case "REMINDERS_SENT": return t("remindersSent", { n: n(Number(a.text ?? 0)) });
       case "ALERT_SENT": return t("alertSent", { type: t(`alertType.${a.text ?? "OTHER"}` as never) });
     }
   };

@@ -52,7 +52,8 @@
     "paymentRefund": "A refund of ৳{amount} was recorded",
     "subscriptionCancelled": "Subscription cancelled. Access continues until {endsAt}",
     "rentPaymentVerified": "Your rent payment of ৳{amount} was {decision}",
-    "rentAdjusted": "Your rent bill changed: total ৳{total}"
+    "rentAdjusted": "Your rent bill changed: total ৳{total}",
+    "tenancyAssigned": "You were added as the tenant of unit {unit}"
   },
   "common": {
     "language": "Language",
@@ -372,7 +373,25 @@
     "unitsRange": "Enter between 1 and 1,000 units.",
     "unitsBelowExisting": "You already have more units than this in the property. Enter a larger number.",
     "imageType": "Only PNG, JPG or WebP images are allowed.",
-    "imageSize": "The image must be 5MB or smaller."
+    "imageSize": "The image must be 5MB or smaller.",
+    "propertyRequired": "Please select a property.",
+    "unitNameRequired": "Enter the unit name.",
+    "unitNameTooLong": "The unit name must be 20 characters or fewer.",
+    "bedroomsRequired": "Please select the number of bedrooms.",
+    "unitSqftRange": "Enter an area between 50 and 100,000 sqft.",
+    "rentRequired": "Rent amount is required.",
+    "rentFormat": "Enter the rent as a number, for example 25000.",
+    "rentRange": "Enter a rent above 0.",
+    "unitDuplicate": "This property already has a unit with this name.",
+    "floorTooHigh": "This floor is higher than the building. Enter a lower floor.",
+    "membersRequired": "Enter how many people will live in the unit.",
+    "membersRange": "Enter between 1 and 30 members.",
+    "dateInvalid": "Enter a valid date.",
+    "entryDateRequired": "Choose the entry date.",
+    "leaseDateRequired": "Choose the lease end date.",
+    "leaseAfterEntry": "The lease must end after the entry date.",
+    "tenantRequired": "Find and select a tenant first.",
+    "unitRequired": "Please select a vacant unit."
   },
   "errorPages": {
     "notFound": {
@@ -510,7 +529,8 @@
         "LEAKAGE": "leakage",
         "MEDICAL": "medical",
         "OTHER": "other"
-      }
+      },
+      "remindersSent": "Rent reminders sent to {n} tenant(s)."
     },
     "emergency": {
       "label": "Alert",
@@ -644,6 +664,439 @@
           "activeTenants": "This property still has {count} active tenant(s). End their tenancy first, then delete it.",
           "network": "Could not reach the server. Please try again.",
           "generic": "The property could not be deleted. Please try again."
+        }
+      }
+    },
+    "units": {
+      "metaTitle": "Units",
+      "title": "Units <hl>Management</hl>",
+      "subtitle": "Manage all your apartment units and their occupancy status.",
+      "add": "Add New Unit",
+      "chipsLabel": "Filter by status",
+      "chips": {
+        "all": "All units",
+        "occupied": "Occupied",
+        "vacant": "Vacant",
+        "maintenance": "Maintenance"
+      },
+      "search": "Filter by unit name...",
+      "searchLabel": "Filter units by name",
+      "clearSearch": "Clear search text",
+      "propertyFilter": "Filter by property",
+      "statusFilter": "Filter by status",
+      "allProperties": "All Properties",
+      "allStatuses": "All Statuses",
+      "clearFilters": "Clear filters",
+      "loading": "Loading your units…",
+      "error": "We could not load your units. Please check your connection and try again.",
+      "retry": "Try again",
+      "emptyTitle": "No units yet",
+      "emptyText": "Add your first unit to start tracking occupancy, tenants and rent.",
+      "emptyNoProperty": "Add a property first, then add its units here.",
+      "goProperties": "Go to Properties",
+      "noResultsTitle": "No units found",
+      "noResultsText": "No unit matches your search and filters. Try changing or clearing them.",
+      "showing": "Showing {from}–{to} of {total} units",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "noTenant": "No Tenant",
+      "sqftUnit": "sqft",
+      "perMonth": "/month",
+      "cols": {
+        "name": "Unit Name",
+        "property": "Property",
+        "tenant": "Current Tenant",
+        "sqft": "Unit Sqft",
+        "rent": "Rent Amount",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "OCCUPIED": "Occupied",
+        "VACANT": "Vacant",
+        "MAINTENANCE": "Maintenance"
+      },
+      "rooms": {
+        "bed": "{n} Bed",
+        "bath": "{n} Bath",
+        "dining": "{n} Dining",
+        "kitchen": "{n} Kitchen"
+      },
+      "actions": {
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "tenant": {
+        "placeholder": "01XXXXXXXXX",
+        "hint": "Optional. Type a tenant's full phone number. Leave empty for a vacant unit.",
+        "keepTyping": "Keep typing the full 11-digit number…",
+        "notFound": "No registered tenant has this number. They need to sign up first.",
+        "error": "Could not search. Please try again.",
+        "rateLimited": "Too many searches. Please wait a minute.",
+        "network": "Could not reach the server.",
+        "selected": "Selected",
+        "remove": "Remove tenant",
+        "select": "Select",
+        "alreadyRenting": "Already renting",
+        "placeholderAny": "01XXXXXXXXX or name@example.com",
+        "hintAny": "Type the tenant's full phone number or e-mail address.",
+        "keepTypingAny": "Keep typing the full phone number or e-mail…"
+      },
+      "form": {
+        "addTitle": "Add New Unit",
+        "editTitle": "Edit Unit",
+        "fields": {
+          "property": "Select property",
+          "name": "Unit name",
+          "bedrooms": "Select bedroom quantity",
+          "tenant": "Select tenant (find by phone number)",
+          "sqft": "Flat sqft",
+          "rent": "Rent amount",
+          "floor": "Floor",
+          "bathrooms": "Bathrooms",
+          "dining": "Dining rooms",
+          "kitchens": "Kitchens",
+          "status": "Unit status"
+        },
+        "placeholders": {
+          "property": "Select a property",
+          "name": "e.g. Unit 101 / Flat 4A",
+          "bedrooms": "Select bedrooms",
+          "sqft": "e.g. 500",
+          "rent": "e.g. 25000"
+        },
+        "bedroomOne": "1 Bedroom",
+        "bedroomMany": "{n} Bedrooms",
+        "bedroomFivePlus": "5+ Bedrooms",
+        "willBeOccupied": "This unit will be Occupied and the tenant will be notified.",
+        "willBeVacant": "No tenant selected: the unit will be Vacant.",
+        "manageTenant": "Manage in Tenants",
+        "tenantLocked": "A tenant can only be added while the unit is vacant and not under maintenance.",
+        "moreDetails": "More details (optional)",
+        "floorAuto": "Auto from unit name",
+        "statusVacant": "Vacant",
+        "statusMaintenance": "Under maintenance",
+        "occupiedNote": "This unit has a tenant. To end the tenancy, use the Tenants page.",
+        "cancel": "Cancel",
+        "save": "Save Unit",
+        "saveChanges": "Save Changes",
+        "saving": "Saving…",
+        "created": "Unit added successfully.",
+        "createdOccupied": "Unit added and {name} was moved in.",
+        "updated": "Unit updated.",
+        "viewPlans": "View plans",
+        "errors": {
+          "generic": "Something went wrong. Please try again.",
+          "notATenant": "That account cannot be added as a tenant.",
+          "PLAN_LIMIT_REACHED": "You have reached the unit limit of your plan.",
+          "SUBSCRIPTION_REQUIRED": "An active subscription is needed to add units.",
+          "SUBSCRIPTION_GRACE_RESTRICTED": "Your subscription is in the grace period. Renew it to add new units.",
+          "tenantBusy": "This tenant already lives in another unit.",
+          "unitTaken": "This unit is no longer available. Refresh and try again.",
+          "propertyInactive": "This property is not active, so units cannot be added.",
+          "rateLimited": "Too many requests. Please wait a moment.",
+          "network": "Could not reach the server. Check your connection and try again.",
+          "forbidden": "Your account cannot do this right now."
+        }
+      },
+      "delete": {
+        "title": "Are you sure?",
+        "text": "{name} in {property} will be deleted from your units list.",
+        "note": "The history stays stored for your records.",
+        "hasTenant": "{tenant} lives here. A unit with a tenant cannot be deleted.",
+        "cancel": "Cancel",
+        "yes": "Yes, delete",
+        "deleting": "Deleting…",
+        "done": "{name} was deleted.",
+        "errors": {
+          "occupied": "This unit has a tenant. End the tenancy first, then delete the unit.",
+          "network": "Could not reach the server. Please try again.",
+          "generic": "The unit could not be deleted. Please try again."
+        }
+      }
+    },
+    "tenants": {
+      "metaTitle": "Tenants",
+      "title": "Tenants <hl>Directory</hl>",
+      "subtitle": "Manage tenant profiles, lease agreements, and contact details.",
+      "add": {
+        "title": "Add New Tenant",
+        "fields": {
+          "find": "Find by tenant contact number or email",
+          "property": "Select property",
+          "unit": "Select unit",
+          "dates": "Entry date - lease date",
+          "entry": "Entry date",
+          "lease": "Lease end date",
+          "members": "Member no"
+        },
+        "placeholders": {
+          "property": "Select a property",
+          "unit": "Select a vacant unit",
+          "unitFirst": "Choose a property first",
+          "members": "e.g. 4",
+          "unitLoading": "Loading vacant units…",
+          "propertyLoading": "Loading properties…"
+        },
+        "noVacant": "No vacant units",
+        "noVacantHelp": "This property has no vacant unit.",
+        "goUnits": "Add or free up a unit",
+        "unitOption": "Unit - {no}",
+        "unitsError": "Could not load the units.",
+        "retry": "Try again",
+        "rentInfo": "Rent for this unit: {rent} per month (from the unit). You can change it later.",
+        "cancel": "Cancel",
+        "save": "Save Tenant",
+        "saving": "Saving…",
+        "done": "{name} was added to unit {unit}. The unit is now Occupied.",
+        "viewPlans": "View plans",
+        "errors": {
+          "generic": "Something went wrong. Please try again.",
+          "notATenant": "That account cannot be added as a tenant.",
+          "PLAN_LIMIT_REACHED": "You have reached the limit of your plan.",
+          "SUBSCRIPTION_REQUIRED": "An active subscription is needed.",
+          "SUBSCRIPTION_GRACE_RESTRICTED": "Your subscription is in the grace period. Renew it to continue.",
+          "tenantBusy": "This tenant already lives in another unit.",
+          "unitTaken": "This unit is no longer vacant. The list was refreshed.",
+          "rateLimited": "Too many requests. Please wait a moment.",
+          "network": "Could not reach the server. Check your connection and try again.",
+          "forbidden": "Your account cannot do this right now."
+        },
+        "propertiesError": "Could not load your properties.",
+        "noProperties": "No properties yet",
+        "noPropertiesHelp": "Add a property and a unit before adding a tenant.",
+        "goProperties": "Go to Properties"
+      },
+      "tabsLabel": "Filter tenants",
+      "tabs": {
+        "all": "All",
+        "leaveSoon": "Leave Soon",
+        "overdue": "Overdue"
+      },
+      "search": "Search name, unit, phone…",
+      "searchLabel": "Search tenants",
+      "clearSearch": "Clear search text",
+      "loading": "Loading your tenants…",
+      "error": "We could not load your tenants. Please check your connection and try again.",
+      "retry": "Try again",
+      "emptyTitle": "No tenants yet",
+      "emptyText": "Add a tenant to a vacant unit to start managing leases, rent and messages.",
+      "emptyTab": {
+        "all": "No tenants",
+        "leaveSoon": "Nobody is leaving soon",
+        "overdue": "No overdue rent"
+      },
+      "emptyTabText": "Nothing to show in this tab right now.",
+      "noResultsTitle": "No tenants found",
+      "noResultsText": "No tenant matches your search. Try a different name, unit or phone number.",
+      "showAll": "Show all tenants",
+      "showing": "Showing {from}–{to} of {total} Tenants",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "member": "Member: {n}",
+      "unitLabel": "Unit - {no}",
+      "leaseExpired": "Lease ended {days} day(s) ago",
+      "endsToday": "Lease ends today",
+      "endsIn": "Ends in {days} day(s)",
+      "cols": {
+        "name": "Tenant Name",
+        "unit": "Unit Details",
+        "lease": "Entry / Lease Date",
+        "contact": "Contact",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "ACTIVE": "Active",
+        "OVERDUE": "Overdue",
+        "NOTICE_GIVEN": "Notice Given",
+        "owes": "{amount} due"
+      },
+      "actions": {
+        "view": "View details",
+        "message": "Send message",
+        "edit": "Edit tenancy",
+        "remove": "Remove tenant"
+      },
+      "stats": {
+        "active": "Active Tenants",
+        "activeSub": "{n} joined in the last 30 days",
+        "leaveSoon": "Leave Soon",
+        "leaveSoonSub": "Lease ends within 30 days",
+        "overdue": "Overdue Rent",
+        "overdueSub": "Tenants"
+      },
+      "view": {
+        "members": "{n} member(s)",
+        "lease": "Lease details",
+        "property": "Property",
+        "unit": "Unit",
+        "rent": "Monthly rent",
+        "entry": "Entry date",
+        "leaseEnd": "Lease ends",
+        "deposit": "Deposit",
+        "expired": "The lease ended {days} day(s) ago.",
+        "daysLeft": "{days} day(s) left on the lease.",
+        "noticeOn": "The tenant gave notice on {date}.",
+        "rentHistory": "Rent history",
+        "paidTotal": "{amount} paid in total",
+        "rentError": "Could not load the rent history.",
+        "retry": "Try again",
+        "rentEmpty": "No rent records yet.",
+        "rentStatus": {
+          "PAID": "Paid",
+          "PARTIAL": "Partial",
+          "DUE": "Due",
+          "OVERDUE": "Overdue"
+        },
+        "openRent": "Open Rent Overview",
+        "close": "Close",
+        "message": "Message",
+        "edit": "Edit"
+      },
+      "edit": {
+        "title": "Edit Tenancy",
+        "unit": "Unit {no}",
+        "fields": {
+          "lease": "Lease end date",
+          "members": "Member no",
+          "rent": "Monthly rent",
+          "deposit": "Deposit"
+        },
+        "rentNote": "A new rent applies to the rent records created from now on.",
+        "notice": "The tenant has given notice to leave",
+        "noticeHelp": "Shows the status “Notice Given” in the directory.",
+        "cancel": "Cancel",
+        "save": "Save Changes",
+        "saving": "Saving…",
+        "done": "{name}'s tenancy was updated.",
+        "errors": {
+          "ended": "This tenancy has already ended.",
+          "network": "Could not reach the server. Please try again.",
+          "generic": "The changes could not be saved. Please try again."
+        }
+      },
+      "remove": {
+        "title": "Are you sure?",
+        "text": "{name} will be removed from {unit} in {property}.",
+        "note": "The tenancy ends today, the unit becomes Vacant and the tenant moves to Previous Tenants.",
+        "owes": "This tenant still owes {amount}.",
+        "cancel": "Cancel",
+        "yes": "Yes, remove",
+        "removing": "Removing…",
+        "done": "{name} was removed from {unit}.",
+        "errors": {
+          "ended": "This tenancy has already ended.",
+          "network": "Could not reach the server. Please try again.",
+          "generic": "The tenant could not be removed. Please try again."
+        }
+      },
+      "message": {
+        "title": "Send a message",
+        "label": "Your message",
+        "placeholder": "Write your message…",
+        "empty": "Please write a message first.",
+        "cancel": "Cancel",
+        "send": "Send",
+        "sending": "Sending…",
+        "sent": "Message sent to {name}.",
+        "errors": {
+          "forbidden": "You cannot message this tenant right now.",
+          "rateLimited": "You are sending too fast. Please wait a moment.",
+          "network": "Could not reach the server. Please try again.",
+          "generic": "The message could not be sent. Please try again."
+        }
+      },
+      "addButton": "Add New Tenants"
+    },
+    "rent": {
+      "metaTitle": "Rent Overview",
+      "title": "Rent <hl>Overview</hl>",
+      "subtitle": "Track payments, invoices, and outstanding balances.",
+      "export": "Export Report",
+      "exporting": "Preparing PDF…",
+      "history": "Payment History",
+      "monthFilter": "Select month",
+      "propertyFilter": "Filter by property",
+      "allProperty": "All Property",
+      "statusFilter": "Filter by payment status",
+      "filters": {
+        "all": "All",
+        "paid": "Paid",
+        "unpaid": "Unpaid"
+      },
+      "search": "Search tenant or unit…",
+      "searchLabel": "Search rent records",
+      "clearSearch": "Clear search text",
+      "loading": "Loading rent records…",
+      "error": "We could not load the rent records. Please check your connection and try again.",
+      "retry": "Try again",
+      "emptyTitle": "No rent records for {month}",
+      "emptyText": "Rent records are created automatically every month for each active tenancy. Add a tenant to a unit to start tracking rent.",
+      "noResultsTitle": "No rent records found",
+      "noResultsText": "Nothing matches these filters. Try another month, property or status.",
+      "clearFilters": "Clear filters",
+      "showing": "Showing {from}–{to} of {total} records",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "unitLabel": "Unit - {no}",
+      "perMonth": "/month",
+      "paidSoFar": "{amount} paid so far",
+      "dueOn": "Due {date}",
+      "paidOn": "paid {date}",
+      "carriedOver": "Overdue from {month}",
+      "cols": {
+        "tenant": "Tenant / Unit",
+        "due": "Due Date",
+        "amount": "Amount",
+        "status": "Status",
+        "paidDate": "Paid Date",
+        "receipt": "Receipt"
+      },
+      "status": {
+        "PAID": "Paid",
+        "UNPAID": "Unpaid",
+        "OVERDUE": "Overdue",
+        "partial": "partial"
+      },
+      "receipt": {
+        "download": "Download receipt (PDF)",
+        "none": "No receipt yet: nothing has been paid"
+      },
+      "stats": {
+        "paid": "Total Paid",
+        "pending": "Payment Pending",
+        "overdue": "Overdue Payment",
+        "collectedOf": "{rate}% of {expected} collected",
+        "overdueSub": "Overdue · {amount} owed",
+        "overdueNone": "Nothing overdue"
+      },
+      "banner": {
+        "title": "{month} Rent Due",
+        "subtitle": "Send reminder to all unpaid tenants",
+        "pastDue": "{n} tenant(s) are past their due date",
+        "notDueYet": "Unpaid rent is not past its due date yet",
+        "allPaid": "Everything is paid. Nothing is due.",
+        "amountDue": "Amount Due",
+        "send": "Send Reminder",
+        "sending": "Sending…",
+        "nothingToSend": "No tenant is past their due date right now"
+      },
+      "toast": {
+        "reminded": "Alert reminders sent successfully to unpaid tenants!",
+        "remindedDetail": "({n} tenant(s) notified in the app and by SMS)",
+        "alreadyReminded": "{n} tenant(s) were already reminded in the last 24 hours. No new reminder was needed.",
+        "nobody": "No tenant is past their due date right now.",
+        "exported": "Report downloaded: {file}",
+        "receipt": "Receipt downloaded: {file}",
+        "errors": {
+          "rateLimited": "Too many requests. Please wait a moment and try again.",
+          "network": "Could not reach the server. Check your connection and try again.",
+          "forbidden": "Your account cannot do this right now.",
+          "generic": "Something went wrong. Please try again."
         }
       }
     }

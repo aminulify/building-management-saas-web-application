@@ -61,6 +61,7 @@ async function wipe() {
   await db.address.deleteMany({ where: { id: { in: props.map((p) => p.addressId).filter(Boolean) as string[] } } });
   await db.userSubscription.deleteMany({ where: { userId: { in: ids } } });
   await db.ownerProfile.deleteMany({ where: { userId: { in: ids } } });
+  await db.tenantProfile.deleteMany({ where: { userId: { in: ids } } }); // created when an owner moves a tenant in
   await db.user.deleteMany({ where: { id: { in: ids } } });
   if (owner?.authId) await sb.auth.admin.deleteUser(owner.authId).catch(() => undefined);
 }
@@ -115,8 +116,8 @@ async function main() {
 
   await db.unit.createMany({
     data: units.map((u, i) => ({
-      id: u.id, propertyId: u.propertyId, unitNumber: u.unitNumber, floor: u.floor, bedrooms: 2 + (i % 3), bathrooms: 1 + (i % 2), areaSqft: 800 + (i % 6) * 60,
-      rent: u.rent, deposit: u.rent * 2, furnishing: "SEMI_FURNISHED" as const, availability: u.occupied ? ("OCCUPIED" as const) : ("AVAILABLE" as const),
+      id: u.id, propertyId: u.propertyId, unitNumber: u.unitNumber, floor: u.floor, bedrooms: 2 + (i % 3), bathrooms: 1 + (i % 2), diningRooms: 1, kitchens: 1, areaSqft: 800 + (i % 6) * 60,
+      rent: u.rent, deposit: u.rent * 2, furnishing: "SEMI_FURNISHED" as const, availability: u.occupied ? ("OCCUPIED" as const) : i % 2 === 0 ? ("MAINTENANCE" as const) : ("AVAILABLE" as const),
     })),
   });
 
@@ -125,11 +126,18 @@ async function main() {
     data: users.map((u) => ({ id: u.id, username: `demo_t${u.t.index + 1}`, fullName: u.name, email: `demo.tenant${u.t.index + 1}@example.com`, phone: `0172${String(u.t.index + 1).padStart(7, "0")}`, role: "TENANT" as const, verificationStatus: "VERIFIED" as const, locale: "en" })),
   });
 
+  // three registered tenants who do not rent yet: owners can find them by phone when adding a unit
+  await db.user.createMany({
+    data: ["Nadia Islam", "Rashed Khan", "Poly Akter"].map((name, i) => ({ id: randomUUID(), username: `demo_t_spare${i + 1}`, fullName: name, email: `demo.spare${i + 1}@example.com`, phone: `017300000${String(i + 1).padStart(2, "0")}`, role: "TENANT" as const, verificationStatus: "VERIFIED" as const, locale: "en" })),
+  });
+
   const agreements = users.map((u) => ({ id: randomUUID(), u }));
   await db.rentalAgreement.createMany({
     data: agreements.map(({ id, u }) => ({
       id, unitId: u.t.unit.id, tenantId: u.id, ownerId: owner.id, rent: u.t.unit.rent, deposit: u.t.unit.rent * 2, startDate: day(2026, 0, 1),
-      endDate: u.t.index === 3 ? new Date(today.getTime() + 40 * 86400_000) : day(2027, 5, 30), status: "ACTIVE" as const, createdAt: new Date(today.getTime() - (u.t.index + 1) * 18 * 3600_000),
+      // a few leases end within 30 days ("Leave Soon"), a few tenants have given notice
+      endDate: u.t.index % 9 === 4 ? new Date(today.getTime() + (12 + u.t.index) * 86400_000) : u.t.index === 3 ? new Date(today.getTime() + 40 * 86400_000) : day(2027, 5, 30),
+      members: 1 + ((u.t.index * 7) % 5), noticeGivenAt: u.t.index % 11 === 7 ? new Date(today.getTime() - 3 * 86400_000) : null, status: "ACTIVE" as const, createdAt: new Date(today.getTime() - (u.t.index + 1) * 18 * 3600_000),
     })),
   });
 

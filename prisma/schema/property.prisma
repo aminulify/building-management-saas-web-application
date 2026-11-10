@@ -46,6 +46,8 @@ model Unit {
   floor         Int
   bedrooms      Int              @default(0)
   bathrooms     Int              @default(0)
+  diningRooms   Int              @default(0)
+  kitchens      Int              @default(0)
   areaSqft      Int?
   rent          Decimal          @db.Decimal(12, 2)
   description   String?

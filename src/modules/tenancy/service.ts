@@ -5,6 +5,9 @@ import { writeAudit } from "@/lib/audit";
 import { authorize } from "@/lib/authz/authorize";
 import { notify } from "@/lib/notify";
 import { randomToken, sha256 } from "@/lib/crypto";
+import { rateLimit } from "@/lib/rate-limit";
+import { requireRole } from "@/lib/authz/authorize";
+import { signStorageKey } from "@/modules/uploads/service";
 import type { Actor } from "@/lib/auth/require-actor";
 import { loadUnit } from "@/modules/properties/access";
 import { ensureRentRecords, monthStart } from "@/modules/rent/billing";
@@ -102,7 +105,8 @@ export async function updateTenancy(actor: Actor, id: string, data: z.infer<type
   if (a.status !== "ACTIVE") throw new AppError("INVALID_STATE", { reason: "not_active" });
   if (data.endDate && data.endDate <= a.startDate) throw new AppError("VALIDATION_ERROR", [{ path: "endDate", code: "end_after_start" }]);
   return db.$transaction(async (tx) => {
-    const out = await tx.rentalAgreement.update({ where: { id }, data });
+    const { noticeGiven, ...fields } = data;
+    const out = await tx.rentalAgreement.update({ where: { id }, data: { ...fields, ...(noticeGiven === undefined ? {} : { noticeGivenAt: noticeGiven ? (a.noticeGivenAt ?? new Date()) : null }) } });
     await writeAudit({ actor, action: "tenancy.update", resourceType: "RentalAgreement", resourceId: id, after: JSON.parse(JSON.stringify(data)), req }, tx);
     return out;
   });
@@ -121,4 +125,25 @@ export async function endTenancy(actor: Actor, id: string, input: z.infer<typeof
     await writeAudit({ actor, action: "tenancy.end", resourceType: "RentalAgreement", resourceId: id, after: { terminated: input.terminated, reason: input.reason ?? null }, req }, tx);
     return out;
   });
+}
+
+const maskEmail = (e: string | null) => (e ? e.replace(/^(.).*(@.*)$/, "$1•••$2") : null);
+
+/**
+ * Owner finds a registered tenant by their FULL phone number or exact e-mail (rate limited), so accounts
+ * cannot be browsed. Returns just enough to confirm it is the right person (e-mail is masked).
+ */
+export async function lookupTenant(actor: Actor, q: { phone?: string; email?: string }) {
+  requireRole(actor, "OWNER");
+  rateLimit(`tenant-lookup:${actor.id}`, 30, 60_000);
+  const u = await db.user.findFirst({
+    where: { ...(q.phone ? { phone: q.phone } : { email: q.email }), status: "ACTIVE", role: { in: ["TENANT", "GENERAL_USER"] }, id: { not: actor.id } },
+    select: { id: true, fullName: true, phone: true, email: true, avatarKey: true },
+  });
+  if (!u) return { found: false as const };
+  const busy = await db.rentalAgreement.count({ where: { tenantId: u.id, status: "ACTIVE" } });
+  return {
+    found: true as const,
+    tenant: { id: u.id, fullName: u.fullName, phone: u.phone, email: maskEmail(u.email), avatarUrl: u.avatarKey ? await signStorageKey(u.avatarKey, 3600).then((s) => s.url).catch(() => null) : null, hasActiveTenancy: busy > 0 },
+  };
 }

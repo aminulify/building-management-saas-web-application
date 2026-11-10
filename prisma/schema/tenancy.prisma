@@ -10,6 +10,10 @@ model RentalAgreement {
   status           AgreementStatus @default(INVITED)
   settlementAmount Decimal?        @db.Decimal(12, 2)
   agreementDocKey  String?
+  /** people living in the unit (Tenants Directory "Member") */
+  members          Int             @default(1)
+  /** the tenant told the owner they will leave; shown as "Notice Given" */
+  noticeGivenAt    DateTime?       @db.Timestamptz
   createdAt        DateTime        @default(now()) @db.Timestamptz
   updatedAt        DateTime        @updatedAt @db.Timestamptz
 

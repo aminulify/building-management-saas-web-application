@@ -16,4 +16,16 @@ export const paymentSchema = z.object({
   paidAt: z.coerce.date().max(new Date(Date.now() + 5 * 60_000)).default(() => new Date()),
 }).refine((v) => v.method === "CASH" || !!v.reference, { message: "reference_required", path: ["reference"] });
 
+/** Rent Overview filters shared by the table, the report and the reminder button. */
+const periodFilter = { month: monthParam.optional(), propertyId: uuid.optional() };
+export const ledgerQuery = z.object({
+  ...periodFilter,
+  status: z.enum(["all", "paid", "unpaid"]).default("all"),
+  q: z.string().trim().max(60).optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
+export const reportQuery = z.object({ ...periodFilter, status: z.enum(["all", "paid", "unpaid"]).default("all"), q: z.string().trim().max(60).optional() });
+export const remindAllSchema = z.object(periodFilter);
+
 export const cronRentSchema = z.object({ month: monthParam.optional() });

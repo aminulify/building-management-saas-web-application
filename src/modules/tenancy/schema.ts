@@ -22,7 +22,7 @@ export const tenancyListQuery = z.object({
 });
 
 export const tenancyUpdateSchema = z
-  .object({ rent: money, deposit: moneyOrZero, endDate: dateOnly.nullable() })
+  .object({ rent: money, deposit: moneyOrZero, endDate: dateOnly.nullable(), members: z.coerce.number().int().min(1).max(30), noticeGiven: z.boolean() })
   .partial()
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: "empty_update" });
@@ -33,3 +33,16 @@ export const endTenancySchema = z.object({
   terminated: z.boolean().default(false),
   reason: z.string().trim().max(300).optional(),
 });
+
+/** Owner-wide Tenants Directory: tabs, search and page numbers. */
+export const tenantDirectoryQuery = z.object({
+  tab: z.enum(["all", "leaveSoon", "overdue"]).default("all"),
+  q: z.string().trim().max(60).optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
+
+/** Find a registered tenant by full phone number OR e-mail address (exact match only). */
+export const tenantLookupQuery = z
+  .object({ phone: bdPhoneSchema.optional(), email: z.string().trim().toLowerCase().email().max(120).optional() })
+  .refine((v) => !!v.phone !== !!v.email, { message: "phone_or_email", path: ["phone"] });

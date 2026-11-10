@@ -82,21 +82,23 @@ export async function ownerRevenue(actor: Actor, year: number) {
   return { year, months, totals: { expected: sum("expected"), collected: sum("collected") }, years: Array.from({ length: thisYear - firstYear + 1 }, (_, i) => thisYear - i) };
 }
 
-export type OwnerActivityKind = "TENANT_ADDED" | "RENT_PAID" | "MAINTENANCE_REQUESTED" | "ALERT_SENT";
+export type OwnerActivityKind = "TENANT_ADDED" | "RENT_PAID" | "MAINTENANCE_REQUESTED" | "ALERT_SENT" | "REMINDERS_SENT";
 
 /** Newest-first feed built from real records: new tenants, verified rent payments, maintenance requests, and the owner's own alerts. */
 export async function ownerActivities(actor: Actor, limit: number) {
   requireRole(actor, "OWNER");
-  const [agreements, payments, requests, alerts] = await Promise.all([
+  const [agreements, payments, requests, alerts, reminders] = await Promise.all([
     db.rentalAgreement.findMany({ where: { ownerId: actor.id, status: "ACTIVE" }, orderBy: { createdAt: "desc" }, take: limit, select: { id: true, createdAt: true, unit: { select: { unitNumber: true } } } }),
     db.rentPayment.findMany({ where: { status: "VERIFIED", rentRecord: { agreement: { ownerId: actor.id } } }, orderBy: { paidAt: "desc" }, take: limit, select: { id: true, paidAt: true, amount: true, rentRecord: { select: { agreement: { select: { unit: { select: { unitNumber: true } } } } } } } }),
     db.maintenanceRequest.findMany({ where: { agreement: { ownerId: actor.id } }, orderBy: { createdAt: "desc" }, take: limit, select: { id: true, createdAt: true, title: true, unit: { select: { unitNumber: true } } } }),
     db.emergencyAlert.findMany({ where: { reporterId: actor.id }, orderBy: { createdAt: "desc" }, take: limit, select: { id: true, createdAt: true, type: true } }),
+    db.auditLog.findMany({ where: { actorId: actor.id, action: "rent.remind_all" }, orderBy: { createdAt: "desc" }, take: limit, select: { id: true, createdAt: true, after: true } }),
   ]);
   const items = [
     ...agreements.map((a) => ({ id: `a-${a.id}`, kind: "TENANT_ADDED" as OwnerActivityKind, at: a.createdAt, unit: a.unit.unitNumber, amount: null as string | null, text: null as string | null })),
     ...payments.map((p) => ({ id: `p-${p.id}`, kind: "RENT_PAID" as OwnerActivityKind, at: p.paidAt, unit: p.rentRecord.agreement.unit.unitNumber, amount: p.amount.toFixed(2), text: null })),
     ...requests.map((r) => ({ id: `m-${r.id}`, kind: "MAINTENANCE_REQUESTED" as OwnerActivityKind, at: r.createdAt, unit: r.unit.unitNumber, amount: null, text: r.title })),
+    ...reminders.map((a) => ({ id: `r-${a.id}`, kind: "REMINDERS_SENT" as OwnerActivityKind, at: a.createdAt, unit: null as string | null, amount: null as string | null, text: String((a.after as { sent?: number } | null)?.sent ?? 0) })),
     ...alerts.map((a) => ({ id: `s-${a.id}`, kind: "ALERT_SENT" as OwnerActivityKind, at: a.createdAt, unit: null as string | null, amount: null, text: a.type })),
   ].sort((a, b) => b.at.getTime() - a.at.getTime());
   return { items: items.slice(0, limit), hasMore: items.length > limit };

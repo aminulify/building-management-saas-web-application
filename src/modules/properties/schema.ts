@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { coords, moneyOrZero, money, uuid } from "@/lib/api/common";
+import { coords, dateOnly, moneyOrZero, money, uuid } from "@/lib/api/common";
 
 const address = z.object({
   division: z.string().trim().min(2).max(60),
@@ -63,6 +63,8 @@ const unitFields = {
   floor: z.coerce.number().int().min(0).max(100),
   bedrooms: z.coerce.number().int().min(0).max(20),
   bathrooms: z.coerce.number().int().min(0).max(20),
+  diningRooms: z.coerce.number().int().min(0).max(10),
+  kitchens: z.coerce.number().int().min(0).max(10),
   /** square footage */
   areaSqft: z.coerce.number().int().min(50).max(100_000),
   rent: money,
@@ -76,10 +78,29 @@ export const unitCreateSchema = z.object({
   ...unitFields,
   bedrooms: unitFields.bedrooms.default(0),
   bathrooms: unitFields.bathrooms.default(0),
+  diningRooms: unitFields.diningRooms.default(0),
+  kitchens: unitFields.kitchens.default(0),
   deposit: unitFields.deposit.default(0),
   utilityCharge: unitFields.utilityCharge.default(0),
   furnishing: unitFields.furnishing.default("UNFURNISHED"),
   description: unitFields.description.optional(),
+  /** an existing tenant (found by phone) to move in right away: the unit becomes OCCUPIED */
+  tenantId: uuid.optional(),
+  startDate: dateOnly.optional(),
+  endDate: dateOnly.optional(),
+  members: z.coerce.number().int().min(1).max(30).optional(),
+}).refine((v) => !v.endDate || !v.startDate || v.endDate > v.startDate, { message: "end_after_start", path: ["endDate"] });
+
+export const assignTenantSchema = z.object({ tenantId: uuid, startDate: dateOnly.optional(), endDate: dateOnly.optional(), members: z.coerce.number().int().min(1).max(30).optional() })
+  .refine((v) => !v.endDate || !v.startDate || v.endDate > v.startDate, { message: "end_after_start", path: ["endDate"] });
+
+/** Owner-wide units list (Units Management page): live search, property and status filters, page numbers. */
+export const ownerUnitsQuery = z.object({
+  q: z.string().trim().max(40).optional(),
+  propertyId: uuid.optional(),
+  status: z.enum(["OCCUPIED", "VACANT", "MAINTENANCE"]).optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
 });
 
 export const unitUpdateSchema = z

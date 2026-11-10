@@ -21,7 +21,7 @@ export interface OwnerStats {
 export interface RevenueMonth { month: number; expected: string; collected: string }
 export interface OwnerRevenue { year: number; months: RevenueMonth[]; totals: { expected: string; collected: string }; years: number[] }
 
-export type ActivityKind = "TENANT_ADDED" | "RENT_PAID" | "MAINTENANCE_REQUESTED" | "ALERT_SENT";
+export type ActivityKind = "TENANT_ADDED" | "RENT_PAID" | "MAINTENANCE_REQUESTED" | "ALERT_SENT" | "REMINDERS_SENT";
 export interface Activity { id: string; kind: ActivityKind; at: string; unit: string | null; amount: string | null; text: string | null }
 export interface OwnerActivities { items: Activity[]; hasMore: boolean }
 
