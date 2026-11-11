@@ -9,7 +9,12 @@ import { keyBelongsTo, keyPurpose, signStorageKeys } from "@/modules/uploads/ser
 import { checkCommunicate, isOnline, loadConversation } from "./access";
 import { publish } from "./hub";
 import { serializeMessages } from "./serialize";
+import { baseOf } from "@/shared/areas";
 import type { openConversationSchema, sendMessageSchema } from "./schema";
+
+/** Where a person opens the chat: owners and tenants have their own Message page. */
+/** The Message page of the person the notification is for: /home-owner, /tenant or /tenant-free follows their role. */
+export const messagesLink = (role: string, conversationId: string) => `${baseOf(role) ?? "/home-owner"}/messages?c=${conversationId}`;
 
 const userCard = { id: true, fullName: true, username: true, role: true, lastSeenAt: true, avatarKey: true } as const;
 
@@ -140,7 +145,11 @@ export async function sendMessage(actor: Actor, conversationId: string, input: z
       }
       await tx.conversationParticipant.updateMany({ where: { conversationId, userId: actor.id }, data: { lastReadMessageId: m.id } });
       const recipients = conv.type === "SUPPORT" && actor.role !== "SUPER_ADMIN" ? await activeUserIds("SUPER_ADMIN", tx) : others.map((o) => o.userId);
-      await notify(recipients, { type: "message.new", titleKey: "notifications.messageNew", params: { from: actor.fullName, conversationId }, link: `/owner/messages?c=${conversationId}` }, tx);
+      const roles = await tx.user.findMany({ where: { id: { in: recipients } }, select: { id: true, role: true } });
+      for (const group of ["TENANT", "OTHER"] as const) {
+        const ids = roles.filter((r) => (group === "TENANT") === (r.role === "TENANT")).map((r) => r.id);
+        await notify(ids, { type: "message.new", titleKey: "notifications.messageNew", params: { from: actor.fullName, conversationId }, link: messagesLink(group === "TENANT" ? "TENANT" : "OWNER", conversationId) }, tx);
+      }
       return m;
     });
     const [out] = await serializeMessages([msg]);

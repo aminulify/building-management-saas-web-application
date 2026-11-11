@@ -55,7 +55,7 @@ export async function review(actor: Actor, id: string, action: ReviewAction, not
   return db.$transaction(async (tx) => {
     const p = await tx.property.update({ where: { id }, data: { ...rule.to, reviewNotes: notes ?? null, reviewedAt: new Date() } });
     if (rule.to.verificationStatus && rule.to.verificationStatus !== "PENDING") await tx.verificationDocument.updateMany({ where: { ownerType: "PROPERTY", ownerId: id, status: "PENDING" }, data: { status: rule.to.verificationStatus, reviewerId: actor.id, notes } });
-    await notify([before.ownerId], { type: "property.review", titleKey: "notifications.propertyReview", params: { action, name: before.name, notes: notes ?? "" }, link: `/owner/properties/${id}` }, tx);
+    await notify([before.ownerId], { type: "property.review", titleKey: "notifications.propertyReview", params: { action, name: before.name, notes: notes ?? "" }, link: `/home-owner/properties/${id}` }, tx);
     await writeAudit({ actor, action: `property.${action}`, resourceType: "Property", resourceId: id, before: { status: before.status, verification: before.verificationStatus }, after: { ...rule.to, notes: notes ?? null }, req }, tx);
     return p;
   });

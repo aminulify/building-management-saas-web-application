@@ -7,7 +7,7 @@ import type { Actor } from "@/lib/auth/require-actor";
 import { loadConversation } from "./access";
 import { isConnected, publish } from "./hub";
 import { serializeMessages } from "./serialize";
-import { assertCanTalk, avatarUrls } from "./service";
+import { assertCanTalk, avatarUrls, messagesLink } from "./service";
 import type { CallLiveAction, callSignalSchema } from "./schema";
 
 const RING_MS = 60_000;
@@ -44,7 +44,8 @@ async function finish(callId: string, status: "ENDED" | "MISSED" | "REJECTED") {
   publish([call.callerId, call.calleeId], { type: "call:ended", data: { callId, status, durationSec } });
   if (status === "MISSED") {
     const caller = await db.user.findUnique({ where: { id: call.callerId }, select: { fullName: true } });
-    await notify([call.calleeId], { type: "call.missed", titleKey: "notifications.callMissed", params: { from: caller?.fullName ?? "", conversationId: call.conversationId }, link: `/owner/messages?c=${call.conversationId}`, priority: "HIGH" });
+    const callee = await db.user.findUnique({ where: { id: call.calleeId }, select: { role: true } });
+    await notify([call.calleeId], { type: "call.missed", titleKey: "notifications.callMissed", params: { from: caller?.fullName ?? "", conversationId: call.conversationId }, link: messagesLink(callee?.role ?? "OWNER", call.conversationId), priority: "HIGH" });
   }
   return { status, durationSec };
 }

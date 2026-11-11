@@ -1,5 +1,7 @@
-/** Link that opens Find Home with this home's details already showing. */
-export const homeLink = (locale: string, id: string) => `${window.location.origin}/${locale}/owner/find-home?listing=${id}`;
+import { currentArea } from "./area";
+
+/** Link that opens Find Home (in the area the sharer is in) with this home's details already showing. */
+export const homeLink = (locale: string, id: string) => `${window.location.origin}/${locale}${currentArea()}/find-home?listing=${id}`;
 
 /** Native share sheet where it exists (phones), otherwise copies the link. Returns what happened. */
 export async function shareHome(locale: string, id: string, title: string): Promise<"shared" | "copied" | "failed" | "cancelled"> {

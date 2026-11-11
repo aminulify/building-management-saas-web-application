@@ -7,6 +7,8 @@ export interface OwnerCtx { me: OwnerMe; unread: number; refreshUnread: () => vo
 
 const Ctx = createContext<OwnerCtx | null>(null);
 export const OwnerProvider = Ctx.Provider;
+/** read without throwing, for pages that also live in other areas (Find Home, Marketplace) */
+export const OwnerContext = Ctx;
 
 export function useOwner(): OwnerCtx {
   const v = useContext(Ctx);

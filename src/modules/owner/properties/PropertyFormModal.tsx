@@ -115,7 +115,7 @@ function Form({ target, onClose, onSaved, setBusy }: { target: "add" | PropertyR
         {banner && (
           <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-red-700">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <p>{banner.text}{banner.upgrade && <> <Link href={"/owner/subscription" as never} className="font-bold underline underline-offset-2">{t("viewPlans")}</Link></>}</p>
+            <p>{banner.text}{banner.upgrade && <> <Link href={"/home-owner/subscription" as never} className="font-bold underline underline-offset-2">{t("viewPlans")}</Link></>}</p>
           </div>
         )}
 

@@ -58,7 +58,7 @@ export function DashboardView() {
           <div className="flex flex-col items-start gap-4 rounded-2xl border border-sky-200 bg-sky-50/70 p-5 sm:flex-row sm:items-center">
             <span aria-hidden className="grid size-12 shrink-0 place-items-center rounded-xl bg-sky-200/70 text-sky-600"><Building2 className="size-6" /></span>
             <div className="flex-1"><p className="font-bold text-navy">{t("emptyTitle")}</p><p className="text-sm text-slate-600">{t("emptyText")}</p></div>
-            <Link href={"/owner/properties" as never} className={`${buttonClass("primary")} h-11 shrink-0`}><Plus className="size-4" aria-hidden />{t("emptyCta")}</Link>
+            <Link href={"/home-owner/properties" as never} className={`${buttonClass("primary")} h-11 shrink-0`}><Plus className="size-4" aria-hidden />{t("emptyCta")}</Link>
           </div>
         </Reveal>
       )}

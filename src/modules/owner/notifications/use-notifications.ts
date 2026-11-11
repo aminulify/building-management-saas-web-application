@@ -36,7 +36,7 @@ export function useNotifications(tab: Tab, onUnread: (n: number) => void) {
   sync.current = onUnread;
 
   const fail = useCallback((e: unknown) => {
-    if (e instanceof ApiError && e.status === 401) { clearSession(); router.replace(`/login?next=${encodeURIComponent("/owner/notifications")}` as never); return true; }
+    if (e instanceof ApiError && e.status === 401) { clearSession(); router.replace(`/login?next=${encodeURIComponent("/home-owner/notifications")}` as never); return true; }
     return false;
   }, [router]);
 

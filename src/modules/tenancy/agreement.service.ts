@@ -83,7 +83,7 @@ export async function requestSignature(actor: Actor, id: string, req: Request) {
   const unit = await db.unit.findUniqueOrThrow({ where: { id: a.unitId }, select: { unitNumber: true } });
   return db.$transaction(async (tx) => {
     const out = await tx.rentalAgreement.update({ where: { id }, data: { signatureRequestedAt: new Date() }, select: { id: true, signatureRequestedAt: true } });
-    await notify([a.tenantId], { type: "tenancy.signature", titleKey: "notifications.signatureRequested", params: { unit: unit.unitNumber, owner: actor.fullName }, link: "/tenant/rental", priority: "HIGH" }, tx);
+    await notify([a.tenantId], { type: "tenancy.signature", titleKey: "notifications.signatureRequested", params: { unit: unit.unitNumber, owner: actor.fullName }, link: "/tenant/dashboard", priority: "HIGH" }, tx);
     await writeAudit({ actor, action: "tenancy.signature_request", resourceType: "RentalAgreement", resourceId: id, req }, tx);
     return out;
   });

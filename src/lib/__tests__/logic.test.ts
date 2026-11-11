@@ -51,9 +51,12 @@ describe("emergency stages never over-claim", () => {
 });
 
 describe("registration validation", () => {
-  const ok = { fullName: "Rahim Uddin", username: "rahim12", email: "R@Example.com", phone: "01712345678", password: "abcd1234", role: "OWNER", consent: true };
-  it("accepts public roles only", () => {
+  const ok = { fullName: "Rahim Uddin", username: "rahim12", email: "R@Example.com", phone: "01712345678", password: "abcd1234", consent: true };
+  it("everyone signs up as a Tenant-Free account (GENERAL_USER); nobody can pick another role", () => {
     expect(registerSchema.parse(ok).email).toBe("r@example.com");
+    expect(registerSchema.parse(ok).role).toBe("GENERAL_USER");
+    expect(registerSchema.parse({ ...ok, role: "GENERAL_USER" }).role).toBe("GENERAL_USER");
+    for (const role of ["OWNER", "TENANT"]) expect(registerSchema.safeParse({ ...ok, role }).success).toBe(false);
     expect(registerSchema.safeParse({ ...ok, role: "SUPER_ADMIN" }).success).toBe(false);
     expect(registerSchema.safeParse({ ...ok, role: "GOV_ADMIN" }).success).toBe(false);
   });
@@ -128,7 +131,7 @@ describe("sign-up field rules (design: username with underscore, NID 13-17 digit
     for (const bad of ["1234567890", "123456789012", "123456789012345678", "12345678901ab"]) expect(nidSchema.safeParse(bad).success).toBe(false);
   });
   it("register accepts occupation, union and post office", () => {
-    const r = registerSchema.parse({ fullName: "Abdur Rahman", username: "abdur_rahman24", email: "rahman@example.com", phone: "01712345678", password: "abcd1234", role: "TENANT", consent: true, occupation: "Software Engineer", address: { division: "Dhaka", district: "Dhaka", union: "Sector 4", postOffice: "1000", street: "House 12, Road 5" }, uploadSession: crypto.randomUUID() });
+    const r = registerSchema.parse({ fullName: "Abdur Rahman", username: "abdur_rahman24", email: "rahman@example.com", phone: "01712345678", password: "abcd1234", consent: true, occupation: "Software Engineer", address: { division: "Dhaka", district: "Dhaka", union: "Sector 4", postOffice: "1000", street: "House 12, Road 5" }, uploadSession: crypto.randomUUID() });
     expect(r.address?.union).toBe("Sector 4");
   });
   it("availability needs one valid field; public upload only allows NID/avatar", () => {

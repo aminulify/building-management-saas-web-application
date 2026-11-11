@@ -105,7 +105,7 @@ function Body({ onClose, onChanged }: { onClose: () => void; onChanged: () => vo
         )}
         {list.state === "ready" && list.data?.length === 0 && (
           <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-white/60 px-4 py-10 text-center"><FileText className="size-9 text-slate-400" aria-hidden /><p className="font-bold text-navy">{t("emptyTitle")}</p><p className="max-w-xs text-sm text-slate-600">{t("emptyText")}</p>
-            <Link href={"/owner/tenants" as never} onClick={onClose} className="btn btn-primary mt-1 h-10 px-5 text-sm">{t("goTenants")}</Link></div>
+            <Link href={"/home-owner/tenants" as never} onClick={onClose} className="btn btn-primary mt-1 h-10 px-5 text-sm">{t("goTenants")}</Link></div>
         )}
         {list.data?.map((r) => {
           const mine = busy?.id === r.id ? busy.what : null;

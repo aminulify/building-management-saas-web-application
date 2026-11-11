@@ -11,6 +11,7 @@ import { signStorageKey } from "@/modules/uploads/service";
 import type { Actor } from "@/lib/auth/require-actor";
 import { loadUnit } from "@/modules/properties/access";
 import { ensureRentRecords, monthStart } from "@/modules/rent/billing";
+import { retargetLinks, revertToTenantFree } from "./roles";
 import type { endTenancySchema, inviteSchema, tenancyListQuery, tenancyUpdateSchema } from "./schema";
 
 const INVITE_TTL_MS = 7 * 24 * 3600_000;
@@ -61,11 +62,11 @@ export async function acceptInvitation(actor: Actor, token: string) {
     });
     await tx.unit.update({ where: { id: unit.id }, data: { availability: "OCCUPIED" } });
     await tx.tenantInvitation.update({ where: { id: inv.id }, data: { acceptedAt: new Date() } });
-    if (actor.role === "GENERAL_USER") await tx.user.update({ where: { id: actor.id }, data: { role: "TENANT" } });
+    if (actor.role === "GENERAL_USER") { await tx.user.update({ where: { id: actor.id }, data: { role: "TENANT" } }); await retargetLinks(tx, actor.id, "TENANT"); }
     await tx.tenantProfile.upsert({ where: { userId: actor.id }, update: {}, create: { userId: actor.id } });
 
     await ensureRentRecords(tx, [{ id: agreement.id, rent: agreement.rent, unit: { utilityCharge: unit.utilityCharge } }], monthStart());
-    await notify([inv.ownerId], { type: "tenancy.accepted", titleKey: "notifications.tenancyAccepted", params: { unit: unit.unitNumber, tenantName: actor.fullName, property: inv.unit.property.name }, link: `/owner/tenants` }, tx);
+    await notify([inv.ownerId], { type: "tenancy.accepted", titleKey: "notifications.tenancyAccepted", params: { unit: unit.unitNumber, tenantName: actor.fullName, property: inv.unit.property.name }, link: `/home-owner/tenants` }, tx);
     await writeAudit({ actor, action: "tenancy.accept", resourceType: "RentalAgreement", resourceId: agreement.id }, tx);
     return agreement;
   });
@@ -122,6 +123,7 @@ export async function endTenancy(actor: Actor, id: string, input: z.infer<typeof
     });
     await tx.unit.update({ where: { id: a.unitId }, data: { availability: "AVAILABLE" } });
     await notify([a.tenantId], { type: "tenancy.ended", titleKey: "notifications.tenancyEnded", params: { unit: a.unit.unitNumber } }, tx);
+    await revertToTenantFree(tx, a.tenantId, actor, req); // no other active tenancy → back to a Tenant-Free account, nothing deleted
     await writeAudit({ actor, action: "tenancy.end", resourceType: "RentalAgreement", resourceId: id, after: { terminated: input.terminated, reason: input.reason ?? null }, req }, tx);
     return out;
   });

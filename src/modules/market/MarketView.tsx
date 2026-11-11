@@ -20,7 +20,7 @@ import { shareHome } from "../find-home/share";
 import type { AiResponse, Filters, HomeCardData, SortKey } from "../find-home/types";
 import { loadGeo } from "../find-home/use-geo";
 import { useHomes } from "../find-home/use-homes";
-import { useOwner } from "../owner/shell/OwnerContext";
+import { useViewerRole } from "../find-home/area";
 import { formatNumber } from "../owner/dashboard/format";
 import { ContactModal } from "./ContactModal";
 import { MarketCard } from "./MarketCard";
@@ -42,7 +42,7 @@ export function MarketView() {
   const locale = useLocale();
   const reduce = useReducedMotion();
   const toast = useToast();
-  const { me } = useOwner();
+  const role = useViewerRole();
   const n = formatNumber(locale);
 
   const [filters, setFilters] = useState<Filters>(BASE);
@@ -92,7 +92,7 @@ export function MarketView() {
   async function createListing() {
     if (checking) return;
     const blocked = (reason: "plan" | "limit") => { toast("error", t("guard.toast")); setUpgrade(reason); };
-    if (me.role !== "OWNER" && me.role !== "SUPER_ADMIN") { blocked("plan"); return; }
+    if (!["OWNER", "SUPER_ADMIN", "TENANT", "GENERAL_USER"].includes(role)) { blocked("plan"); return; } // the server decides whether the plan allows it
     setChecking(true);
     try { await authApi("/listings/eligibility"); setSell({ editId: null }); }
     catch (e) {

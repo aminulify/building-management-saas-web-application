@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CalendarClock, Hourglass, Loader2, RefreshCw, TriangleAlert, XCircle } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
@@ -10,6 +10,7 @@ import { useToast } from "@/components/feedback/Toast";
 import { hl } from "@/components/typography/highlight";
 import { authApi } from "@/lib/auth-client";
 import { useAuthQuery } from "@/lib/use-auth-query";
+import { TenantContext } from "../../tenant/shell/TenantContext";
 import { formatTaka, timeAgo } from "../dashboard/format";
 import { BillingTable } from "./BillingTable";
 import { BkashUpgradeModal } from "./BkashUpgradeModal";
@@ -29,6 +30,7 @@ export function SubscriptionView() {
   const toast = useToast();
   const taka = formatTaka(locale);
 
+  const tenantArea = useContext(TenantContext); // only set when this page is shown inside the tenant area
   const plansQ = useAuthQuery<Plan[]>("/plans");
   const subQ = useAuthQuery<MySubscription>("/me/subscription");
   const payQ = useAuthQuery<Payment[]>("/me/payments");
@@ -41,7 +43,7 @@ export function SubscriptionView() {
   const pending = subQ.data?.pendingRequest ?? null;
   useEffect(() => {
     if (!pending) return;
-    const id = setInterval(() => { subQ.reload(); payQ.reload(); }, POLL_MS);
+    const id = setInterval(() => { subQ.reload(); payQ.reload(); tenantArea?.refreshMe(); }, POLL_MS); // a Tenant-Free account becomes an owner the moment the payment is approved
     return () => clearInterval(id);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pending?.id]);

@@ -17,7 +17,7 @@ export const DOC_ROW: Record<DocStatus | "NONE", string> = {
 
 /* ---------- circular photo crop ---------- */
 export const CROP_SIZE = 256;
-export const OUT_SIZE = 512;
+export const OUT_SIZE = 300; // profile photos are saved as 300 × 300 px
 export const ZOOM_MAX = 3;
 
 /** The image is first scaled to cover the circle, then by `zoom`. */
@@ -76,16 +76,19 @@ export const profileFormSchema = z.object({
   union: z.string().trim().max(80, "tooLong"),
   street: z.string().trim().max(200, "tooLong"),
   postOffice: z.string().trim().max(80, "tooLong"),
+  /** where tenants send rent (optional) */
+  bkashNumber: z.string().trim().refine((v) => v === "" || /^01[3-9]\d{8}$/.test(v), "phoneFormat").default(""),
 });
 export type ProfileFormValues = z.input<typeof profileFormSchema>;
 
 /** Only what changed: the address goes as one block (the server keeps what is missing). */
-export function profilePatch(f: ProfileFormValues, before: { fullName: string; phone: string | null; occupation: string | null; dateOfBirth: string | null; address: Record<string, string | null> | null }) {
+export function profilePatch(f: ProfileFormValues, before: { fullName: string; phone: string | null; occupation: string | null; dateOfBirth: string | null; bkashNumber?: string | null; address: Record<string, string | null> | null }) {
   const out: Record<string, unknown> = {};
   if (f.fullName.trim() !== before.fullName) out.fullName = f.fullName.trim();
   if (f.phone.trim() !== (before.phone ?? "")) out.phone = f.phone.trim();
   if (f.occupation.trim() !== (before.occupation ?? "")) out.occupation = f.occupation.trim();
   if (f.dateOfBirth !== (before.dateOfBirth ?? "").slice(0, 10)) out.dateOfBirth = f.dateOfBirth;
+  if ((f.bkashNumber ?? "").trim() !== (before.bkashNumber ?? "")) out.owner = { bkashNumber: (f.bkashNumber ?? "").trim() };
   const a = before.address ?? {};
   const keys = ["division", "district", "upazila", "union", "street", "postOffice"] as const;
   if (keys.some((k) => f[k].trim() !== (a[k] ?? ""))) {

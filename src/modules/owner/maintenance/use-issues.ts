@@ -20,7 +20,7 @@ export function useIssues(tab: Tab) {
   const prevTab = useRef(tab);
 
   const fail = useCallback((e: unknown) => {
-    if (e instanceof ApiError && e.status === 401) { clearSession(); router.replace(`/login?next=${encodeURIComponent("/owner/maintenance")}` as never); return true; }
+    if (e instanceof ApiError && e.status === 401) { clearSession(); router.replace(`/login?next=${encodeURIComponent("/home-owner/maintenance")}` as never); return true; }
     return false;
   }, [router]);
 

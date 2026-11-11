@@ -19,7 +19,7 @@ export function StoryModal({ n, onClose, onRead }: Props) {
 }
 
 /** Where "Open" leads for stories that have no special screen of their own. */
-const WHERE: Record<string, string> = { overdue: "/owner/rent", tenancy: "/owner/tenants" };
+const WHERE: Record<string, string> = { overdue: "/home-owner/rent", tenancy: "/home-owner/tenants" };
 
 function Body({ n, onClose, onRead }: { n: Notification; onClose: () => void; onRead: (n: Notification) => void }) {
   const t = useTranslations("owner.notifications.story");
@@ -31,7 +31,7 @@ function Body({ n, onClose, onRead }: { n: Notification; onClose: () => void; on
 
   // overdue rent, a tenant moving in and everything else: the message itself, and a way to the right page
   const d = describe(n);
-  const href = WHERE[kindOf(n)] ?? (n.link && n.link.startsWith("/owner/") ? n.link : null);
+  const href = WHERE[kindOf(n)] ?? (n.link && n.link.startsWith("/home-owner/") ? n.link : null);
   return (
     <div className="space-y-4 pt-1">
       <h2 id="nc-story-title" className="pr-10 text-xl font-bold text-navy">{d.headline}</h2>

@@ -147,7 +147,7 @@ export async function remindAll(actor: Actor, input: z.infer<typeof remindAllSch
       await tx.notification.createMany({
         data: [...owed.entries()].map(([userId, o]) => ({
           userId, type: "rent.reminder", titleKey: "notifications.rentReminder", priority: "HIGH" as const,
-          params: { due: fix(o.due), month: o.months.sort().join(", ") }, link: "/tenant/rent",
+          params: { due: fix(o.due), month: o.months.sort().join(", ") }, link: "/tenant/notifications",
         })),
       });
       await tx.outboxEvent.createMany({

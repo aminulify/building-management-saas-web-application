@@ -17,7 +17,7 @@ const D = Prisma.Decimal;
 export const receiptNumber = (paymentId: string, billingMonth: Date) => `RC-${billingMonth.toISOString().slice(0, 7).replace("-", "")}-${paymentId.slice(-8).toUpperCase()}`;
 
 /** Unit, property and tenant of a rent record: every notification to the owner must name them. */
-async function rentContext(tx: Prisma.TransactionClient, recordId: string) {
+export async function rentContext(tx: Prisma.TransactionClient, recordId: string) {
   const r = await tx.rentRecord.findUniqueOrThrow({
     where: { id: recordId },
     select: { billingMonth: true, agreement: { select: { tenantId: true, ownerId: true, unit: { select: { unitNumber: true, property: { select: { name: true } } } } } } },
@@ -40,15 +40,41 @@ export async function notifyOverdue(now = new Date()) {
   for (const r of rows) {
     if (done.has(r.id)) continue;
     await notify([r.agreement.ownerId], {
-      type: "rent.overdue", titleKey: "notifications.rentOverdue", priority: "HIGH", link: "/owner/rent",
+      type: "rent.overdue", titleKey: "notifications.rentOverdue", priority: "HIGH", link: "/home-owner/rent",
       params: { recordId: r.id, tenantName: names.get(r.agreement.tenantId) ?? "", unit: r.agreement.unit.unitNumber, property: r.agreement.unit.property.name, due: r.total.minus(r.paid).toFixed(2), month: r.billingMonth.toISOString().slice(0, 7) },
     });
     n++;
   }
+  await notifyTenantsLate(rows);
   return n;
 }
 
 /** Monthly job: one RentRecord per ACTIVE agreement, then flag overdue ones. Safe to re-run. */
+
+/** The tenant's own "Final Reminder" once per overdue month (the "Violate Agreement" card). */
+async function notifyTenantsLate(rows: { id: string; total: Prisma.Decimal; paid: Prisma.Decimal; billingMonth: Date; agreement: { tenantId: string } }[]) {
+  const tenantIds = [...new Set(rows.map((r) => r.agreement.tenantId))];
+  const done = new Set((await db.notification.findMany({ where: { type: "rent.late", userId: { in: tenantIds } }, select: { params: true } })).map((n) => (n.params as { recordId?: string }).recordId));
+  for (const r of rows) {
+    if (done.has(r.id)) continue;
+    await notify([r.agreement.tenantId], { type: "rent.late", titleKey: "notifications.rentLate", priority: "HIGH", link: "/tenant/notifications", params: { recordId: r.id, month: r.billingMonth.toISOString().slice(0, 7), due: r.total.minus(r.paid).toFixed(2) } });
+  }
+}
+
+/** "Rent invoice generated" for every bill of the month that the tenant has not been told about yet. */
+export async function notifyInvoices(month: Date) {
+  const rows = await db.rentRecord.findMany({ where: { billingMonth: month, agreement: { status: "ACTIVE" } }, select: { id: true, total: true, dueDate: true, agreement: { select: { tenantId: true } } }, take: 2000 });
+  if (!rows.length) return 0;
+  const tenantIds = [...new Set(rows.map((r) => r.agreement.tenantId))];
+  const done = new Set((await db.notification.findMany({ where: { type: "rent.invoice", userId: { in: tenantIds } }, select: { params: true } })).map((n) => (n.params as { recordId?: string }).recordId));
+  const fresh = rows.filter((r) => !done.has(r.id));
+  if (!fresh.length) return 0;
+  await db.notification.createMany({
+    data: fresh.map((r) => ({ userId: r.agreement.tenantId, type: "rent.invoice", titleKey: "notifications.rentInvoice", link: "/tenant/notifications", params: { recordId: r.id, month: month.toISOString().slice(0, 7), total: r.total.toFixed(2), dueDate: r.dueDate.toISOString().slice(0, 10) } })),
+  });
+  return fresh.length;
+}
+
 export async function generateMonthlyRecords(month = monthStart()) {
   const monthEnd = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0));
   const agreements = await db.rentalAgreement.findMany({
@@ -56,6 +82,7 @@ export async function generateMonthlyRecords(month = monthStart()) {
     select: { id: true, rent: true, unit: { select: { utilityCharge: true } } },
   });
   const created = await db.$transaction((tx) => ensureRentRecords(tx, agreements, month));
+  await notifyInvoices(month);
   const overdue = await db.rentRecord.updateMany({
     where: { status: { in: ["DUE", "PARTIAL"] }, dueDate: { lt: new Date() } },
     data: { status: "OVERDUE" },
@@ -138,7 +165,7 @@ export async function recordPayment(actor: Actor, recordId: string, input: z.inf
       await notify([rec.agreement.tenantId], { type: "rent.payment", titleKey: "notifications.rentPaymentRecorded", params: { amount: amount.toFixed(2) } }, tx);
       const ctx = await rentContext(tx, recordId);
       await notify([rec.agreement.ownerId], {
-        type: "rent.received", titleKey: "notifications.rentReceived", link: "/owner/rent",
+        type: "rent.received", titleKey: "notifications.rentReceived", link: "/home-owner/rent",
         params: { tenantName: ctx.tenantName, unit: ctx.unit, property: ctx.property, amount: amount.toFixed(2), method: input.method, receipt: receiptNumber(payment.id, ctx.billingMonth), paymentId: payment.id, verified: !!input.verified },
       }, tx);
       await writeAudit({ actor, action: "rent.payment", resourceType: "RentPayment", resourceId: payment.id, after: { recordId, amount: amount.toFixed(2), method: input.method }, req }, tx);
@@ -187,7 +214,7 @@ export async function remindTenant(actor: Actor, recordId: string) {
   rateLimit(`remind:${recordId}`, 1, 24 * 3600_000);
   await notify([rec.agreement.tenantId], {
     type: "rent.reminder", titleKey: "notifications.rentReminder",
-    params: { due: rec.total.minus(rec.paid).toFixed(2), month: rec.billingMonth.toISOString().slice(0, 7) },
+    params: { recordId, due: rec.total.minus(rec.paid).toFixed(2), month: rec.billingMonth.toISOString().slice(0, 7) },
   });
   return { sent: true };
 }

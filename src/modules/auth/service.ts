@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { sha256 } from "@/lib/crypto";
+import { nextTenantCode } from "@/modules/users/tenant-code";
 import { supabaseAdmin, supabaseAnon } from "@/lib/supabase";
 import { toActor } from "@/lib/auth/require-actor";
 import { finalizeRegistrationUploads } from "./registration-uploads";
@@ -43,6 +44,7 @@ export async function register(input: Register, req: Request) {
         email: input.email,
         phone: input.phone,
         role: input.role,
+        tenantCode: await nextTenantCode(), // every sign-up starts as a Tenant-Free account with a permanent Tenant ID
         locale: input.locale,
         dateOfBirth: input.dateOfBirth,
         gender: input.gender,
@@ -50,8 +52,7 @@ export async function register(input: Register, req: Request) {
         // "Post Office" is free text; when the user typed a 4-digit code it is also kept as the postal code
         ...(input.address ? { address: { create: { ...input.address, postalCode: input.address.postalCode ?? (/^\d{4}$/.test(input.address.postOffice ?? "") ? input.address.postOffice : undefined) } } } : {}),
         ...(input.nid ? { nid: input.nid, nidHash, nidLast4: input.nid.slice(-4) } : {}),
-        ...(input.role === "OWNER" ? { ownerProfile: { create: {} } } : {}),
-        ...(input.role === "TENANT" ? { tenantProfile: { create: {} } } : {}),
+        // an owner profile is created when a plan is approved, a tenant profile when an owner connects the person
       },
       select: { id: true, username: true, role: true, email: true },
     });

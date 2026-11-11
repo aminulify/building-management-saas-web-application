@@ -165,7 +165,7 @@ function Form({ target, properties, defaultPropertyId, onClose, onSaved, setBusy
             <div className="flex items-center gap-3 rounded-lg border border-slate-200 bg-slate-50/80 px-3 py-2.5">
               <Avatar name={editing.tenant.fullName} url={editing.tenant.avatarUrl} />
               <div className="min-w-0 flex-1"><p className="truncate text-sm font-bold text-navy">{editing.tenant.fullName}</p><p className="text-xs text-slate-600">{editing.tenant.phone}</p></div>
-              <Link href={"/owner/tenants" as never} className="text-xs font-bold text-[#0A84F0] underline underline-offset-2">{t("manageTenant")}</Link>
+              <Link href={"/home-owner/tenants" as never} className="text-xs font-bold text-[#0A84F0] underline underline-offset-2">{t("manageTenant")}</Link>
             </div>
           ) : <p className="rounded-lg bg-slate-50 px-3 py-2.5 text-xs text-label">{t("tenantLocked")}</p>}
         </div>
@@ -208,7 +208,7 @@ function Form({ target, properties, defaultPropertyId, onClose, onSaved, setBusy
         {banner && (
           <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-red-700">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <p>{banner.text}{banner.upgrade && <> <Link href={"/owner/subscription" as never} className="font-bold underline underline-offset-2">{t("viewPlans")}</Link></>}</p>
+            <p>{banner.text}{banner.upgrade && <> <Link href={"/home-owner/subscription" as never} className="font-bold underline underline-offset-2">{t("viewPlans")}</Link></>}</p>
           </div>
         )}
 

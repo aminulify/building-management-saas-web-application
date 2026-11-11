@@ -5,7 +5,7 @@ import { CheckCircle2, Loader2, Send } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Modal } from "@/components/feedback/Modal";
 import { ApiError, api } from "@/lib/api-client";
-import { useOwner } from "../shell/OwnerContext";
+import { useViewerMe } from "../../find-home/area";
 
 /** "Contact Support": a billing question goes to the Super Admin inbox (contact inquiries). */
 export function SupportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
@@ -16,7 +16,7 @@ const field = "glass-input w-full rounded-lg px-3 text-sm text-navy outline-none
 
 function Body({ onClose }: { onClose: () => void }) {
   const t = useTranslations("owner.subscription.support");
-  const { me } = useOwner();
+  const me = useViewerMe();
   const [name, setName] = useState(me.fullName);
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState(t("defaultSubject"));

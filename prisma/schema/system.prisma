@@ -12,6 +12,7 @@ model Notification {
   user       User                 @relation(fields: [userId], references: [id])
 
   @@index([userId, readAt])
+  @@index([userId, archivedAt, id(sort: Desc)])
 }
 
 model Broadcast {

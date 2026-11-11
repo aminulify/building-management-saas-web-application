@@ -88,7 +88,7 @@ function Form({ d, onClose, onDone, setBusy }: { d: PastDetail; onClose: () => v
             </GlassSelect>
           </GlassField>
         </div>
-        {propertyId && units.state === "ready" && vacant.length === 0 && <p className="-mt-2 text-xs text-amber-700">{t("noVacantHelp")} <Link href={"/owner/units" as never} className="font-bold underline underline-offset-2">{t("goUnits")}</Link></p>}
+        {propertyId && units.state === "ready" && vacant.length === 0 && <p className="-mt-2 text-xs text-amber-700">{t("noVacantHelp")} <Link href={"/home-owner/units" as never} className="font-bold underline underline-offset-2">{t("goUnits")}</Link></p>}
         {(props.state === "error" || units.state === "error") && <p role="alert" className="-mt-2 text-xs font-medium text-red-600">{t("loadError")} <button type="button" onClick={() => { props.reload(); units.reload(); }} className="font-bold underline underline-offset-2">{t("retry")}</button></p>}
 
         <div className="grid gap-4 sm:grid-cols-2">

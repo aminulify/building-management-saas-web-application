@@ -13,7 +13,7 @@ type DocState = { status: "PENDING" | "VERIFIED" | "REJECTED"; date: Date; notes
  */
 export async function ownerOverview(actor: Actor) {
   requireRole(actor, "OWNER");
-  const u = await db.user.findUnique({ where: { id: actor.id }, include: { address: true, ownerProfile: { select: { businessName: true } } } });
+  const u = await db.user.findUnique({ where: { id: actor.id }, include: { address: true, ownerProfile: { select: { businessName: true, bkashNumber: true } } } });
   if (!u) throw new AppError("NOT_FOUND");
 
   const [props, docs, agreements, tenants] = await Promise.all([
@@ -60,7 +60,7 @@ export async function ownerOverview(actor: Actor) {
     user: {
       id: u.id, username: u.username, ownerCode: u.ownerCode, fullName: u.fullName, email: u.email, phone: u.phone, occupation: u.occupation, gender: u.gender,
       dateOfBirth: u.dateOfBirth, nid: u.nidLast4 ? `•••••••••${u.nidLast4}` : null, memberSince: u.createdAt, verificationStatus: u.verificationStatus, avatarUrl,
-      businessName: u.ownerProfile?.businessName ?? null,
+      businessName: u.ownerProfile?.businessName ?? null, bkashNumber: u.ownerProfile?.bkashNumber ?? null,
     },
     address: a ? { division: a.division, district: a.district, upazila: a.upazila, union: a.union, street: a.street, postOffice: a.postOffice } : null,
     strength,

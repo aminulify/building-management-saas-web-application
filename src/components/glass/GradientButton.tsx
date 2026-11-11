@@ -16,6 +16,7 @@ const CLASS: Record<Variant, string> = { primary: "btn-primary", glass: "btn-gla
 export function GradientButton({ variant = "primary", loading = false, block = false, className, children, disabled, type = "button", ...rest }: Props) {
   return (
     <button
+      suppressHydrationWarning // browser extensions (form fillers) add attributes to buttons before React starts
       type={type}
       className={clsx("btn", CLASS[variant], block && "w-full", className)}
       disabled={disabled || loading}

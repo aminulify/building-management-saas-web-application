@@ -114,13 +114,13 @@ model Invoice {
 
 /// A price/limit change that takes effect later (Super Admin "Schedule Change"). Applied by the daily job.
 model ScheduledPlanChange {
-  id          String           @id @default(uuid(7)) @db.Uuid
-  planId      String           @db.Uuid
+  id          String    @id @default(uuid(7)) @db.Uuid
+  planId      String    @db.Uuid
   changes     Json
-  effectiveAt DateTime         @db.Timestamptz
-  appliedAt   DateTime?        @db.Timestamptz
-  createdById String           @db.Uuid
-  createdAt   DateTime         @default(now()) @db.Timestamptz
+  effectiveAt DateTime  @db.Timestamptz
+  appliedAt   DateTime? @db.Timestamptz
+  createdById String    @db.Uuid
+  createdAt   DateTime  @default(now()) @db.Timestamptz
 
   @@index([appliedAt, effectiveAt])
 }

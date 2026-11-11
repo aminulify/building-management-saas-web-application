@@ -31,7 +31,7 @@ export function Stepper({ current, onJump }: Props) {
           const active = n === current;
           return (
             <li key={n} className="flex flex-1 items-center last:flex-none">
-              <button
+              <button suppressHydrationWarning
                 type="button"
                 onClick={() => done && onJump(n)}
                 disabled={!done}

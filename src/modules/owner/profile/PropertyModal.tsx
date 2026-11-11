@@ -72,9 +72,9 @@ function Body({ p, onClose }: { p: OverviewProperty; onClose: () => void }) {
       </section>
 
       <div className="mt-5 grid gap-2.5 sm:grid-cols-3">
-        <Link href={"/owner/tenants" as never} onClick={onClose} className="btn btn-primary h-11 text-sm"><UserPlus className="size-4" aria-hidden />{t("assign")}</Link>
-        <Link href={"/owner/units" as never} onClick={onClose} className="btn btn-white h-11 text-sm"><Users className="size-4" aria-hidden />{t("units")}</Link>
-        <Link href={"/owner/properties" as never} onClick={onClose} className="btn btn-white h-11 text-sm"><Building2 className="size-4" aria-hidden />{t("manage")}</Link>
+        <Link href={"/home-owner/tenants" as never} onClick={onClose} className="btn btn-primary h-11 text-sm"><UserPlus className="size-4" aria-hidden />{t("assign")}</Link>
+        <Link href={"/home-owner/units" as never} onClick={onClose} className="btn btn-white h-11 text-sm"><Users className="size-4" aria-hidden />{t("units")}</Link>
+        <Link href={"/home-owner/properties" as never} onClick={onClose} className="btn btn-white h-11 text-sm"><Building2 className="size-4" aria-hidden />{t("manage")}</Link>
       </div>
     </div>
   );

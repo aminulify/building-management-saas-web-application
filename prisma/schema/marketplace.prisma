@@ -28,7 +28,9 @@ model Listing {
   availableFrom   DateTime?                             @db.Date
   videoUrl        String?
   fullAddress     String?
-  /** place names exactly as the Bangladesh geo API spells them (Find Home filters match on these) */
+  /**
+   * place names exactly as the Bangladesh geo API spells them (Find Home filters match on these)
+   */
   division        String?
   district        String?
   upazila         String?
@@ -122,17 +124,17 @@ model ListingStatDaily {
 }
 
 model VisitRequest {
-  id            String      @id @default(uuid(7)) @db.Uuid
-  listingId     String      @db.Uuid
-  requesterId   String      @db.Uuid
-  sellerId      String      @db.Uuid
-  scheduledFor  DateTime    @db.Timestamptz
-  note          String?
-  status        VisitStatus @default(PENDING)
-  responseNote  String?
-  createdAt     DateTime    @default(now()) @db.Timestamptz
-  updatedAt     DateTime    @updatedAt @db.Timestamptz
-  listing       Listing     @relation(fields: [listingId], references: [id])
+  id           String      @id @default(uuid(7)) @db.Uuid
+  listingId    String      @db.Uuid
+  requesterId  String      @db.Uuid
+  sellerId     String      @db.Uuid
+  scheduledFor DateTime    @db.Timestamptz
+  note         String?
+  status       VisitStatus @default(PENDING)
+  responseNote String?
+  createdAt    DateTime    @default(now()) @db.Timestamptz
+  updatedAt    DateTime    @updatedAt @db.Timestamptz
+  listing      Listing     @relation(fields: [listingId], references: [id])
 
   @@index([requesterId, status])
   @@index([sellerId, status])

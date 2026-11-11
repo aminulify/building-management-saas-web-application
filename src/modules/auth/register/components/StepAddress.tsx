@@ -39,7 +39,7 @@ export function StepAddress() {
       {failed && (
         <div role="alert" className="flex items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50/80 px-4 py-3 text-sm text-red-700">
           <span>{t("geoError")}</span>
-          <button type="button" onClick={retryAll} className="inline-flex items-center gap-1.5 font-semibold underline-offset-2 hover:underline"><RefreshCw className="size-4" aria-hidden />{t("retry")}</button>
+          <button suppressHydrationWarning type="button" onClick={retryAll} className="inline-flex items-center gap-1.5 font-semibold underline-offset-2 hover:underline"><RefreshCw className="size-4" aria-hidden />{t("retry")}</button>
         </div>
       )}
 

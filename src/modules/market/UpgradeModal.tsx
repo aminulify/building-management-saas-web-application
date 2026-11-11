@@ -6,6 +6,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { Modal } from "@/components/feedback/Modal";
 import { Link } from "@/i18n/navigation";
 import { api } from "@/lib/api-client";
+import { useArea, useViewerRole } from "../find-home/area";
 import { formatNumber, formatTaka } from "../owner/dashboard/format";
 
 interface Plan { id: string; code: string; nameBn: string; nameEn: string; audience: string; listingLimit: number; propertyLimit: number; prices: { MONTHLY: { total: string } } }
@@ -15,6 +16,8 @@ export function UpgradePanel({ reason }: { reason: "plan" | "limit" }) {
   const t = useTranslations("owner.marketplace.upgrade");
   const locale = useLocale();
   const n = formatNumber(locale), taka = formatTaka(locale);
+  const area = useArea();
+  const role = useViewerRole();
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => { api<Plan[]>("/plans").then((p) => setPlans(p.filter((x) => x.audience === "OWNER"))).catch(() => setFailed(true)); }, []);
@@ -38,7 +41,13 @@ export function UpgradePanel({ reason }: { reason: "plan" | "limit" }) {
           </div>
         ))}
       </div>
-      <Link href={"/owner/subscription" as never} className="btn btn-primary mt-5 h-11 px-7 text-sm">{t("cta")}</Link>
+      {area === "/home-owner" && <Link href={"/home-owner/subscription" as never} className="btn btn-primary mt-5 h-11 px-7 text-sm">{t("cta")}</Link>}
+      {area !== "/home-owner" && (
+        <div className="mx-auto mt-5 max-w-md space-y-3">
+          <p role="note" className="rounded-lg bg-sky-50 px-3 py-2 text-sm font-medium text-sky-800">{t(role === "TENANT" ? "tenantNote" : "userNote")}</p>
+          {role !== "TENANT" && <Link href={"/tenant-free/subscription" as never} className="btn btn-primary h-11 px-7 text-sm">{t("cta")}</Link>}
+        </div>
+      )}
     </div>
   );
 }

@@ -3,7 +3,7 @@ import {
   addressSchema, checkImage, normalizePhone, passwordScore, personalSchema, registerFormSchema, securitySchema, stepOfField,
 } from "../schema";
 
-const person = { role: "TENANT", fullName: "Abdur Rahman", username: "abdur_rahman24", email: "Rahman@Example.com", phone: "+8801712345678", occupation: "", dateOfBirth: "1994-05-17", nid: "1234567890123" };
+const person = { fullName: "Abdur Rahman", username: "abdur_rahman24", email: "Rahman@Example.com", phone: "+8801712345678", occupation: "", dateOfBirth: "1994-05-17", nid: "1234567890123" };
 
 describe("sign-up wizard validation", () => {
   it("normalises Bangladeshi phone numbers", () => {
@@ -18,7 +18,6 @@ describe("sign-up wizard validation", () => {
 
   it("step 1: rejects bad values with translation keys", () => {
     const keys = (patch: object) => personalSchema.safeParse({ ...person, ...patch }).error?.issues.map((i) => i.message);
-    expect(keys({ role: undefined })).toContain("roleRequired");
     expect(keys({ username: "Abdur Rahman" })).toContain("usernameFormat");
     expect(keys({ email: "nope" })).toContain("emailInvalid");
     expect(keys({ phone: "01212345678" })).toContain("phoneInvalid");

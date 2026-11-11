@@ -5,7 +5,7 @@ export interface DocState { status: DocStatus; date: string; notes: string | nul
 export interface OwnerOverview {
   user: {
     id: string; username: string; ownerCode: string | null; fullName: string; email: string | null; phone: string | null; occupation: string | null; gender: string | null;
-    dateOfBirth: string | null; nid: string | null; memberSince: string; verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"; avatarUrl: string | null; businessName: string | null;
+    dateOfBirth: string | null; nid: string | null; memberSince: string; verificationStatus: "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"; avatarUrl: string | null; businessName: string | null; bkashNumber: string | null;
   };
   address: { division: string; district: string; upazila: string | null; union: string | null; street: string | null; postOffice: string | null } | null;
   strength: { percent: number; missing: string[] };
@@ -33,4 +33,4 @@ export interface AgreementRow {
   tenant: { id: string; fullName: string; phone: string | null; avatarUrl: string | null } | null;
 }
 
-export type DocKind = "NID_FRONT" | "NID_BACK";
+export type DocKind = "NID_FRONT" | "NID_BACK" | "AGREEMENT";

@@ -28,8 +28,8 @@ export function Insights({ overview }: { overview: OwnerOverview }) {
   const unitLimit = subscription.limits.unitLimit;
   const unitUse = unitLimit > 0 ? (subscription.usage.units * 100) / unitLimit : 0;
   const attention = [
-    overdueRecords > 0 && { key: "overdue", icon: AlertTriangle, text: t("overdue", { n: num(overdueRecords) }), href: "/owner/rent", tone: "text-red-700" },
-    portfolio.leasesExpiringIn60Days > 0 && { key: "leases", icon: CalendarClock, text: t("leases", { n: num(portfolio.leasesExpiringIn60Days) }), href: "/owner/tenants", tone: "text-amber-700" },
+    overdueRecords > 0 && { key: "overdue", icon: AlertTriangle, text: t("overdue", { n: num(overdueRecords) }), href: "/home-owner/rent", tone: "text-red-700" },
+    portfolio.leasesExpiringIn60Days > 0 && { key: "leases", icon: CalendarClock, text: t("leases", { n: num(portfolio.leasesExpiringIn60Days) }), href: "/home-owner/tenants", tone: "text-amber-700" },
   ].filter(Boolean) as { key: string; icon: typeof AlertTriangle; text: string; href: string; tone: string }[];
 
   return (
@@ -46,7 +46,7 @@ export function Insights({ overview }: { overview: OwnerOverview }) {
         {noPlan ? (
           <>
             <p className="mt-2 text-sm font-medium text-amber-700">{t("noPlan")}</p>
-            <Link href={"/owner/subscription" as never} className="mt-3 inline-block text-sm font-bold text-[#00AEEF] underline-offset-4 hover:underline">{t("choosePlan")}</Link>
+            <Link href={"/home-owner/subscription" as never} className="mt-3 inline-block text-sm font-bold text-[#00AEEF] underline-offset-4 hover:underline">{t("choosePlan")}</Link>
           </>
         ) : (
           <>

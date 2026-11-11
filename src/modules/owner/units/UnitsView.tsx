@@ -151,7 +151,7 @@ export function UnitsView() {
             <h2 className="text-lg font-bold text-navy">{t("emptyTitle")}</h2>
             <p className="max-w-sm text-sm text-slate-600">{properties.length === 0 ? t("emptyNoProperty") : t("emptyText")}</p>
             {properties.length === 0
-              ? <Link href={"/owner/properties" as never} className="btn btn-primary mt-1 h-11 px-6"><Plus className="size-4" aria-hidden />{t("goProperties")}</Link>
+              ? <Link href={"/home-owner/properties" as never} className="btn btn-primary mt-1 h-11 px-6"><Plus className="size-4" aria-hidden />{t("goProperties")}</Link>
               : <button type="button" onClick={() => setForm("add")} className="btn btn-primary mt-1 h-11 px-6"><Plus className="size-4" aria-hidden />{t("add")}</button>}
           </FadeIn>
         )}

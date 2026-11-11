@@ -18,7 +18,10 @@
     "verify:tenants": "tsx --env-file=.env scripts/verify-tenants.ts",
     "verify:rent": "tsx --env-file=.env scripts/verify-rent.ts",
     "verify:findhome": "tsx --env-file=.env scripts/verify-findhome.ts",
-    "db:seed:past": "tsx --env-file=.env prisma/seed/demo-past-tenants.ts"
+    "db:seed:past": "tsx --env-file=.env prisma/seed/demo-past-tenants.ts",
+    "db:seed:tenant": "tsx --env-file=.env prisma/seed/demo-tenant-login.ts",
+    "db:seed:user": "tsx --env-file=.env prisma/seed/demo-user-login.ts",
+    "audit:roles": "tsx --env-file=.env scripts/audit-roles.ts"
   },
   "prisma": {
     "schema": "prisma/schema"

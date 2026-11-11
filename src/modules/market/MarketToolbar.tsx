@@ -5,6 +5,7 @@ import { AlertCircle, ChevronDown, FilterX, GraduationCap, Landmark, ParkingCirc
 import { clsx } from "clsx";
 import { useLocale, useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
+import { useArea } from "../find-home/area";
 import { GeoSelect } from "../find-home/FilterCard";
 import { EMPTY_FILTERS, activeCount, cleanAmount, priceRangeInvalid, toggle } from "../find-home/filters";
 import type { AmenityKey, CategoryChoice, Filters, LandType } from "../find-home/types";
@@ -29,6 +30,7 @@ export function MarketToolbar({ filters: f, onChange }: Props) {
   const t = useTranslations("owner.marketplace.toolbar");
   const fh = useTranslations("owner.findHome");
   const locale = useLocale();
+  const area = useArea();
   const { zones } = useZones();
   const [more, setMore] = useState(false);
   const bad = priceRangeInvalid(f);
@@ -58,7 +60,7 @@ export function MarketToolbar({ filters: f, onChange }: Props) {
         <div role="group" aria-label={t("modeLabel")} className="inline-flex h-12 items-center rounded-xl border border-white/70 bg-white/70 p-1 backdrop-blur-md">
           <span aria-current="page" className="inline-flex h-10 items-center rounded-lg bg-brand-gradient px-5 text-sm font-semibold text-white shadow-sm">{t("modes.SALE")}</span>
           {/* renting lives on the Find Home page */}
-          <Link href={"/owner/find-home" as never} className="inline-flex h-10 items-center rounded-lg px-5 text-sm font-semibold text-slate-600 transition-all duration-300 hover:bg-white hover:text-navy">{t("modes.RENT")}</Link>
+          <Link href={`${area}/find-home` as never} className="inline-flex h-10 items-center rounded-lg px-5 text-sm font-semibold text-slate-600 transition-all duration-300 hover:bg-white hover:text-navy">{t("modes.RENT")}</Link>
         </div>
       </div>
 

@@ -28,7 +28,7 @@ export async function requestVisit(actor: Actor, listingId: string, input: z.inf
   try {
     return await db.$transaction(async (tx) => {
       const v = await tx.visitRequest.create({ data: { listingId, requesterId: actor.id, sellerId: l.sellerId, scheduledFor: input.scheduledFor, note: input.note } });
-      await notify([l.sellerId], { type: "listing.visit", titleKey: "notifications.visitRequested", params: { title: l.title, from: actor.fullName, when: input.scheduledFor.toISOString() }, link: "/owner/visits", priority: "HIGH" }, tx);
+      await notify([l.sellerId], { type: "listing.visit", titleKey: "notifications.visitRequested", params: { title: l.title, from: actor.fullName, when: input.scheduledFor.toISOString() }, link: "/home-owner/visits", priority: "HIGH" }, tx);
       await writeAudit({ actor, action: "listing.visit_request", resourceType: "VisitRequest", resourceId: v.id, after: { listingId, scheduledFor: input.scheduledFor.toISOString() }, req }, tx);
       return v;
     });
@@ -73,7 +73,7 @@ export async function cancelVisit(actor: Actor, id: string, req: Request) {
   if (v.status !== "PENDING" && v.status !== "CONFIRMED") throw new AppError("INVALID_STATE", { from: v.status });
   return db.$transaction(async (tx) => {
     const out = await tx.visitRequest.update({ where: { id }, data: { status: "CANCELLED" } });
-    await notify([v.sellerId], { type: "listing.visit", titleKey: "notifications.visitCancelled", params: { title: v.listing.title, from: actor.fullName }, link: "/owner/visits" }, tx);
+    await notify([v.sellerId], { type: "listing.visit", titleKey: "notifications.visitCancelled", params: { title: v.listing.title, from: actor.fullName }, link: "/home-owner/visits" }, tx);
     await writeAudit({ actor, action: "listing.visit_cancel", resourceType: "VisitRequest", resourceId: id, req }, tx);
     return out;
   });

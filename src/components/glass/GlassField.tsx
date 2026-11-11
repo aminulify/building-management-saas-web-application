@@ -50,6 +50,7 @@ export function GlassInput({ id, icon: Icon, invalid, right, className, ref, ...
     <div className="glass-input flex h-12 items-center gap-3 rounded-lg px-3" data-invalid={invalid || undefined}>
       <Icon className="size-5 shrink-0 text-slate-400" aria-hidden />
       <input
+        suppressHydrationWarning // browser extensions (form fillers) add attributes to inputs before React starts
         id={id}
         ref={ref}
         aria-invalid={invalid || undefined}
@@ -75,7 +76,7 @@ export function GlassSelect({ id, icon: Icon, invalid, loading, className, child
   return (
     <div className="glass-input relative flex h-12 items-center gap-3 rounded-lg px-3" data-invalid={invalid || undefined}>
       <Icon className="size-5 shrink-0 text-slate-400" aria-hidden />
-      <select
+      <select suppressHydrationWarning
         id={id}
         ref={ref}
         aria-invalid={invalid || undefined}

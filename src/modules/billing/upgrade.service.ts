@@ -9,6 +9,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { getSetting } from "@/modules/admin/settings.service";
 import type { Actor } from "@/lib/auth/require-actor";
 import { CYCLE_MONTHS } from "@/shared/pricing";
+import { retargetLinks } from "@/modules/tenancy/roles";
 import { buildQuote, assertCanBuy } from "./quote.service";
 import type { upgradeRequestSchema } from "./upgrade-schema";
 
@@ -127,7 +128,7 @@ export async function approve(actor: Actor, id: string, req: Request) {
     let ownerCode: string | undefined;
     if (r.plan.audience === "OWNER") {
       const u = await tx.user.findUniqueOrThrow({ where: { id: r.userId }, select: { role: true, ownerCode: true } });
-      if (u.role !== "OWNER") await tx.user.update({ where: { id: r.userId }, data: { role: "OWNER" } });
+      if (u.role !== "OWNER") { await tx.user.update({ where: { id: r.userId }, data: { role: "OWNER" } }); await retargetLinks(tx, r.userId, "OWNER"); }
       await tx.ownerProfile.upsert({ where: { userId: r.userId }, update: {}, create: { userId: r.userId } });
       if (!u.ownerCode) {
         const [{ n }] = await tx.$queryRaw<{ n: string }[]>`SELECT nextval('owner_code_seq')::text AS n`;
@@ -139,7 +140,7 @@ export async function approve(actor: Actor, id: string, req: Request) {
     const [{ n: invNo }] = await tx.$queryRaw<{ n: string }[]>`SELECT nextval('invoice_number_seq')::text AS n`;
     await tx.invoice.create({ data: { transactionId: txn.id, number: `INV-${invNo}` } });
 
-    await notify([r.userId], { type: "upgrade.approved", titleKey: "notifications.upgradeApproved", params: { plan: r.plan.code }, link: r.plan.audience === "OWNER" ? "/owner/dashboard" : "/marketplace/create", priority: "HIGH" }, tx);
+    await notify([r.userId], { type: "upgrade.approved", titleKey: "notifications.upgradeApproved", params: { plan: r.plan.code }, link: r.plan.audience === "OWNER" ? "/home-owner/dashboard" : "/marketplace/create", priority: "HIGH" }, tx);
     await tx.outboxEvent.create({ data: { type: "account.upgraded", payload: { userId: r.userId, requestId: id } } }); // realtime + SMS
     await writeAudit({ actor, action: "upgrade.approve", resourceType: "UpgradeRequest", resourceId: id, before: { status: "PENDING", role: r.fromRole }, after: { status: "APPROVED", subscriptionId: sub.id, ownerCode: ownerCode ?? null }, req }, tx);
     return { requestId: id, subscriptionId: sub.id, startsAt, endsAt, ownerCode: ownerCode ?? null, invoice: `INV-${invNo}` };

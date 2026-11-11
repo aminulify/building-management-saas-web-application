@@ -78,6 +78,8 @@ export const PERMISSION_MATRIX: Matrix = {
   },
   GENERAL_USER: {
     ...everyone,
+    // a Tenant-Free account has the same pages as a verified tenant; maintenance stays empty until a lease exists
+    "maintenance:create": "own", "maintenance:manage": "own",
     "listing:create": "entitlement", "listing:manage": "own",
     "complaint:create": "all", "complaint:manage": "own",
     "subscription:purchase": "all", "upgrade:request": "own",

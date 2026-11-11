@@ -7,7 +7,7 @@ import type { Actor } from "@/lib/auth/require-actor";
 import { keyBelongsTo, keyPurpose } from "./service";
 
 export const documentSchema = z.object({
-  kind: z.enum(["NID_FRONT", "NID_BACK", "OTHER"]),
+  kind: z.enum(["NID_FRONT", "NID_BACK", "AGREEMENT", "OTHER"]),
   storageKey: z.string().min(10).max(300),
 });
 
@@ -15,7 +15,7 @@ export const documentSchema = z.object({
 export async function addMyDocument(actor: Actor, input: z.infer<typeof documentSchema>, req: Request) {
   if (!keyBelongsTo(input.storageKey, actor.id)) throw new AppError("FORBIDDEN", { reason: "not_your_upload" });
   const purpose = keyPurpose(input.storageKey);
-  const expected = input.kind === "OTHER" ? "VERIFICATION_DOC" : input.kind;
+  const expected = input.kind === "OTHER" || input.kind === "AGREEMENT" ? "VERIFICATION_DOC" : input.kind;
   if (purpose !== expected) throw new AppError("VALIDATION_ERROR", [{ path: "storageKey", code: "wrong_upload_purpose" }]);
 
   return db.$transaction(async (tx) => {

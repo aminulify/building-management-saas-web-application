@@ -22,7 +22,8 @@ export const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   phone: bdPhoneSchema,
   password: passwordSchema,
-  role: z.enum(PUBLIC_REGISTRATION_ROLES),
+  /** optional and only ever GENERAL_USER: nobody can sign themselves up as an owner or a tenant */
+  role: z.enum(PUBLIC_REGISTRATION_ROLES).default("GENERAL_USER"),
   nid: nidSchema.optional(),
   occupation: z.string().trim().max(80).optional(),
   /** random uuid chosen by the browser; ties pre-registration uploads (NID, photo) to this sign-up */

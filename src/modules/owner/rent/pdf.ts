@@ -26,7 +26,7 @@ const GREEN: RGB = [22, 163, 74];
 const RED: RGB = [185, 28, 28];
 const AMBER: RGB = [180, 83, 9];
 
-async function logo(): Promise<{ data: string; w: number; h: number } | null> {
+export async function logo(): Promise<{ data: string; w: number; h: number } | null> {
   try {
     const res = await fetch("/images/amaderghor-logo-EN.png");
     if (!res.ok) return null;

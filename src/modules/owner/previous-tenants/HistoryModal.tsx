@@ -61,7 +61,7 @@ function Body({ row, onClose, onReassign }: { row: PastRow; onClose: () => void;
     try {
       const c = await authApi<{ id: string }>("/conversations", { method: "POST", body: { type: "DIRECT", recipientId: d.tenant.id } });
       onClose();
-      router.push(`/owner/messages?c=${c.id}` as never);
+      router.push(`/home-owner/messages?c=${c.id}` as never);
     } catch (e) { toast("error", t(e instanceof ApiError && e.code === "FORBIDDEN" ? "messageForbidden" : "messageError")); setBusy(null); }
   }
 

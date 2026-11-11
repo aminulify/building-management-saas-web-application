@@ -127,7 +127,7 @@ export function OtpForm() {
           {cooldown > 0 ? (
             <span className="font-medium text-label" aria-live="polite">{t("otp.resendIn", { seconds: cooldown })}</span>
           ) : (
-            <button type="button" onClick={resend} disabled={resending} className="font-bold text-[#00AEEF] underline-offset-4 transition-opacity hover:underline hover:opacity-80 disabled:opacity-50">
+            <button suppressHydrationWarning type="button" onClick={resend} disabled={resending} className="font-bold text-[#00AEEF] underline-offset-4 transition-opacity hover:underline hover:opacity-80 disabled:opacity-50">
               {resending ? t("otp.resending") : t("otp.resend")}
             </button>
           )}

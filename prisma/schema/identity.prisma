@@ -3,6 +3,8 @@ model User {
   authId             String?            @unique
   username           String             @unique
   ownerCode          String?            @unique
+  /// "TF100001": the Tenant ID every account gets at sign-up; it never changes, whatever the role becomes
+  tenantCode         String?            @unique
   role               Role               @default(GENERAL_USER)
   status             UserStatus         @default(ACTIVE)
   fullName           String
@@ -25,7 +27,7 @@ model User {
   createdAt          DateTime           @default(now()) @db.Timestamptz
   updatedAt          DateTime           @updatedAt @db.Timestamptz
 
-  address             Address?           @relation(fields: [addressId], references: [id])
+  address             Address?                 @relation(fields: [addressId], references: [id])
   ownerProfile        OwnerProfile?
   tenantProfile       TenantProfile?
   govAdminProfile     GovAdminProfile?
@@ -44,6 +46,10 @@ model OwnerProfile {
   id           String   @id @default(uuid(7)) @db.Uuid
   userId       String   @unique @db.Uuid
   businessName String?
+  /**
+   * the bKash number tenants send rent to (shown in the tenant's Send Paid Request)
+   */
+  bkashNumber  String?
   addressId    String?  @db.Uuid
   user         User     @relation(fields: [userId], references: [id])
   address      Address? @relation(fields: [addressId], references: [id])
@@ -54,6 +60,8 @@ model TenantProfile {
   userId           String  @unique @db.Uuid
   emergencyContact String?
   occupation       String?
+  /// people living with the tenant ("Member" on the profile page)
+  members          Int     @default(1)
   user             User    @relation(fields: [userId], references: [id])
 }
 

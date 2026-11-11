@@ -31,6 +31,10 @@ enum DocKind {
   NID_FRONT
   NID_BACK
   DEED
+  /**
+   * a tenant's own copy of the rental agreement
+   */
+  AGREEMENT
   OTHER
 }
 
@@ -199,7 +203,9 @@ enum ListingCategory {
   STUDIO
 }
 
-/** A seeker's request to visit a listing at a chosen date and time. */
+/**
+ * A seeker's request to visit a listing at a chosen date and time.
+ */
 enum VisitStatus {
   PENDING
   CONFIRMED

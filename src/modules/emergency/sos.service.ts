@@ -66,7 +66,9 @@ export async function raiseSos(actor: Actor, input: z.infer<typeof sosCreateSche
     await notify(recipients, { type: "sos.new", titleKey: "notifications.sosNew", params: where, link: `/gov/quick-alert/${a.id}`, priority: "CRITICAL" }, tx);
     // the landlord of the property where it happened is told too (unless they raised it themselves)
     const ownerId = ctx.propertyId ? (await tx.property.findUnique({ where: { id: ctx.propertyId }, select: { ownerId: true } }))?.ownerId : undefined;
-    if (ownerId && ownerId !== actor.id) await notify([ownerId], { type: "sos.new", titleKey: "notifications.sosNew", params: where, link: "/owner/notifications", priority: "CRITICAL" }, tx);
+    if (ownerId && ownerId !== actor.id) await notify([ownerId], { type: "sos.new", titleKey: "notifications.sosNew", params: where, link: "/home-owner/notifications", priority: "CRITICAL" }, tx);
+    // a tenant follows their own alert in their Notifications page (one card per alert, with its live status)
+    if (actor.role === "TENANT") await notify([actor.id], { type: "sos.sent", titleKey: "notifications.sosSent", params: { alertId: a.id, alertType: input.type, property: ctx.snapshot.property, unit: ctx.snapshot.unit }, link: "/tenant/notifications", priority: "HIGH" }, tx);
     await tx.outboxEvent.create({ data: { type: "sos.new", payload: { alertId: a.id, type: input.type } } }); // socket sos:new + SMS to on-duty phones
     await writeAudit({ actor, action: "sos.create", resourceType: "EmergencyAlert", resourceId: a.id, after: { type: input.type }, req }, tx);
     return a;
@@ -113,6 +115,31 @@ export async function acceptSolved(actor: Actor, id: string, req: Request) {
     await writeAudit({ actor, action: "sos.accept", resourceType: "EmergencyAlert", resourceId: id, before: { acceptedAt: null }, after: { acceptedAt: at.toISOString() }, req }, tx);
   });
   return { accepted: true, acceptedAt: at };
+}
+
+
+/**
+ * "Unsolved": the reporter says a SOLVED alert is not really solved. It goes back to PROCESSING, and the landlord and the
+ * government team are alerted at once.
+ */
+export async function reopenUnsolved(actor: Actor, id: string, req: Request) {
+  const { a, isReporter } = await viewerAlert(actor, id);
+  if (!isReporter) throw new AppError("FORBIDDEN", { reason: "reporter_only" });
+  if (a.status !== "SOLVED" || a.acceptedAt) throw new AppError("INVALID_STATE", { from: a.status, accepted: !!a.acceptedAt });
+  const snap = a.addressSnapshot as { property?: string | null; unit?: string | null };
+  const reporter = (a.reporterSnapshot as { name?: string }).name ?? actor.fullName;
+  await db.$transaction(async (tx) => {
+    await tx.emergencyAlert.update({ where: { id }, data: { status: "PROCESSING", resolvedAt: null, priority: "CRITICAL" } });
+    await tx.emergencyAlertEvent.create({ data: { alertId: id, actorId: actor.id, action: "STATUS", fromStatus: "SOLVED", toStatus: "PROCESSING", note: "Reporter said the issue is UNSOLVED" } });
+    const recipients = [...(await activeUserIds("GOV_ADMIN", tx)), ...(await activeUserIds("SUPER_ADMIN", tx))];
+    const params = { alertId: id, alertType: a.type, reporter, property: snap.property ?? null, unit: snap.unit ?? null };
+    await notify(recipients, { type: "sos.reopened", titleKey: "notifications.sosUnsolved", params, link: `/gov/quick-alert/${id}`, priority: "CRITICAL" }, tx);
+    const ownerId = a.propertyId ? (await tx.property.findUnique({ where: { id: a.propertyId }, select: { ownerId: true } }))?.ownerId : undefined;
+    if (ownerId && ownerId !== actor.id) await notify([ownerId], { type: "sos.reopened", titleKey: "notifications.sosUnsolved", params, link: "/home-owner/notifications", priority: "CRITICAL" }, tx);
+    await tx.outboxEvent.create({ data: { type: "sos.update", payload: { alertId: id, reporterId: a.reporterId } } });
+    await writeAudit({ actor, action: "sos.unsolved", resourceType: "EmergencyAlert", resourceId: id, before: { status: "SOLVED" }, after: { status: "PROCESSING" }, req }, tx);
+  });
+  return { reopened: true, status: "PROCESSING" as const };
 }
 
 export function stageOf(a: { status: AlertStatus; acknowledgedAt: Date | null; events: { action: string; forwardRef: string | null; forwardTo: string | null }[] }) {

@@ -5,10 +5,10 @@ import { AppError } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
 import { authorize } from "@/lib/authz/authorize";
 import { notify } from "@/lib/notify";
-import { removeStorageKeys, signStorageKeys } from "@/modules/uploads/service";
+import { keyBelongsTo, keyPurpose, removeStorageKeys, signStorageKeys } from "@/modules/uploads/service";
 import type { Actor } from "@/lib/auth/require-actor";
 import { pageArgs, pageResult, type pageQuery } from "@/lib/api/common";
-import type { MaintenanceAction, actionBodySchema, maintenanceCreateSchema, maintenanceListQuery } from "./schema";
+import type { MaintenanceAction, actionBodySchema, maintenanceCreateSchema, maintenanceListQuery, maintenanceUpdateSchema } from "./schema";
 
 /** action → allowed source states, target state, and who may do it. */
 const FLOW: Record<MaintenanceAction, { from: MaintenanceStatus[]; to: MaintenanceStatus; by: "owner" | "tenant" }> = {
@@ -31,7 +31,7 @@ export async function createRequest(actor: Actor, input: z.infer<typeof maintena
       include: { images: true },
     });
     const where = await unitLabel(tx, agreement.unitId);
-    await notify([agreement.ownerId], { type: "maintenance.new", titleKey: "notifications.maintenanceNew", params: { title: r.title, tenantName: actor.fullName, unit: where.unit, property: where.property, requestId: r.id, priority: r.priority }, link: `/owner/maintenance`, priority: r.priority === "CRITICAL" ? "CRITICAL" : r.priority === "HIGH" ? "HIGH" : "NORMAL" }, tx);
+    await notify([agreement.ownerId], { type: "maintenance.new", titleKey: "notifications.maintenanceNew", params: { title: r.title, tenantName: actor.fullName, unit: where.unit, property: where.property, requestId: r.id, priority: r.priority }, link: `/home-owner/maintenance`, priority: r.priority === "CRITICAL" ? "CRITICAL" : r.priority === "HIGH" ? "HIGH" : "NORMAL" }, tx);
     await writeAudit({ actor, action: "maintenance.create", resourceType: "MaintenanceRequest", resourceId: r.id, req }, tx);
     return r;
   });
@@ -47,14 +47,14 @@ async function load(actor: Actor, id: string, mode: "read" | "manage" | "comment
   const r = await db.maintenanceRequest.findUnique({ where: { id }, include: { agreement: true } });
   if (!r) throw new AppError("NOT_FOUND");
   // owner/tenant/super: manage scope; gov: read-only. Tenant `own` scope is matched on tenantId.
-  const ownerId = actor.role === "TENANT" ? r.tenantId : r.agreement.ownerId;
+  const ownerId = actor.role === "TENANT" || actor.role === "GENERAL_USER" ? r.tenantId : r.agreement.ownerId;
   await authorize(actor, "maintenance:manage", { ownerId, readOnly: mode === "read" });
   return r;
 }
 
 export async function listRequests(actor: Actor, q: z.infer<typeof maintenanceListQuery>, page: z.infer<typeof pageQuery>) {
   await authorize(actor, "maintenance:manage", { ownerId: actor.id, readOnly: true });
-  const scope = actor.role === "OWNER" ? { agreement: { ownerId: actor.id } } : actor.role === "TENANT" ? { tenantId: actor.id } : {};
+  const scope = actor.role === "OWNER" ? { agreement: { ownerId: actor.id } } : actor.role === "TENANT" || actor.role === "GENERAL_USER" ? { tenantId: actor.id } : {};
   const rows = await db.maintenanceRequest.findMany({
     where: { ...scope, status: q.statuses?.length ? { in: q.statuses } : q.status, category: q.category, unitId: q.unitId },
     include: {
@@ -124,20 +124,73 @@ export async function addComment(actor: Actor, id: string, body: string) {
   if (actor.role === "GOV_ADMIN") throw new AppError("FORBIDDEN");
   const c = await db.maintenanceComment.create({ data: { requestId: id, authorId: actor.id, body } });
   const where = await unitLabel(db, r.unitId);
-  await notify([actor.id === r.tenantId ? r.agreement.ownerId : r.tenantId], { type: "maintenance.comment", titleKey: "notifications.maintenanceComment", params: { title: r.title, tenantName: actor.fullName, unit: where.unit, property: where.property, requestId: r.id }, link: "/owner/maintenance" });
+  await notify([actor.id === r.tenantId ? r.agreement.ownerId : r.tenantId], { type: "maintenance.comment", titleKey: "notifications.maintenanceComment", params: { title: r.title, tenantName: actor.fullName, unit: where.unit, property: where.property, requestId: r.id }, link: "/home-owner/maintenance" });
   return c;
 }
 
-/** Owner removes a request for good (photos and comments with it); the tenant is told. */
+/** Words, priority, photo and time can change only before work starts. */
+const EDITABLE: MaintenanceStatus[] = ["PENDING", "APPROVED"];
+
+/**
+ * The tenant edits their own request (Edit Issue window). Content only while Pending/Approved; the condition may go to
+ * Completed ("it is fixed") from any live state, or back to Pending ("reopen") from Completed. The owner is told.
+ */
+export async function updateRequest(actor: Actor, id: string, input: z.infer<typeof maintenanceUpdateSchema>, req: Request) {
+  if (actor.role !== "TENANT") throw new AppError("FORBIDDEN");
+  const r = await load(actor, id, "manage");
+  const { status, images, preferredAt, ...content } = input;
+  const touchesContent = images !== undefined || preferredAt !== undefined || Object.values(content).some((x) => x !== undefined);
+  if (touchesContent && !EDITABLE.includes(r.status) && !(status === "PENDING" && r.status === "COMPLETED")) throw new AppError("INVALID_STATE", { from: r.status, reason: "locked" });
+  if (status && status !== r.status) {
+    const ok = status === "COMPLETED" ? ["PENDING", "APPROVED", "IN_PROGRESS"].includes(r.status) : r.status === "COMPLETED";
+    if (!ok) throw new AppError("INVALID_STATE", { from: r.status, to: status });
+  }
+  const mine = (k: string) => keyBelongsTo(k, actor.id) && keyPurpose(k) === "MAINTENANCE_IMAGE";
+  if (images?.some((k) => !mine(k))) throw new AppError("VALIDATION_ERROR", [{ path: "images", code: "invalid_key" }]);
+
+  const before = images ? await db.maintenanceImage.findMany({ where: { requestId: id }, select: { id: true, storageKey: true } }) : [];
+  const dropped = before.filter((b) => !images!.includes(b.storageKey));
+  const added = images ? images.filter((k) => !before.some((b) => b.storageKey === k)) : [];
+
+  const out = await db.$transaction(async (tx) => {
+    if (dropped.length) await tx.maintenanceImage.deleteMany({ where: { id: { in: dropped.map((d) => d.id) } } });
+    if (added.length) await tx.maintenanceImage.createMany({ data: added.map((storageKey) => ({ requestId: id, storageKey })) });
+    const u = await tx.maintenanceRequest.update({
+      where: { id },
+      data: { ...content, ...(status ? { status } : {}), ...(preferredAt !== undefined ? { preferredAt } : {}) },
+      include: { images: true },
+    });
+    const where = await unitLabel(tx, r.unitId);
+    await notify([r.agreement.ownerId], {
+      type: "maintenance.updated", titleKey: "notifications.maintenanceUpdated",
+      params: { title: u.title, tenantName: actor.fullName, unit: where.unit, property: where.property, requestId: id, status: u.status },
+      link: "/home-owner/maintenance", priority: u.priority === "CRITICAL" && EDITABLE.includes(u.status) ? "CRITICAL" : "NORMAL",
+    }, tx);
+    await writeAudit({ actor, action: "maintenance.update", resourceType: "MaintenanceRequest", resourceId: id, before: { status: r.status, title: r.title, priority: r.priority }, after: { status: u.status, title: u.title, priority: u.priority }, req }, tx);
+    return u;
+  });
+  if (dropped.length) await removeStorageKeys(dropped.map((d) => d.storageKey)).catch(() => undefined);
+  return out;
+}
+
+/**
+ * A request is removed for good (photos and comments with it). The owner may remove any request and the tenant is told;
+ * a tenant may remove their own unless the repair is already under way, and the owner is told.
+ */
 export async function deleteRequest(actor: Actor, id: string, req: Request) {
   const r = await load(actor, id, "manage");
-  if (actor.role !== "OWNER" && actor.role !== "SUPER_ADMIN") throw new AppError("FORBIDDEN");
+  const tenantSide = actor.role === "TENANT";
+  if (!tenantSide && actor.role !== "OWNER" && actor.role !== "SUPER_ADMIN") throw new AppError("FORBIDDEN");
+  if (tenantSide && r.status === "IN_PROGRESS") throw new AppError("INVALID_STATE", { from: r.status, reason: "in_progress" });
   const images = await db.maintenanceImage.findMany({ where: { requestId: id }, select: { storageKey: true } });
   await db.$transaction(async (tx) => {
     await tx.maintenanceComment.deleteMany({ where: { requestId: id } });
     await tx.maintenanceImage.deleteMany({ where: { requestId: id } });
     await tx.maintenanceRequest.delete({ where: { id } });
-    await notify([r.tenantId], { type: "maintenance.deleted", titleKey: "notifications.maintenanceDeleted", params: { title: r.title } }, tx);
+    if (tenantSide) {
+      const where = await unitLabel(tx, r.unitId);
+      await notify([r.agreement.ownerId], { type: "maintenance.removed", titleKey: "notifications.maintenanceRemoved", params: { title: r.title, tenantName: actor.fullName, unit: where.unit, property: where.property }, link: "/home-owner/maintenance" }, tx);
+    } else await notify([r.tenantId], { type: "maintenance.deleted", titleKey: "notifications.maintenanceDeleted", params: { title: r.title } }, tx);
     await writeAudit({ actor, action: "maintenance.delete", resourceType: "MaintenanceRequest", resourceId: id, before: { status: r.status, title: r.title, priority: r.priority }, req }, tx);
   });
   if (images.length) await removeStorageKeys(images.map((i) => i.storageKey)).catch(() => undefined); // a failure only leaves an orphan file
@@ -147,7 +200,7 @@ export async function deleteRequest(actor: Actor, id: string, req: Request) {
 /** Category shares are normalised to sum to 100 (largest-remainder) so charts never show 99/101. */
 export async function stats(actor: Actor) {
   await authorize(actor, "maintenance:manage", { ownerId: actor.id, readOnly: true });
-  const where = actor.role === "OWNER" ? { agreement: { ownerId: actor.id } } : actor.role === "TENANT" ? { tenantId: actor.id } : {};
+  const where = actor.role === "OWNER" ? { agreement: { ownerId: actor.id } } : actor.role === "TENANT" || actor.role === "GENERAL_USER" ? { tenantId: actor.id } : {};
   const [byStatus, byCategory] = await Promise.all([
     db.maintenanceRequest.groupBy({ by: ["status"], where, _count: { _all: true } }),
     db.maintenanceRequest.groupBy({ by: ["category"], where, _count: { _all: true } }),

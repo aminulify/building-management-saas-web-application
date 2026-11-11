@@ -9,6 +9,8 @@ model MaintenanceRequest {
   priority       Priority          @default(MEDIUM)
   status         MaintenanceStatus @default(PENDING)
   technicianName String?
+  /// the date and time the tenant would like the repair done
+  preferredAt    DateTime?         @db.Timestamptz
   createdAt      DateTime          @default(now()) @db.Timestamptz
   updatedAt      DateTime          @updatedAt @db.Timestamptz
 
@@ -19,6 +21,7 @@ model MaintenanceRequest {
 
   @@index([unitId, status])
   @@index([tenantId])
+  @@index([tenantId, status, createdAt(sort: Desc)])
 }
 
 model MaintenanceComment {

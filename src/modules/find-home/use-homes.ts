@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api-client";
 import { authApi, clearSession } from "@/lib/auth-client";
+import { currentArea } from "./area";
 import { priceRangeInvalid, toQuery } from "./filters";
 import type { Filters, HomeCardData, HomesPage } from "./types";
 
@@ -28,7 +29,7 @@ export function useHomes(filters: Filters, limit?: number) {
   const invalid = priceRangeInvalid(filters);
 
   const fail = useCallback((e: unknown) => {
-    if (e instanceof ApiError && e.status === 401) { clearSession(); router.replace(`/login?next=${encodeURIComponent("/owner/find-home")}` as never); return true; }
+    if (e instanceof ApiError && e.status === 401) { clearSession(); router.replace(`/login?next=${encodeURIComponent(`${currentArea()}/find-home`)}` as never); return true; }
     return false;
   }, [router]);
 

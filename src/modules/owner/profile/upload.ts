@@ -4,7 +4,7 @@ import { OUT_SIZE, sourceRect } from "./logic";
 interface Signed { key: string; signedUrl: string }
 
 /** 1) signed upload URL from our API, 2) PUT the file to private storage. Returns the storage key. */
-export async function uploadPrivate(purpose: "AVATAR" | "NID_FRONT" | "NID_BACK" | "AGREEMENT", file: Blob, mime: string): Promise<string> {
+export async function uploadPrivate(purpose: "AVATAR" | "NID_FRONT" | "NID_BACK" | "AGREEMENT" | "VERIFICATION_DOC" | "MAINTENANCE_IMAGE" | "COMPLAINT_EVIDENCE", file: Blob, mime: string): Promise<string> {
   const signed = await authApi<Signed>("/uploads/sign", { method: "POST", body: { purpose, mime, size: file.size } });
   const form = new FormData();
   form.append("cacheControl", "3600");

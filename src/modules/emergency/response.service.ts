@@ -84,7 +84,7 @@ export async function act(actor: Actor, id: string, action: AlertActionName, bod
     await tx.emergencyAlertEvent.create({ data: { alertId: id, actorId: actor.id, fromStatus: a.status, ...event } }); // append-only
     if (action !== "notes" && action !== "assign") {
       const snap = a.addressSnapshot as { property?: string | null; unit?: string | null };
-      await notify([a.reporterId], { type: "sos.update", titleKey: "notifications.sosUpdate", params: { action, status: out.status, alertId: id, alertType: a.type, property: snap.property ?? null, unit: snap.unit ?? null, note: body.note ?? null }, link: "/owner/notifications", priority: "CRITICAL" }, tx);
+      await notify([a.reporterId], { type: "sos.update", titleKey: "notifications.sosUpdate", params: { action, status: out.status, alertId: id, alertType: a.type, property: snap.property ?? null, unit: snap.unit ?? null, note: body.note ?? null }, link: "/home-owner/notifications", priority: "CRITICAL" }, tx);
       await tx.outboxEvent.create({ data: { type: "sos.update", payload: { alertId: id, reporterId: a.reporterId } } }); // socket sos:update
     }
     await writeAudit({ actor, action: `sos.${action}`, resourceType: "EmergencyAlert", resourceId: id, before: { status: a.status }, after: { status: out.status, ...(body.target ? { target: body.target, ref: body.reference ?? null } : {}) }, req }, tx);

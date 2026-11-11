@@ -4,6 +4,7 @@ import { writeAudit } from "@/lib/audit";
 import { notify } from "@/lib/notify";
 import type { Actor } from "@/lib/auth/require-actor";
 import { ensureRentRecords, monthStart } from "@/modules/rent/billing";
+import { retargetLinks } from "./roles";
 
 /**
  * Owner moves a registered tenant (found by phone) into a vacant unit: an ACTIVE agreement is created at the
@@ -34,10 +35,10 @@ export async function assignTenantInTx(
     data: { unitId, tenantId, ownerId: actor.id, rent: unit.rent, deposit: unit.deposit, startDate, endDate: opts.endDate, members: opts.members ?? 1, status: "ACTIVE" },
   });
   await tx.unit.update({ where: { id: unitId }, data: { availability: "OCCUPIED" } });
-  if (tenant.role === "GENERAL_USER") await tx.user.update({ where: { id: tenantId }, data: { role: "TENANT" } });
+  if (tenant.role === "GENERAL_USER") { await tx.user.update({ where: { id: tenantId }, data: { role: "TENANT" } }); await retargetLinks(tx, tenantId, "TENANT"); }
   await tx.tenantProfile.upsert({ where: { userId: tenantId }, update: {}, create: { userId: tenantId } });
   await ensureRentRecords(tx, [{ id: agreement.id, rent: agreement.rent, unit: { utilityCharge: unit.utilityCharge } }], monthStart());
-  await notify([tenantId], { type: "tenancy.assigned", titleKey: "notifications.tenancyAssigned", params: { unit: unit.unitNumber }, link: "/tenant/rental" }, tx);
+  await notify([tenantId], { type: "tenancy.assigned", titleKey: "notifications.tenancyAssigned", params: { unit: unit.unitNumber }, link: "/tenant/dashboard" }, tx);
   await writeAudit({ actor, action: "tenancy.assign", resourceType: "RentalAgreement", resourceId: agreement.id, after: { unitId, tenantId }, req: opts.req }, tx);
   return agreement;
 }

@@ -109,10 +109,10 @@ function Form({ properties, propertiesState, onRetryProperties, onClose, onSaved
           </GlassField>
         </div>
         {propertiesState === "error" && <p role="alert" className="-mt-2 text-xs font-medium text-red-600">{t("propertiesError")} <button type="button" onClick={onRetryProperties} className="font-bold underline underline-offset-2">{t("retry")}</button></p>}
-        {propertiesState === "ready" && properties.length === 0 && <p className="-mt-2 text-xs text-amber-700">{t("noPropertiesHelp")} <Link href={"/owner/properties" as never} className="font-bold underline underline-offset-2">{t("goProperties")}</Link></p>}
+        {propertiesState === "ready" && properties.length === 0 && <p className="-mt-2 text-xs text-amber-700">{t("noPropertiesHelp")} <Link href={"/home-owner/properties" as never} className="font-bold underline underline-offset-2">{t("goProperties")}</Link></p>}
         {propertyId && units.state === "error" && <p role="alert" className="-mt-2 text-xs font-medium text-red-600">{t("unitsError")} <button type="button" onClick={units.reload} className="font-bold underline underline-offset-2">{t("retry")}</button></p>}
         {propertyId && units.state === "ready" && vacant.length === 0 && (
-          <p className="-mt-2 text-xs text-amber-700">{t("noVacantHelp")} <Link href={"/owner/units" as never} className="font-bold underline underline-offset-2">{t("goUnits")}</Link></p>
+          <p className="-mt-2 text-xs text-amber-700">{t("noVacantHelp")} <Link href={"/home-owner/units" as never} className="font-bold underline underline-offset-2">{t("goUnits")}</Link></p>
         )}
         {unit && <p className="-mt-2 rounded-lg bg-sky-50 px-3 py-2 text-xs text-sky-800">{t("rentInfo", { rent: formatTaka(locale)(Number(unit.rent)) })}</p>}
 
@@ -138,7 +138,7 @@ function Form({ properties, propertiesState, onRetryProperties, onClose, onSaved
         {banner && (
           <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-red-700">
             <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <p>{banner.text}{banner.upgrade && <> <Link href={"/owner/subscription" as never} className="font-bold underline underline-offset-2">{t("viewPlans")}</Link></>}</p>
+            <p>{banner.text}{banner.upgrade && <> <Link href={"/home-owner/subscription" as never} className="font-bold underline underline-offset-2">{t("viewPlans")}</Link></>}</p>
           </div>
         )}
 

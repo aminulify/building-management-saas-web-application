@@ -9,7 +9,9 @@ model Property {
   addressId          String?                               @db.Uuid
   zoneId             String?                               @db.Uuid
   totalFloors        Int
-  /** owner-entered figures shown on the Properties list; units and areas of real unit rows win when larger */
+  /**
+   * owner-entered figures shown on the Properties list; units and areas of real unit rows win when larger
+   */
   totalSqft          Int?
   locationText       String?
   declaredUnits      Int?

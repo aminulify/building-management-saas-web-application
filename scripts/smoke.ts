@@ -113,7 +113,7 @@ async function makePublic(key: "owner" | "tenant" | "general", role: string, nid
     users[key] = { key, id: u.id, authId: data.user.id, email, password, username, token: "" };
     return;
   }
-  const r = await call("POST", "/auth/register", null, { fullName: `Test ${key}`, username, email, phone: phone(), password, role, consent: true, occupation: "Landlord", address: { division: "Dhaka", district: "Dhaka", upazila: "Uttara", union: "Sector 4", postOffice: "1230", street: "House 12, Road 5" }, ...(nid ? { nid } : {}) });
+  const r = await call("POST", "/auth/register", null, { fullName: `Test ${key}`, username, email, phone: phone(), password, consent: true, occupation: "Landlord", address: { division: "Dhaka", district: "Dhaka", upazila: "Uttara", union: "Sector 4", postOffice: "1230", street: "House 12, Road 5" }, ...(nid ? { nid } : {}) });
   if (r.status === 429 && r.body?.details?.reason === "email_send_limit") {
     // Supabase's built-in mailer allows only a few sign-up emails per hour; use custom SMTP in production
     check(`register ${key}: Supabase email limit reached (reported as 429 RATE_LIMITED)`, true);
@@ -127,6 +127,9 @@ async function makePublic(key: "owner" | "tenant" | "general", role: string, nid
   }
   const row = await db.user.findUnique({ where: { username } });
   if (!row?.authId) throw new Error(`register ${key} failed: ${JSON.stringify(r.body)}`);
+  // everyone who signs up is a Tenant-Free account; the test gives the account the role it needs the way the product does (plan approved / owner connects)
+  check(`register ${key}: the new account is a Tenant-Free account (GENERAL_USER)`, row.role === "GENERAL_USER", row.role);
+  if (role !== "GENERAL_USER") await db.user.update({ where: { id: row.id }, data: { role: role as any, ...(role === "OWNER" ? { ownerProfile: { create: {} } } : { tenantProfile: { create: {} } }) } });
   authIds.push(row.authId);
   await sb.auth.admin.updateUserById(row.authId, { email_confirm: true }); // skip the confirmation email
   users[key] = { key, id: row.id, authId: row.authId, email, password, username, token: "" };
@@ -156,6 +159,10 @@ async function raw(path: string, token: string) {
   const res = await fetch(BASE + path, { headers: { authorization: `Bearer ${token}` } });
   return { status: res.status, type: res.headers.get("content-type") ?? "", text: await res.text() };
 }
+
+/** Notification links of one person that point into an area that is not theirs (/home-owner, /tenant or /tenant-free must match the role). */
+const wrongAreaLinks = (userId: string, base: "/home-owner" | "/tenant" | "/tenant-free") =>
+  db.$queryRawUnsafe<{ n: bigint }[]>(`SELECT count(*) AS n FROM "Notification" WHERE "userId" = $1::uuid AND link ~ '^/(home-owner|tenant-free|tenant)(/|$)' AND NOT (link ~ ('^' || $2::text || '(/|$)'))`, userId, base).then((r) => Number(r[0]?.n ?? 0));
 
 async function cleanup() {
   section("cleanup");
@@ -208,9 +215,9 @@ async function cleanup() {
 
 /** Test users from a run that was killed before cleanup (server stopped, laptop slept…). Matched by their reserved pattern only. */
 async function sweepStale() {
-  const stale = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" }, username: { regex: "^((super|gov|govx|owner|tenant|general|clash|wizard)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$" } } as never, select: { id: true, authId: true, username: true } }).catch(async () => {
+  const stale = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" }, username: { regex: "^((super|gov|govx|owner|tenant|general|clash|wizard|extra|life|promo)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$" } } as never, select: { id: true, authId: true, username: true } }).catch(async () => {
     const all = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" } }, select: { id: true, authId: true, username: true } });
-    return all.filter((u) => /^((super|gov|govx|owner|tenant|general|clash|wizard)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$/.test(u.username));
+    return all.filter((u) => /^((super|gov|govx|owner|tenant|general|clash|wizard|extra|life|promo)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$/.test(u.username));
   });
   stale.forEach((u, i) => {
     users[`stale${i}`] = { key: `stale${i}`, id: u.id, authId: u.authId ?? "", email: "", password: "", username: u.username, token: "" };
@@ -266,7 +273,11 @@ async function main() {
   await makePublic("general", "GENERAL_USER");
   r = await call("POST", "/auth/register", null, { fullName: "X", username: "Bad Name", email: "nope", phone: "123", password: "abc", role: "SUPER_ADMIN", consent: false });
   check("register with bad data/role → 422", r.status === 422, r.body);
-  r = await call("POST", "/auth/register", null, { fullName: "Dup User", username: users.owner!.username, email: `dup.${tag}@mailinator.com`, phone: phone(), password: "Passw0rdx", role: "OWNER", consent: true });
+  for (const role of ["OWNER", "TENANT"]) {
+    r = await call("POST", "/auth/register", null, { fullName: "Pick Role", username: `pick_${role.toLowerCase()}`, email: `pick.${tag}.${role}@mailinator.com`, phone: phone(), password: "Passw0rdx", role, consent: true });
+    check(`nobody can sign up as ${role} → 422 (starts as a Tenant-Free account)`, r.status === 422, r.body);
+  }
+  r = await call("POST", "/auth/register", null, { fullName: "Dup User", username: users.owner!.username, email: `dup.${tag}@mailinator.com`, phone: phone(), password: "Passw0rdx", consent: true });
   check("register duplicate username → 409", r.status === 409, r.body);
   r = await call("POST", "/auth/login", null, { identifier: users.owner!.email, password: "wrong-password1" });
   check("login wrong password → 401", r.status === 401, r.body);
@@ -853,8 +864,6 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("POST", `/maintenance/${m3}/status`, T("owner"), { status: "IN_PROGRESS" });
   check("a request the tenant cancelled cannot be moved → 409", r.status === 409, r.body);
 
-  r = await call("DELETE", `/maintenance/${m3}`, T("tenant"));
-  check("delete: a tenant cannot delete → 403", r.status === 403, r.body);
   r = await call("DELETE", `/maintenance/${m3}`, T("general"));
   check("delete: a stranger cannot delete → 403", r.status === 403, r.body);
   r = await call("DELETE", `/maintenance/${m3}`);
@@ -1542,6 +1551,83 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("general → owner dashboard 403", r.status === 403, r.body);
   r = await call("GET", "/dashboard/tenant", T("owner"));
   check("owner → tenant dashboard 403", r.status === 403, r.body);
+
+  section("tenant dashboard page");
+  r = await call("GET", "/dashboard/tenant", T("tenant"));
+  const td0 = r.data;
+  check("lease card: property, unit, address line, dates, agreement flag", !!td0?.tenancy?.property?.name && !!td0.tenancy.unit?.unitNumber && typeof td0.tenancy.property.addressLine === "string" && !!td0.tenancy.startDate && "endDate" in td0.tenancy && typeof td0.tenancy.hasAgreementDocument === "boolean", td0?.tenancy);
+  check("help desk: owner name, owner id, phone, picture field", td0?.tenancy?.owner?.id === users.owner!.id && /^OW\d+$/.test(td0?.tenancy?.owner?.ownerCode ?? "") && !!td0.tenancy.owner.phone && "avatarUrl" in td0.tenancy.owner, td0?.tenancy?.owner);
+  check("payment card: everything paid → upcoming month, nothing to report", td0?.nextPayment?.state === "UPCOMING" && td0.nextPayment.recordId === null && /^\d{4}-\d{2}$/.test(td0.nextPayment.month) && Number(td0.nextPayment.amount) > 0 && td0.nextPayment.pending === null, td0?.nextPayment);
+  check("payment card: pay-to number falls back to the owner's phone", td0?.nextPayment?.payTo === td0?.tenancy?.owner?.phone, td0?.nextPayment);
+  r = await call("PATCH", "/me", T("owner"), { owner: { bkashNumber: "01911223344" } });
+  check("owner sets the bKash number tenants pay to", r.status === 200, r.body);
+  r = await call("PATCH", "/me", T("owner"), { owner: { bkashNumber: "12345" } });
+  check("a bad bKash number → 422", r.status === 422, r.body);
+  r = await call("GET", "/dashboard/tenant", T("tenant"));
+  check("payment card now shows the owner's bKash number", r.data?.nextPayment?.payTo === "01911223344", r.data?.nextPayment);
+
+  const monthAhead = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth() + 2, 1));
+  const unpaid = await db.rentRecord.create({ data: { agreementId: agreement?.id, billingMonth: monthAhead, rent: 15000, utility: 500, total: 15500, paid: 0, dueDate: new Date(monthAhead.getTime() + 9 * 86400_000), status: "DUE" } });
+  r = await call("GET", "/dashboard/tenant", T("tenant"));
+  check("an unpaid bill becomes the next payment, with the amount owed", r.data?.nextPayment?.recordId === unpaid.id && r.data.nextPayment.amount === "15500.00" && ["DUE", "UPCOMING"].includes(r.data.nextPayment.state) && r.data.nextPayment.pending === null, r.data?.nextPayment);
+
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`, T("owner"), { method: "BKASH", reference: "TRX1A2B3C4D" });
+  check("the owner cannot send a paid request → 403/404", r.status === 403 || r.status === 404, r.body);
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`, T("general"), { method: "BKASH", reference: "TRX1A2B3C4D" });
+  check("a general user cannot → 403/404", r.status === 403 || r.status === 404, r.body);
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`);
+  check("signed out → 401", r.status === 401, r.body);
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`, T("tenant"), { method: "CASH", reference: "TRX1A2B3C4D" });
+  check("cash cannot be reported → 422", r.status === 422, r.body);
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`, T("tenant"), { method: "BKASH" });
+  check("no transaction id → 422", r.status === 422, r.body);
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`, T("tenant"), { method: "BKASH", reference: "TRX1A2B3C4D", amount: 99999 });
+  check("more than owed → 422", r.status === 422, r.body);
+  r = await call("POST", `/tenant/rent/${randomUUID()}/pay`, T("tenant"), { method: "BKASH", reference: "TRX1A2B3C4D" });
+  check("someone else's or unknown bill → 404", r.status === 404, r.body);
+  const trx = "TRX" + tag.toUpperCase() + "Z9";
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`, T("tenant"), { method: "BKASH", reference: trx });
+  const reported = r.data;
+  check("Send Paid Request: stored as PENDING, balance untouched", r.status === 201 && reported?.status === "PENDING" && reported.method === "BKASH", r.body);
+  check("…the balance is not reduced until the owner verifies", Number((await db.rentRecord.findUnique({ where: { id: unpaid.id } }))?.paid) === 0);
+  r = await call("POST", `/tenant/rent/${unpaid.id}/pay`, T("tenant"), { method: "NAGAD", reference: "OTHER" + tag.toUpperCase() });
+  check("a second pending request for the same bill → 409", r.status === 409, r.body);
+  r = await call("GET", "/dashboard/tenant", T("tenant"));
+  check("the button state: pending verification with the sent amount", r.data?.nextPayment?.pending?.id === reported?.id && r.data.nextPayment.pending.method === "BKASH" && r.data.nextPayment.pending.amount === "15500.00", r.data?.nextPayment);
+  r = await call("GET", "/notifications?category=payment&limit=20", T("owner"));
+  const told = r.data?.items?.find((n: any) => n.type === "rent.received" && n.params?.paymentId === reported?.id);
+  check("the owner is told: tenant, unit, property, amount, method, not verified yet", !!told && told.params.verified === false && told.params.method === "BKASH" && !!told.params.unit && !!told.params.property && told.params.tenantName === "Test tenant", told);
+  r = await call("GET", "/rent/payments?status=PENDING", T("owner"));
+  check("Rent Overview payments list shows it as pending", r.status === 200 && r.data?.items?.some((p: any) => p.id === reported?.id), r.body);
+  r = await call("GET", "/dashboard/tenant/activity?limit=10", T("tenant"));
+  check("Recent Activity lists the payment as pending", r.status === 200 && r.data?.items?.some((a: any) => a.kind === "payment" && a.id === reported?.id && a.status === "PENDING" && a.amount === "15500.00"), r.body);
+  r = await call("POST", `/rent/payments/${reported?.id}/verify`, T("owner"), { decision: "VERIFIED" });
+  check("the owner verifies it", r.status === 200, r.body);
+  r = await call("GET", "/dashboard/tenant", T("tenant"));
+  check("after verification: nothing pending, last paid is shown", r.data?.nextPayment?.pending === null && !!r.data?.nextPayment?.lastPaidAt && r.data.nextPayment.recordId !== unpaid.id, r.data?.nextPayment);
+  r = await call("GET", "/dashboard/tenant/activity?limit=10", T("tenant"));
+  check("…and the activity row is now Verified", r.data?.items?.find((a: any) => a.id === reported?.id)?.status === "VERIFIED", r.body);
+
+  r = await call("POST", "/maintenance", T("tenant"), { category: "PLUMBING", title: "Kitchen sink leaking", description: "Water drips under the sink all day.", priority: "HIGH" });
+  const rep = r.data;
+  check("Request Repair from the dashboard", r.status === 201 && rep?.status === "PENDING", r.body);
+  r = await call("POST", "/complaints", T("tenant"), { category: "NOISE", subject: "Loud music at night", description: "Neighbours play loud music after midnight every day.", propertyId: prop?.id });
+  const incd = r.data;
+  check("Report Incident from the dashboard", r.status === 201 && !!incd?.id, r.body);
+  r = await call("GET", "/notifications?limit=40", T("owner"));
+  check("the owner is told about the incident directly", r.data?.items?.some((n: any) => n.type === "complaint.new" && n.params?.complaintId === incd?.id), r.body);
+  r = await call("GET", "/dashboard/tenant/activity?limit=20", T("tenant"));
+  const kinds = new Set((r.data?.items ?? []).map((a: any) => a.kind));
+  check("Recent Activity mixes payments, repairs, incidents (newest first)", r.status === 200 && kinds.has("payment") && kinds.has("repair") && kinds.has("incident") && r.data.items.every((a: any, i: number, all: any[]) => i === 0 || new Date(all[i - 1].at) >= new Date(a.at)), r.body);
+  r = await call("GET", "/dashboard/tenant/activity?limit=2", T("tenant"));
+  check("the limit is respected and 'View more' is signalled", r.data?.items?.length === 2 && r.data?.hasMore === true, r.body);
+  r = await call("GET", "/dashboard/tenant/activity?limit=500", T("tenant"));
+  check("limit over 50 → 422", r.status === 422, r.body);
+  r = await call("GET", "/dashboard/tenant/activity", T("owner"));
+  check("activity: owner → 403", r.status === 403, r.body);
+  r = await call("GET", "/dashboard/tenant/activity");
+  check("activity: signed out → 401", r.status === 401, r.body);
+  await db.rentPayment.deleteMany({ where: { rentRecordId: unpaid.id } }); await db.rentRecord.deleteMany({ where: { id: unpaid.id } }); // leave the books as they were
   r = await call("GET", "/notifications", T("owner"));
   check("owner has notifications", r.status === 200 && r.data?.items?.length > 0 && r.data?.unread > 0, r.body);
   const nid = r.data?.items?.[0]?.id;
@@ -1956,6 +2042,350 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("POST", `/admin/payments/${txn.id}/refund`, T("super"), { amount: 109, reason: "Full refund" });
   check("remaining amount refunded → REFUNDED, subscription CANCELLED", r.status === 200 && r.data?.status === "REFUNDED" && (await db.userSubscription.findUniqueOrThrow({ where: { id: txn.subscriptionId! } })).status === "CANCELLED", r.body);
 
+  section("tenant maintenance page: new request, edit, status, delete");
+  const tmBefore = (await call("GET", "/maintenance/stats", T("tenant"))).data;
+  const soon = new Date(Date.now() + 2 * 86_400_000).toISOString();
+  r = await call("POST", "/maintenance", T("tenant"), { category: "ELECTRICAL", title: "Switch sparks", description: "The wall switch in the hall sparks when used.", priority: "CRITICAL", preferredAt: soon });
+  const tm1 = r.data?.id;
+  check("new request with a preferred time → 201, Pending, time stored", r.status === 201 && r.data?.status === "PENDING" && new Date(r.data?.preferredAt).toISOString() === soon, r.body);
+  r = await call("POST", "/maintenance", T("tenant"), { category: "ELECTRICAL", title: "Past time", description: "The preferred time is already over.", preferredAt: "2020-01-01T10:00:00Z" });
+  check("a preferred time in the past → 422", r.status === 422, r.body);
+  r = await call("POST", "/maintenance", T("tenant"), { category: "ELECTRICAL", title: "Far time", description: "The preferred time is years away.", preferredAt: new Date(Date.now() + 900 * 86_400_000).toISOString() });
+  check("a preferred time years away → 422", r.status === 422, r.body);
+  r = await call("GET", "/maintenance/stats", T("tenant"));
+  check("tenant numbers: Pending and Active count up by one, critical too", r.status === 200 && r.data?.total === tmBefore.total + 1 && r.data?.open === tmBefore.open + 1 && r.data?.critical === tmBefore.critical + 1, r.body);
+  for (const k of ["Second request", "Third request", "Fourth request", "Fifth request", "Sixth request"]) await call("POST", "/maintenance", T("tenant"), { category: "OTHER", title: k, description: "Filler request for paging.", priority: "LOW" });
+  r = await call("GET", "/maintenance?limit=3", T("tenant"));
+  const pg1 = r.data;
+  check("first load: 3 requests, newest first, with apartment, unit and tenant", r.status === 200 && pg1?.items?.length === 3 && !!pg1.nextCursor && pg1.items[0].title === "Sixth request" && !!pg1.items[0].unit?.property?.name && !!pg1.items[0].tenant?.fullName, r.body);
+  r = await call("GET", `/maintenance?limit=5&cursor=${pg1?.nextCursor}`, T("tenant"));
+  check("Load More: the next 5, no repeats", r.status === 200 && r.data?.items?.length === 5 && !r.data.items.some((x: any) => pg1.items.some((y: any) => y.id === x.id)), r.body);
+  r = await call("GET", "/maintenance?statuses=PENDING,APPROVED,IN_PROGRESS&limit=50", T("tenant"));
+  check("Active tab: only Pending / Approved / In Progress", r.status === 200 && r.data?.items?.length > 0 && r.data.items.every((x: any) => ["PENDING", "APPROVED", "IN_PROGRESS"].includes(x.status)), r.body);
+
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), {});
+  check("edit with nothing to change → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("owner"), { title: "Owner edits" });
+  check("edit: the owner cannot edit a tenant's request → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("general"), { title: "Stranger edits" });
+  check("edit: a stranger → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, undefined, { title: "Nobody edits" });
+  check("edit: signed out → 401", r.status === 401, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { status: "IN_PROGRESS" });
+  check("edit: the tenant cannot move a request to In Progress → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { images: [`MAINTENANCE_IMAGE/${users.owner!.id}/x.jpg`] });
+  check("edit: a photo that belongs to somebody else → 422", r.status === 422, r.body);
+  const updNotes = await db.notification.count({ where: { userId: users.owner!.id, type: "maintenance.updated" } });
+  const ownKey = `MAINTENANCE_IMAGE/${users.tenant!.id}/smoke-a.jpg`;
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { title: "Switch sparks badly", priority: "MEDIUM", description: "It sparks every time, please check soon.", category: "ELECTRICAL", preferredAt: null, images: [ownKey] });
+  check("edit: title, priority, description, time cleared and a photo added", r.status === 200 && r.data?.title === "Switch sparks badly" && r.data?.priority === "MEDIUM" && r.data?.preferredAt === null && r.data?.images?.length === 1, r.body);
+  check("…the landlord is notified and it is in the audit log", (await db.notification.count({ where: { userId: users.owner!.id, type: "maintenance.updated" } })) === updNotes + 1 && (await db.auditLog.count({ where: { action: "maintenance.update", resourceId: tm1 } })) === 1);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { images: [`MAINTENANCE_IMAGE/${users.tenant!.id}/smoke-b.jpg`] });
+  check("edit: replacing the photo keeps exactly one", r.status === 200 && r.data?.images?.length === 1 && r.data.images[0].storageKey.endsWith("smoke-b.jpg") && (await db.maintenanceImage.count({ where: { requestId: tm1 } })) === 1, r.body);
+  r = await call("GET", "/maintenance/stats", T("tenant"));
+  check("edit: priority change moves the critical counter down", r.data?.critical === tmBefore.critical, r.body);
+
+  await call("POST", `/maintenance/${tm1}/status`, T("owner"), { status: "IN_PROGRESS" });
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { title: "Changed while in progress" });
+  check("edit: details are locked once work has started → 409", r.status === 409, r.body);
+  r = await call("DELETE", `/maintenance/${tm1}`, T("tenant"));
+  check("delete: a request in progress cannot be removed by the tenant → 409", r.status === 409 && (await db.maintenanceRequest.count({ where: { id: tm1 } })) === 1, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { status: "COMPLETED" });
+  check("edit: the tenant marks it Completed → 200", r.status === 200 && r.data?.status === "COMPLETED", r.body);
+  r = await call("GET", "/maintenance/stats", T("tenant"));
+  check("…Completed counter goes up", r.data?.byStatus?.COMPLETED === (tmBefore.byStatus?.COMPLETED ?? 0) + 1, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { title: "Edit completed" });
+  check("edit: a completed request's details are locked → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { status: "PENDING", title: "Switch sparks again" });
+  check("edit: reopening a completed request as Pending (with a new title) → 200", r.status === 200 && r.data?.status === "PENDING" && r.data?.title === "Switch sparks again", r.body);
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { status: "COMPLETED" });
+  r = await call("PATCH", `/maintenance/${tm1}`, T("tenant"), { status: "COMPLETED" });
+  check("edit: Completed → Completed is not a change → 200", r.status === 200 && r.data?.status === "COMPLETED", r.body);
+
+  const rmNotes = await db.notification.count({ where: { userId: users.owner!.id, type: "maintenance.removed" } });
+  r = await call("DELETE", `/maintenance/${tm1}`, T("general"));
+  check("delete: a stranger → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/maintenance/${tm1}`, T("tenant"));
+  check("delete: the tenant removes their own request (photos and comments too)", r.status === 200 && r.data?.deleted === true && (await db.maintenanceRequest.count({ where: { id: tm1 } })) === 0 && (await db.maintenanceImage.count({ where: { requestId: tm1 } })) === 0, r.body);
+  check("…the landlord is told, and the audit log has it", (await db.notification.count({ where: { userId: users.owner!.id, type: "maintenance.removed" } })) === rmNotes + 1 && (await db.auditLog.count({ where: { action: "maintenance.delete", resourceId: tm1 } })) === 1);
+  r = await call("DELETE", `/maintenance/${tm1}`, T("tenant"));
+  check("delete twice → 404", r.status === 404, r.body);
+  r = await call("GET", "/maintenance/stats", T("tenant"));
+  check("tenant numbers after deleting come back down", r.data?.total === tmBefore.total + 5 && r.data?.byStatus?.COMPLETED === (tmBefore.byStatus?.COMPLETED ?? 0), r.body);
+
+  section("find home & marketplace for a tenant");
+  r = await call("GET", "/listings?limit=2", T("tenant"));
+  check("a tenant can browse homes", r.status === 200 && Array.isArray(r.data?.items), r.body);
+  r = await call("GET", "/listings/stats", T("tenant"));
+  check("a tenant sees the marketplace numbers", r.status === 200 && typeof r.data?.availableForSale === "number", r.body);
+  r = await call("GET", "/me/listings?limit=5", T("tenant"));
+  check("a tenant's own listings load (empty is fine)", r.status === 200 && Array.isArray(r.data?.items), r.body);
+  r = await call("GET", "/me/favorites", T("tenant"));
+  check("a tenant's saved homes load", r.status === 200, r.body);
+  r = await call("GET", "/listings/eligibility", T("tenant"));
+  check("listing guard for a tenant without a plan → 403 (the page shows the plan note)", r.status === 403 || r.status === 200, r.body);
+
+  section("tenant history page");
+  r = await call("GET", "/tenant/history", T("tenant"));
+  const th0 = r.data;
+  check("history: summary numbers and the active stay first", r.status === 200 && typeof th0?.summary?.yearsRented === "number" && th0.summary.properties >= 1 && th0.summary.propertyNames?.length >= 1 && th0.stays?.[0]?.status === "ACTIVE" && !!th0.stays[0].property?.name && !!th0.stays[0].unit?.unitNumber && !!th0.stays[0].landlord?.fullName, r.body);
+  check("history: the active stay has no end date and a pay-to number", th0?.stays?.[0]?.endDate === null && !!th0.stays[0].payTo && Array.isArray(th0.stays[0].ledger?.items), th0?.stays?.[0]);
+  r = await call("GET", "/tenant/history", T("owner"));
+  check("history: the owner → 403", r.status === 403, r.body);
+  r = await call("GET", "/tenant/history");
+  check("history: signed out → 401", r.status === 401, r.body);
+  const hAgr = await db.rentalAgreement.findFirst({ where: { tenantId: users.tenant!.id, status: "ACTIVE" } });
+  const oldMonth = new Date(Date.UTC(new Date().getUTCFullYear() - 1, new Date().getUTCMonth() - 2, 1));
+  const hRec = await db.rentRecord.create({ data: { agreementId: hAgr!.id, billingMonth: oldMonth, rent: 20000, utility: 500, other: 0, total: 20500, paid: 0, dueDate: new Date(oldMonth.getTime() + 9 * 86400_000), status: "OVERDUE" } });
+  r = await call("GET", "/tenant/history", T("tenant"));
+  const hrow0 = r.data?.stays?.[0]?.ledger?.items?.find((x: any) => x.recordId === hRec.id) ?? (await call("GET", `/tenant/history/${hAgr!.id}/records?offset=0&limit=50`, T("tenant"))).data?.items?.find((x: any) => x.recordId === hRec.id);
+  check("history: an old unpaid month is UNPAID and late", hrow0?.state === "UNPAID" && hrow0.late === true && Number(hrow0.owed) === 20500, hrow0);
+  check("history: the Unpaid Balance turns overdue with the amount", r.data?.summary?.unpaid?.state === "OVERDUE" && Number(r.data.summary.unpaid.amount) >= 20500 && r.data.summary.unpaid.graceDay === 5, r.data?.summary?.unpaid);
+  r = await call("GET", `/tenant/history/${hAgr!.id}/records?offset=0&limit=2`, T("tenant"));
+  check("history: View All Receipts pages (2 rows, more to come)", r.status === 200 && r.data?.items?.length === 2 && typeof r.data.hasMore === "boolean", r.body);
+  r = await call("GET", `/tenant/history/${hAgr!.id}/records?offset=0&limit=500`, T("tenant"));
+  check("history: a limit above 50 → 422", r.status === 422, r.body);
+  r = await call("GET", `/tenant/history/${hAgr!.id}/records`, T("owner"));
+  check("history: records of a stay for the owner → 403", r.status === 403, r.body);
+  r = await call("GET", `/tenant/rent/${hRec.id}/invoice`, T("tenant"));
+  check("invoice: an unpaid month → 409", r.status === 409, r.body);
+  r = await call("POST", `/tenant/rent/${hRec.id}/pay`, T("tenant"), { method: "NAGAD", reference: `HIST${Date.now().toString(36).toUpperCase()}` });
+  const hPay = r.data?.id ?? r.data?.payment?.id;
+  check("send paid request from the history page → 201", r.status === 201, r.body);
+  r = await call("GET", `/tenant/history/${hAgr!.id}/records?offset=0&limit=50`, T("tenant"));
+  const hrow1 = r.data?.items?.find((x: any) => x.recordId === hRec.id);
+  check("history: the row is now PENDING with the request details", hrow1?.state === "PENDING" && hrow1.pending?.method === "NAGAD", hrow1);
+  r = await call("GET", "/tenant/history", T("tenant"));
+  check("history: a pending request is still counted as unpaid", Number(r.data?.summary?.unpaid?.amount) >= 20500, r.data?.summary?.unpaid);
+  r = await call("POST", `/rent/payments/${hPay}/verify`, T("owner"), { decision: "VERIFIED" });
+  check("the landlord approves the request", r.status === 200, r.body);
+  r = await call("GET", `/tenant/history/${hAgr!.id}/records?offset=0&limit=50`, T("tenant"));
+  const hrow2 = r.data?.items?.find((x: any) => x.recordId === hRec.id);
+  check("history: the row flips to PAID with a paid date", hrow2?.state === "PAID" && !!hrow2.paidAt, hrow2);
+  r = await call("GET", `/tenant/rent/${hRec.id}/invoice`, T("tenant"));
+  check("invoice: number, month, method, landlord, tenant, unit and itemised amounts", r.status === 200 && /^INV-\d{6}-[0-9A-F]{8}$/.test(r.data?.invoiceNo) && r.data.billingMonth === oldMonth.toISOString().slice(0, 7) && r.data.methods?.includes("NAGAD") && !!r.data.owner?.fullName && /^OW\d+$/.test(r.data.owner.ownerCode ?? "") && !!r.data.tenant?.fullName && !!r.data.unit && !!r.data.property && Number(r.data.items.rent) === 20000 && Number(r.data.total) === 20500 && r.data.payments?.length === 1, r.body);
+  r = await call("GET", `/tenant/rent/${hRec.id}/invoice`, T("owner"));
+  check("invoice: the owner cannot use the tenant's invoice route → 403", r.status === 403, r.body);
+  r = await call("GET", `/tenant/rent/${hRec.id}/invoice`);
+  check("invoice: signed out → 401", r.status === 401, r.body);
+  await db.rentPayment.deleteMany({ where: { rentRecordId: hRec.id } });
+  await db.rentRecord.delete({ where: { id: hRec.id } });
+  r = await call("GET", "/tenant/history", T("tenant"));
+  check("history: after clean-up the numbers come back", r.status === 200 && !r.data.stays[0].ledger.items.some((x: any) => x.recordId === hRec.id), r.body);
+
+  section("tenant notifications page (Your Activity)");
+  r = await call("GET", "/tenant/notifications/summary", T("tenant"));
+  const ns0 = r.data;
+  check("summary: next payment date, pending tasks and quick issues", r.status === 200 && ns0?.hasLease === true && !!ns0.nextPayment?.dueDate && typeof ns0.pendingTasks === "number" && typeof ns0.quickIssues?.total === "number" && ns0.quickIssues.total === ns0.quickIssues.ruleWarnings + ns0.quickIssues.alerts && !!ns0.owner?.fullName && !!ns0.payTo, r.body);
+  r = await call("GET", "/tenant/notifications/summary", T("owner"));
+  check("summary: the owner → 403", r.status === 403, r.body);
+  r = await call("GET", "/tenant/notifications");
+  check("feed: signed out → 401", r.status === 401, r.body);
+  r = await call("GET", "/tenant/notifications", T("owner"));
+  check("feed: the owner → 403", r.status === 403, r.body);
+  r = await call("GET", "/tenant/notifications?tab=bogus", T("tenant"));
+  check("feed: an unknown tab → 422", r.status === 422, r.body);
+  r = await call("GET", "/tenant/notifications?limit=51", T("tenant"));
+  check("feed: more than 50 at once → 422", r.status === 422, r.body);
+  r = await call("GET", "/tenant/notifications?tab=all&limit=10", T("tenant"));
+  const nf1 = r.data;
+  check("feed: at most 10 per page, newest first, each with its tab", r.status === 200 && nf1?.items?.length <= 10 && typeof nf1.unread === "number" && nf1.items.every((x: any, i: number, a: any[]) => !!x.tab && (i === 0 || a[i - 1].id > x.id)), r.body);
+  check("feed: `sos.update` never gets a card of its own", !nf1?.items?.some((x: any) => x.type === "sos.update"), nf1?.items?.map((x: any) => x.type));
+  if (nf1?.nextCursor) {
+    r = await call("GET", `/tenant/notifications?tab=all&limit=10&cursor=${nf1.nextCursor}`, T("tenant"));
+    check("Load More: the next ten, no repeats", r.status === 200 && r.data.items.length <= 10 && !r.data.items.some((x: any) => nf1.items.some((y: any) => y.id === x.id)), r.body);
+  }
+
+  // an emergency from the dashboard becomes one live card, and ACCEPT / UNSOLVED work on it
+  r = await call("POST", "/sos", T("tenant"), { type: "THEFT", description: "Someone tried the door" });
+  const nsAlert = r.data?.alert?.id;
+  check("tenant raises a THEFT alert", r.status === 201 && !!nsAlert, r.body);
+  r = await call("GET", "/tenant/notifications?tab=issues&limit=50", T("tenant"));
+  const sosCard = r.data?.items?.find((x: any) => x.type === "sos.sent" && x.params?.alertId === nsAlert);
+  check("issues tab: the alert is one card with its live status (NEED_ACTION)", sosCard?.tab === "issues" && sosCard.live?.kind === "alert" && sosCard.live.status === "NEED_ACTION" && sosCard.live.accepted === false, sosCard);
+  r = await call("GET", "/tenant/notifications?tab=payment&limit=50", T("tenant"));
+  check("payment tab holds no emergency card", !r.data?.items?.some((x: any) => x.type.startsWith("sos.")), r.body);
+  r = await call("GET", "/tenant/notifications/summary", T("tenant"));
+  check("quick issues counts the open alert", r.data?.quickIssues?.alerts === ns0.quickIssues.alerts + 1, r.body);
+  r = await call("POST", `/sos/${nsAlert}/unsolved`, T("tenant"));
+  check("unsolved before it is solved → 409", r.status === 409, r.body);
+  r = await call("POST", `/sos/${nsAlert}/accept`, T("tenant"));
+  check("accept before it is solved → 409", r.status === 409, r.body);
+  await call("POST", `/gov/alerts/${nsAlert}/ack`, T("gov"));
+  r = await call("POST", `/gov/alerts/${nsAlert}/status`, T("gov"), { status: "SOLVED", note: "Patrol checked the building" });
+  check("gov marks the alert SOLVED", r.status === 200 && r.data?.status === "SOLVED", r.body);
+  r = await call("GET", "/tenant/notifications?tab=issues&limit=50", T("tenant"));
+  check("the card now offers ACCEPT / UNSOLVED (live SOLVED, not accepted)", r.data?.items?.find((x: any) => x.params?.alertId === nsAlert && x.type === "sos.sent")?.live?.status === "SOLVED", r.body);
+  r = await call("POST", `/sos/${nsAlert}/unsolved`, T("owner"));
+  check("unsolved: not the reporter → 404/403", r.status === 404 || r.status === 403, r.body);
+  const govBefore = await db.notification.count({ where: { type: "sos.reopened" } });
+  r = await call("POST", `/sos/${nsAlert}/unsolved`, T("tenant"));
+  check("UNSOLVED → reopened as PROCESSING", r.status === 200 && r.data?.reopened === true && r.data?.status === "PROCESSING" && (await db.emergencyAlert.findUnique({ where: { id: nsAlert } }))?.status === "PROCESSING", r.body);
+  check("…the landlord and the government team are alerted (CRITICAL)", (await db.notification.count({ where: { type: "sos.reopened" } })) >= govBefore + 2 && (await db.notification.count({ where: { type: "sos.reopened", userId: users.owner!.id, priority: "CRITICAL" } })) >= 1, null);
+  check("…and the audit log has it", (await db.auditLog.count({ where: { action: "sos.unsolved", resourceId: nsAlert } })) === 1);
+  r = await call("POST", `/sos/${nsAlert}/unsolved`, T("tenant"));
+  check("unsolved twice → 409 (it is not solved any more)", r.status === 409, r.body);
+  r = await call("GET", "/tenant/notifications/summary", T("tenant"));
+  check("quick issues still counts it while it is being handled", r.data?.quickIssues?.alerts === ns0.quickIssues.alerts + 1, r.body);
+  await call("POST", `/gov/alerts/${nsAlert}/status`, T("gov"), { status: "SOLVED", note: "Solved for real" });
+  r = await call("POST", `/sos/${nsAlert}/accept`, T("tenant"));
+  check("ACCEPT after the second fix → accepted", r.status === 200 && r.data?.accepted === true, r.body);
+  r = await call("GET", "/tenant/notifications/summary", T("tenant"));
+  check("…the quick-issue counter goes back down", r.data?.quickIssues?.alerts === ns0.quickIssues.alerts, r.body);
+  r = await call("POST", `/sos/${nsAlert}/unsolved`, T("tenant"));
+  check("unsolved after accepting → 409", r.status === 409, r.body);
+
+  // rent: overdue reminder + invoice cards and the pay-request button state
+  const nAgr = await db.rentalAgreement.findFirst({ where: { tenantId: users.tenant!.id, status: "ACTIVE" } });
+  const nMonth = new Date(Date.UTC(new Date().getUTCFullYear() - 2, 4, 1));
+  const nRec = await db.rentRecord.create({ data: { agreementId: nAgr!.id, billingMonth: nMonth, rent: 18000, utility: 500, total: 18500, paid: 0, dueDate: new Date(nMonth.getTime() + 9 * 86400_000), status: "OVERDUE" } });
+  const { notifyOverdue, notifyInvoices } = await import("../src/modules/rent/service");
+  await notifyOverdue();
+  await notifyOverdue();
+  check("overdue rent tells the tenant once (rent.late)", (await db.notification.count({ where: { userId: users.tenant!.id, type: "rent.late", params: { path: ["recordId"], equals: nRec.id } } })) === 1);
+  await notifyInvoices(nMonth);
+  await notifyInvoices(nMonth);
+  check("the invoice notification is sent once (rent.invoice)", (await db.notification.count({ where: { userId: users.tenant!.id, type: "rent.invoice", params: { path: ["recordId"], equals: nRec.id } } })) === 1);
+  r = await call("GET", "/tenant/notifications?tab=payment&limit=50", T("tenant"));
+  const ninv = r.data?.items?.find((x: any) => x.type === "rent.invoice" && x.params?.recordId === nRec.id);
+  check("payment tab: the invoice card is live UNPAID with the amount owed", ninv?.live?.state === "UNPAID" && Number(ninv.live.owed) === 18500 && ninv.tab === "payment", ninv);
+  r = await call("GET", "/tenant/notifications?tab=issues&limit=50", T("tenant"));
+  const late = r.data?.items?.find((x: any) => x.type === "rent.late" && x.params?.recordId === nRec.id);
+  check("issues tab: the 'violate agreement' card is live UNPAID and late", late?.live?.state === "UNPAID" && late.live.late === true, late);
+  r = await call("GET", "/tenant/notifications/summary", T("tenant"));
+  check("quick issues counts the late month as a rule warning", r.data?.quickIssues?.ruleWarnings === ns0.quickIssues.ruleWarnings + 1, r.body);
+  r = await call("POST", `/tenant/rent/${nRec.id}/pay`, T("tenant"), { method: "BKASH", reference: `NTF${Date.now().toString(36).toUpperCase()}` });
+  const nPay = r.data?.id ?? r.data?.payment?.id;
+  r = await call("GET", "/tenant/notifications?tab=payment&limit=50", T("tenant"));
+  check("after Send Pay Request the card is PENDING (no second request)", r.data?.items?.find((x: any) => x.id === ninv.id)?.live?.state === "PENDING", r.body);
+  r = await call("POST", `/rent/payments/${nPay}/verify`, T("owner"), { decision: "VERIFIED" });
+  r = await call("GET", "/tenant/notifications?tab=payment&limit=50", T("tenant"));
+  check("when the landlord approves, the card becomes PAID", r.data?.items?.find((x: any) => x.id === ninv.id)?.live?.state === "PAID", r.body);
+  r = await call("GET", "/tenant/notifications/summary", T("tenant"));
+  check("…and the rule warning is gone", r.data?.quickIssues?.ruleWarnings === ns0.quickIssues.ruleWarnings, r.body);
+  r = await call("POST", `/notifications/${ninv.id}/read`, T("tenant"));
+  r = await call("GET", "/tenant/notifications?tab=payment&limit=50", T("tenant"));
+  check("Mark as Read works on a tenant card", r.data?.items?.find((x: any) => x.id === ninv.id)?.readAt !== null, r.body);
+  await db.rentPayment.deleteMany({ where: { rentRecordId: nRec.id } });
+  await db.rentRecord.delete({ where: { id: nRec.id } });
+
+  section("new user: Create Listing → pricing, Subscription tab; verified tenant cannot become an owner");
+  r = await call("GET", "/me", T("general"));
+  check("a new user is a GENERAL_USER (the sidebar shows the Subscription tab)", r.status === 200 && r.data?.role === "GENERAL_USER", r.body);
+  r = await call("GET", "/me", T("tenant"));
+  check("a verified tenant is a TENANT (no Subscription tab)", r.status === 200 && r.data?.role === "TENANT", r.body);
+  r = await call("GET", "/plans");
+  const ownerPlans = (r.data ?? []).filter((p: any) => p.audience === "OWNER");
+  check("Create Listing pricing: the owner plans come with monthly prices", r.status === 200 && ownerPlans.length >= 1 && ownerPlans.every((p: any) => Number(p.prices?.MONTHLY?.total) > 0), r.body);
+  r = await call("GET", "/listings/eligibility", T("general"));
+  check("a new user cannot list yet → 403 LISTING_ENTITLEMENT_REQUIRED (the page shows the pricing)", r.status === 403 && r.code === "LISTING_ENTITLEMENT_REQUIRED", r.body);
+  r = await call("GET", "/listings/eligibility", T("tenant"));
+  check("a verified tenant cannot list either → 403", r.status === 403, r.body);
+  r = await call("GET", "/me/subscription", T("general"));
+  check("Subscription page: a new user has no current plan", r.status === 200 && (r.data?.current ?? null) === null, r.body);
+  r = await call("GET", "/me/payments", T("general"));
+  check("Subscription page: billing history loads (empty)", r.status === 200 && Array.isArray(r.data), r.body);
+  r = await call("POST", "/subscriptions/quote", T("general"), { planId: ownerPlans[0]?.id, cycle: "MONTHLY" });
+  check("a new user gets a server-side price for an owner plan", r.status === 200 && Number(r.data?.payable) > 0, r.body);
+  r = await call("POST", "/subscriptions/quote", T("tenant"), { planId: ownerPlans[0]?.id, cycle: "MONTHLY" });
+  check("a verified tenant cannot become an owner → 409 (active tenancy)", r.status === 409, r.body);
+  r = await call("POST", "/upgrade-requests", T("tenant"), { planId: ownerPlans[0]?.id, cycle: "MONTHLY", senderNumber: "01712345678", trxId: `VT${Date.now().toString(36).toUpperCase()}` });
+  check("…and cannot send an upgrade request either → 409", r.status === 409, r.body);
+
+  section("Tenant-Free account: same pages as a verified tenant (empty until a lease exists)");
+  r = await call("GET", "/dashboard/tenant", T("general"));
+  check("dashboard: no lease, no error", r.status === 200 && r.data?.tenancy === null, r.body);
+  r = await call("GET", "/dashboard/tenant/activity?limit=5", T("general"));
+  check("dashboard activity: empty list", r.status === 200 && Array.isArray(r.data?.items), r.body);
+  r = await call("GET", "/maintenance/stats", T("general"));
+  check("maintenance numbers: zero, and nobody else's requests", r.status === 200 && r.data?.total === 0 && r.data?.open === 0, r.body);
+  r = await call("GET", "/maintenance?limit=3", T("general"));
+  check("maintenance list: empty (never another person's requests)", r.status === 200 && r.data?.items?.length === 0, r.body);
+  r = await call("POST", "/maintenance", T("general"), { category: "OTHER", title: "No lease yet", description: "A request needs a lease first." });
+  check("new request without a lease → 409 (not 403)", r.status === 409, r.body);
+  r = await call("GET", "/tenant/history", T("general"));
+  check("history: no stays, zero numbers, all dues cleared", r.status === 200 && r.data?.stays?.length === 0 && r.data.summary.properties === 0 && r.data.summary.unpaid.state === "CLEAR", r.body);
+  r = await call("GET", "/tenant/notifications/summary", T("general"));
+  check("notifications summary: no lease", r.status === 200 && r.data?.hasLease === false && r.data.nextPayment === null, r.body);
+  r = await call("GET", "/tenant/notifications?limit=10", T("general"));
+  check("notifications feed loads", r.status === 200 && Array.isArray(r.data?.items), r.body);
+  r = await call("GET", "/dashboard/tenant", T("owner"));
+  check("the owner still cannot open the tenant dashboard → 403", r.status === 403, r.body);
+
+  // paying makes a Tenant-Free account an Apartment Owner, in one step and exactly once
+  const promo = await db.user.create({ data: { username: `promo${tag}`, fullName: "Promo User", email: `promo.${tag}@mailinator.com`, phone: phone(), role: "GENERAL_USER" } });
+  users.promo = { key: "promo", id: promo.id, authId: "", email: promo.email!, password: "", username: promo.username, token: "" };
+  const promoTrx = `PROMO${tag}`.toUpperCase();
+  const promoReq = await db.upgradeRequest.create({ data: { userId: promo.id, planId: ownerPlans[0].id, cycle: "MONTHLY", expectedAmount: ownerPlans[0].prices.MONTHLY.total, quoteSnapshot: {}, senderNumber: "01712345678", trxId: promoTrx, fromRole: "GENERAL_USER", toRole: "OWNER" } });
+  await db.paymentTransaction.create({ data: { userId: promo.id, purpose: "SUBSCRIPTION", upgradeRequestId: promoReq.id, amount: ownerPlans[0].prices.MONTHLY.total, gateway: "MANUAL_BKASH", gatewayTxnId: promoTrx, status: "PENDING_REVIEW" } });
+  check("before approval the account is still Tenant-Free with no Owner ID", (await db.user.findUnique({ where: { id: promo.id } }))?.role === "GENERAL_USER" && (await db.user.findUnique({ where: { id: promo.id } }))?.ownerCode === null);
+  await db.notification.create({ data: { userId: promo.id, type: "message.new", titleKey: "notifications.messageNew", link: "/tenant-free/messages?c=00000000-0000-0000-0000-000000000000" } });
+  r = await call("POST", `/admin/upgrade-requests/${promoReq.id}/approve`, T("super"));
+  check("approval → Owner ID and invoice", r.status === 200 && /^OW\d+$/.test(r.data?.ownerCode ?? "") && /^INV-/.test(r.data?.invoice ?? ""), r.body);
+  const promoNow = await db.user.findUnique({ where: { id: promo.id }, include: { ownerProfile: true } });
+  check("…the Tenant-Free account is now an OWNER with an owner profile and the same Owner ID", promoNow?.role === "OWNER" && !!promoNow.ownerProfile && promoNow.ownerCode === r.data?.ownerCode, promoNow?.role);
+  check("…a live owner plan, an approved request, a successful payment and one invoice (nothing half-done)", (await db.userSubscription.count({ where: { userId: promo.id, audience: "OWNER", status: "ACTIVE" } })) === 1 && (await db.upgradeRequest.count({ where: { id: promoReq.id, status: "APPROVED" } })) === 1 && (await db.paymentTransaction.count({ where: { userId: promo.id, status: "SUCCESS" } })) === 1 && (await db.invoice.count({ where: { transaction: { userId: promo.id } } })) === 1);
+  check("…the new owner's saved links moved from /tenant-free to /home-owner, and the approval message points to /home-owner", (await wrongAreaLinks(promo.id, "/home-owner")) === 0 && (await db.notification.count({ where: { userId: promo.id, type: "upgrade.approved", link: { startsWith: "/home-owner/" } } })) === 1);
+  r = await call("POST", `/admin/upgrade-requests/${promoReq.id}/approve`, T("super"));
+  check("approving the same payment twice → 409 (no second plan, no second invoice)", r.status === 409 && (await db.userSubscription.count({ where: { userId: promo.id } })) === 1 && (await db.invoice.count({ where: { transaction: { userId: promo.id } } })) === 1, r.body);
+
+  check("the apartment owner's notification links all live under /home-owner (none under /owner, /tenant or /tenant-free)", (await wrongAreaLinks(users.owner!.id, "/home-owner")) === 0 && (await db.notification.count({ where: { userId: users.owner!.id, link: { startsWith: "/owner" } } })) === 0);
+  check("the Tenant-Free account's links all live under /tenant-free", (await wrongAreaLinks(users.general!.id, "/tenant-free")) === 0);
+
+  section("Tenant Free profile page: identity, Tenant ID, update, documents");
+  r = await call("GET", "/me/tenant-overview");
+  check("tenant overview: signed out → 401", r.status === 401, r.body);
+  r = await call("GET", "/me/tenant-overview", T("owner"));
+  check("tenant overview: an apartment owner → 403", r.status === 403, r.body);
+  r = await call("GET", "/me/tenant-overview", T("general"));
+  const tp0 = r.data;
+  check("tenant overview: identity, a permanent Tenant ID (TF…), member count and empty document slots", r.status === 200 && tp0?.user?.username === users.general!.username && /^TF\d{6,}$/.test(tp0?.user?.tenantCode ?? "") && tp0.user.members === 1 && tp0.user.role === "GENERAL_USER" && tp0.documents?.nidFront === null && tp0.documents?.agreement === null, r.body);
+  r = await call("GET", "/me/tenant-overview", T("general"));
+  check("…the Tenant ID is the same every time", r.data?.user?.tenantCode === tp0?.user?.tenantCode, r.body);
+  check("…and no two accounts share a Tenant ID", (await db.$queryRaw<{ n: bigint }[]>`SELECT count(*) AS n FROM (SELECT "tenantCode" FROM "User" WHERE "tenantCode" IS NOT NULL GROUP BY "tenantCode" HAVING count(*) > 1) d`)[0]?.n === 0n);
+  r = await call("PATCH", "/me", T("general"), { tenantCode: "TF999999" });
+  check("the Tenant ID is locked: it cannot be changed → 422", r.status === 422 && (await db.user.findUnique({ where: { id: users.general!.id } }))?.tenantCode === tp0?.user?.tenantCode, r.body);
+  r = await call("PATCH", "/me", T("general"), { tenant: { members: 4 }, occupation: "Software Engineer", address: { division: "Chittagong", district: "Comilla", upazila: "Muradnagar", union: "South Keranigonj", street: "203 House, Block-A", postOffice: "Doshani Bazar" } });
+  check("update profile: member count, occupation and permanent address → 200", r.status === 200, r.body);
+  r = await call("GET", "/me/tenant-overview", T("general"));
+  check("…the page shows them (Member 4, address filled)", r.data?.user?.members === 4 && r.data.user.occupation === "Software Engineer" && r.data.address?.district === "Comilla" && r.data.address?.union === "South Keranigonj", r.body);
+  r = await call("PATCH", "/me", T("general"), { tenant: { members: 0 } });
+  check("member count below 1 → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/me", T("general"), { tenant: { members: 31 } });
+  check("member count above 30 → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/me", T("owner"), { tenant: { members: 2 } });
+  check("the tenant block is not for an owner → 403", r.status === 403, r.body);
+  r = await call("PATCH", "/me", T("general"), { nid: "12345" });
+  check("NID number must be 13–17 digits → 422", r.status === 422, r.body);
+  const myNid = `199${Date.now().toString().slice(-10)}`;
+  r = await call("PATCH", "/me", T("general"), { nid: myNid });
+  check("NID number updated → 200", r.status === 200, r.body);
+  r = await call("GET", "/me/tenant-overview", T("general"));
+  check("…the page shows it", r.data?.user?.nid === myNid, r.body);
+  r = await call("PATCH", "/me", T("tenant"), { nid: myNid });
+  check("the same NID number on another account → 409", r.status === 409 && r.body?.details?.field === "nid", r.body);
+  r = await call("PATCH", "/me", T("general"), { email: users.owner!.email });
+  check("an e-mail that another account uses → 409", r.status === 409 && r.body?.details?.field === "email", r.body);
+  const newEmail = `moved.${tag}@mailinator.com`;
+  r = await call("PATCH", "/me", T("general"), { email: newEmail });
+  check("e-mail changed (the sign-in account follows) → 200", r.status === 200 && r.data?.email === newEmail, r.body);
+  r = await call("PATCH", "/me", T("general"), { email: users.general!.email });
+  check("…and changed back", r.status === 200 && r.data?.email === users.general!.email, r.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "NID_FRONT", storageKey: `NID_FRONT/${users.general!.id}/tp-front.png` });
+  check("NID front uploaded → 201", r.status === 201, r.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "AGREEMENT", storageKey: `NID_FRONT/${users.general!.id}/tp-wrong.png` });
+  check("an agreement must be uploaded as a verification document → 422", r.status === 422, r.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "AGREEMENT", storageKey: `VERIFICATION_DOC/${users.owner!.id}/tp-theirs.pdf` });
+  check("somebody else's upload → 403", r.status === 403, r.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "AGREEMENT", storageKey: `VERIFICATION_DOC/${users.general!.id}/tp-agreement.pdf` });
+  check("agreement uploaded → 201", r.status === 201, r.body);
+  r = await call("GET", "/me/tenant-overview", T("general"));
+  check("the Documents card: NID front PENDING with a date, NID back empty, own agreement PENDING", r.data?.documents?.nidFront?.status === "PENDING" && !!r.data.documents.nidFront.date && r.data.documents.nidBack === null && r.data.documents.agreement?.source === "OWN" && r.data.documents.agreement.status === "PENDING", r.body);
+  const oldAv = `AVATAR/${users.general!.id}/tp-old.png`;
+  await call("PATCH", "/me", T("general"), { avatarKey: oldAv });
+  r = await call("PATCH", "/me", T("general"), { avatarKey: `AVATAR/${users.general!.id}/tp-new.png` });
+  check("a new profile photo replaces the old one (only the new key is kept)", r.status === 200 && (await db.user.findUnique({ where: { id: users.general!.id } }))?.avatarKey === `AVATAR/${users.general!.id}/tp-new.png`, r.body);
+
   section("admin user management");
   if (users.govx) {
     r = await call("PATCH", `/admin/users/${users.govx.id}`, T("super"), { fullName: "Renamed Gov Admin" });
@@ -2018,6 +2448,29 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("GET", "/me/owner-overview", T("owner"));
   check("documents card: agreement state counts the uploaded files", r.data?.documents?.agreement?.uploaded >= 1 && ["UPLOADED", "PENDING"].includes(r.data.documents.agreement.status), r.data?.documents);
 
+  section("Tenant profile page (verified tenant): current unit, locked fields, documents");
+  r = await call("GET", "/me/tenant-overview", T("tenant"));
+  const vt = r.data;
+  check("verified tenant overview: role TENANT, Tenant ID, and the current unit with landlord and entry date (no exit)", r.status === 200 && vt?.user?.role === "TENANT" && /^TF\d{6,}$/.test(vt?.user?.tenantCode ?? "") && !!vt.tenancy?.property?.name && !!vt.tenancy.unit?.unitNumber && typeof vt.tenancy.unit.floor === "number" && vt.tenancy.landlord?.fullName === (await db.user.findUnique({ where: { id: users.owner!.id } }))?.fullName && !!vt.tenancy.startDate && vt.tenancy.endDate === null, r.body);
+  check("…the property address line is there", typeof vt?.tenancy?.property?.addressLine === "string", vt?.tenancy);
+  r = await call("PATCH", "/me", T("tenant"), { nid: "1999999999999" });
+  check("a verified tenant's NID number is locked → 403", r.status === 403 && r.body?.details?.reason === "nid_locked", r.body);
+  r = await call("PATCH", "/me", T("tenant"), { username: "someone_else" });
+  check("the username is locked → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/me", T("tenant"), { tenantCode: "TF000001" });
+  check("the Tenant ID is locked → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/me", T("tenant"), { tenant: { members: 3 }, occupation: "Teacher", phone: phone() });
+  check("occupants count, occupation and phone can change → 200", r.status === 200, r.body);
+  r = await call("GET", "/me/tenant-overview", T("tenant"));
+  check("…the page shows Member 3 and the new occupation", r.data?.user?.members === 3 && r.data.user.occupation === "Teacher", r.body);
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "NID_BACK", storageKey: `NID_BACK/${users.tenant!.id}/vt-back.png` });
+  check("NID back uploaded → 201 and shown as PENDING with its date", r.status === 201 && (await call("GET", "/me/tenant-overview", T("tenant"))).data?.documents?.nidBack?.status === "PENDING", r.body);
+  await db.verificationDocument.updateMany({ where: { ownerId: users.tenant!.id, kind: "NID_BACK" }, data: { status: "REJECTED", notes: "Photo is edited" } });
+  r = await call("GET", "/me/tenant-overview", T("tenant"));
+  check("a rejected document is reported as REJECTED (the page labels it FAKE) with the reviewer's note", r.data?.documents?.nidBack?.status === "REJECTED" && r.data.documents.nidBack.notes === "Photo is edited", r.body);
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "NID_BACK", storageKey: `NID_BACK/${users.tenant!.id}/vt-back2.png` });
+  check("…and can be replaced → PENDING again", r.status === 201 && (await call("GET", "/me/tenant-overview", T("tenant"))).data?.documents?.nidBack?.status === "PENDING", r.body);
+
   section("tenancy end + cron");
   r = await call("POST", `/tenancies/${agreement?.id}/end`, T("tenant"), {});
   check("tenant cannot end tenancy → 403", r.status === 403, r.body);
@@ -2025,6 +2478,57 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("owner ends tenancy", r.status === 200 && r.data?.status === "ENDED", r.body);
   r = await call("GET", `/units/${unitA?.id}`, T("owner"));
   check("unit back to AVAILABLE", r.data?.availability === "AVAILABLE", r.body);
+
+  // the ended tenant is a Tenant-Free account again, and nothing they own was deleted
+  const endedTenant = await db.user.findUnique({ where: { id: users.tenant!.id } });
+  check("a verified tenant whose tenancy ended is a Tenant-Free account again (GENERAL_USER)", endedTenant?.role === "GENERAL_USER", endedTenant?.role);
+  check("…every link in their notifications now points into /tenant-free (no page of the wrong area)", (await wrongAreaLinks(users.tenant!.id, "/tenant-free")) === 0 && (await db.notification.count({ where: { userId: users.tenant!.id, type: "account.tenant_free", link: "/tenant-free/dashboard" } })) === 1);
+  check("…they are told, and the change is in the audit log", (await db.notification.count({ where: { userId: users.tenant!.id, type: "account.tenant_free" } })) === 1 && (await db.auditLog.count({ where: { action: "user.role_revert", resourceId: users.tenant!.id } })) === 1);
+  check("…the past stay and its rent records are still there", (await db.rentalAgreement.findUnique({ where: { id: agreement?.id } }))?.status === "ENDED" && (await db.rentRecord.count({ where: { agreementId: agreement?.id } })) >= 1);
+  r = await call("GET", "/me", T("tenant"));
+  check("…and /me says GENERAL_USER, so the Subscription tab comes back", r.status === 200 && r.data?.role === "GENERAL_USER", r.body);
+  r = await call("GET", "/tenant/history", T("tenant"));
+  check("…the History page still shows the past stay (Completed) with its ledger", r.status === 200 && r.data?.stays?.some((x: any) => x.status === "COMPLETED" && x.ledger?.total >= 1), r.body);
+  r = await call("GET", "/dashboard/tenant", T("tenant"));
+  check("…the dashboard shows 'no active lease', not an error", r.status === 200 && r.data?.tenancy === null, r.body);
+  r = await call("GET", "/plans");
+  const lifePlan = (r.data ?? []).find((p: any) => p.audience === "OWNER");
+  r = await call("POST", "/subscriptions/quote", T("tenant"), { planId: lifePlan?.id, cycle: "MONTHLY" });
+  check("…and they can buy an owner plan again (the Subscription tab works)", r.status === 200 && Number(r.data?.payable) > 0, r.body);
+  r = await call("GET", "/tenant/notifications?limit=10", T("tenant"));
+  check("…and the Notifications page still opens and lists their notifications", r.status === 200 && r.data?.items?.length >= 1, r.body);
+
+  // full cycle on a fresh account: Tenant-Free → connected by an owner (verified tenant) → leaves (Tenant-Free) → connected again
+  const life = await db.user.create({ data: { username: `life${tag}`, fullName: "Life Cycle", email: `life.${tag}@mailinator.com`, phone: phone(), role: "GENERAL_USER" } });
+  r = await call("POST", `/properties/${prop?.id}/units`, T("owner"), { unitNumber: "L101", floor: 1, bedrooms: 1, areaSqft: 400, rent: 8000, tenantId: life.id });
+  const lifeUnit = r.data;
+  check("owner connects a Tenant-Free account to a unit → 201", r.status === 201 && lifeUnit?.availability === "OCCUPIED", r.body);
+  check("…only now does the account become a verified TENANT", (await db.user.findUnique({ where: { id: life.id } }))?.role === "TENANT");
+  check("…and its links now live under /tenant", (await wrongAreaLinks(life.id, "/tenant")) === 0 && (await db.notification.count({ where: { userId: life.id, type: "tenancy.assigned", link: "/tenant/dashboard" } })) === 1);
+  const lifeAgr = await db.rentalAgreement.findFirst({ where: { tenantId: life.id, status: "ACTIVE" } });
+  const lifeReq = await db.maintenanceRequest.create({ data: { agreementId: lifeAgr!.id, unitId: lifeUnit.id, tenantId: life.id, category: "OTHER", title: "Life cycle repair", description: "kept after leaving" } });
+  const pendingUp = await db.upgradeRequest.create({ data: { userId: life.id, planId: lifePlan.id, cycle: "MONTHLY", expectedAmount: 159, quoteSnapshot: {}, senderNumber: "01712345678", trxId: `LIFE${tag}`, fromRole: "GENERAL_USER", toRole: "OWNER" } });
+  r = await call("POST", `/admin/upgrade-requests/${pendingUp.id}/approve`, T("super"));
+  check("a pending owner-plan request of a now-verified tenant cannot be approved → 409 (no tenant becomes an owner)", r.status === 409 && (await db.user.findUnique({ where: { id: life.id } }))?.role === "TENANT", r.body);
+  r = await call("POST", `/tenancies/${lifeAgr!.id}/end`, T("owner"), { leaveReason: "OTHER" });
+  check("owner removes the tenant → 200", r.status === 200, r.body);
+  check("…the account is Tenant-Free again at once, and its links moved to /tenant-free", (await db.user.findUnique({ where: { id: life.id } }))?.role === "GENERAL_USER" && (await wrongAreaLinks(life.id, "/tenant-free")) === 0);
+  check("…nothing was deleted: the stay, its rent records, the repair request and the pending request are all still there", (await db.rentalAgreement.count({ where: { id: lifeAgr!.id, status: "ENDED" } })) === 1 && (await db.rentRecord.count({ where: { agreementId: lifeAgr!.id } })) >= 1 && (await db.maintenanceRequest.count({ where: { id: lifeReq.id } })) === 1 && (await db.upgradeRequest.count({ where: { id: pendingUp.id, status: "PENDING" } })) === 1);
+  check("…and the unit is free again", (await db.unit.findUnique({ where: { id: lifeUnit.id } }))?.availability === "AVAILABLE");
+  r = await call("POST", `/units/${lifeUnit.id}/tenant`, T("owner"), { tenantId: life.id });
+  check("the owner connects the same person again → they are a verified tenant again", r.status === 200 || r.status === 201, r.body);
+  check("…role TENANT, one ACTIVE tenancy, old stay untouched", (await db.user.findUnique({ where: { id: life.id } }))?.role === "TENANT" && (await db.rentalAgreement.count({ where: { tenantId: life.id, status: "ACTIVE" } })) === 1 && (await db.rentalAgreement.count({ where: { tenantId: life.id } })) === 2);
+  // clean up everything this cycle made
+  const lifeAgrs = (await db.rentalAgreement.findMany({ where: { tenantId: life.id }, select: { id: true } })).map((a) => a.id);
+  await db.rentPayment.deleteMany({ where: { rentRecord: { agreementId: { in: lifeAgrs } } } });
+  await db.rentRecord.deleteMany({ where: { agreementId: { in: lifeAgrs } } });
+  await db.maintenanceRequest.deleteMany({ where: { tenantId: life.id } });
+  await db.upgradeRequest.deleteMany({ where: { userId: life.id } });
+  await db.rentalAgreement.deleteMany({ where: { id: { in: lifeAgrs } } });
+  await db.notification.deleteMany({ where: { userId: life.id } });
+  await db.tenantProfile.deleteMany({ where: { userId: life.id } });
+  await db.unit.delete({ where: { id: lifeUnit.id } });
+  await db.user.delete({ where: { id: life.id } });
 
   section("previous tenants");
   r = await call("GET", "/tenancies/past", T("owner"));

@@ -1,9 +1,6 @@
 import { z } from "zod";
 
-/** Error strings are keys under `validation.*` in messages/{bn,en}.json. Rules mirror the backend Zod schemas. */
-export const ACCOUNT_ROLES = ["OWNER", "TENANT", "GENERAL_USER"] as const;
-export type AccountRole = (typeof ACCOUNT_ROLES)[number];
-
+/** Error strings are keys under `validation.*` in messages/{bn,en}.json. Rules mirror the backend Zod schemas. Nobody picks an account type: everyone starts as a Tenant-Free account (GENERAL_USER). */
 /** 017XXXXXXXX, +88017XXXXXXXX, 88017XXXXXXXX, with or without spaces/dashes → 017XXXXXXXX */
 export function normalizePhone(raw: string): string {
   const d = raw.replace(/[\s\-()]/g, "");
@@ -13,7 +10,6 @@ export function normalizePhone(raw: string): string {
 const today = () => new Date().toISOString().slice(0, 10);
 
 export const personalSchema = z.object({
-  role: z.enum(ACCOUNT_ROLES, "roleRequired"),
   fullName: z.string().trim().min(2, "fullNameMin").max(100, "fullNameMax"),
   username: z.string().trim().toLowerCase().regex(/^[a-z0-9_]{3,20}$/, "usernameFormat"),
   email: z.string().trim().toLowerCase().email("emailInvalid"),
@@ -57,7 +53,7 @@ export type RegisterFormValues = z.input<typeof registerFormSchema>;
 
 /** Which form fields belong to which wizard step (used for per-step validation and for jumping to a server error). */
 export const STEP_FIELDS: Record<1 | 2 | 3 | 4, (keyof RegisterFormValues)[]> = {
-  1: ["role", "fullName", "username", "email", "phone", "occupation", "dateOfBirth", "nid"],
+  1: ["fullName", "username", "email", "phone", "occupation", "dateOfBirth", "nid"],
   2: ["division", "district", "upazila", "union", "street", "postOffice"],
   3: ["password", "confirmPassword"],
   4: ["consent"],

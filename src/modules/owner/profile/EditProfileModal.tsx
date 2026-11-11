@@ -31,7 +31,7 @@ function Form({ data, onClose, onSaved, setBusy }: { data: OwnerOverview; onClos
   const { user, address: a } = data;
   const { register, handleSubmit, setError, formState: { errors } } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileFormSchema), mode: "onTouched",
-    defaultValues: { fullName: user.fullName, phone: user.phone ?? "", occupation: user.occupation ?? "", dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : "", division: a?.division ?? "", district: a?.district ?? "", upazila: a?.upazila ?? "", union: a?.union ?? "", street: a?.street ?? "", postOffice: a?.postOffice ?? "" },
+    defaultValues: { fullName: user.fullName, phone: user.phone ?? "", occupation: user.occupation ?? "", dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : "", division: a?.division ?? "", district: a?.district ?? "", upazila: a?.upazila ?? "", union: a?.union ?? "", street: a?.street ?? "", postOffice: a?.postOffice ?? "", bkashNumber: user.bkashNumber ?? "" },
   });
   const [saving, setSaving] = useState(false);
   const [banner, setBanner] = useState<string | null>(null);
@@ -40,7 +40,7 @@ function Form({ data, onClose, onSaved, setBusy }: { data: OwnerOverview; onClos
 
   const onSubmit = handleSubmit(async (f) => {
     setBanner(null);
-    const patch = profilePatch(f, { fullName: user.fullName, phone: user.phone, occupation: user.occupation, dateOfBirth: user.dateOfBirth, address: a as Record<string, string | null> | null });
+    const patch = profilePatch(f, { fullName: user.fullName, phone: user.phone, occupation: user.occupation, dateOfBirth: user.dateOfBirth, bkashNumber: user.bkashNumber, address: a as Record<string, string | null> | null });
     if (Object.keys(patch).length === 0) { onClose(); return; }
     setSaving(true);
     try {
@@ -89,6 +89,10 @@ function Form({ data, onClose, onSaved, setBusy }: { data: OwnerOverview; onClos
           {field("union", MapPin)}
           {field("street", MapPin)}
           {field("postOffice", MapPin)}
+        </div>
+        <div>
+          {field("bkashNumber", Phone, { inputMode: "tel", placeholder: "01XXXXXXXXX" })}
+          <p className="mt-1.5 text-xs text-label">{t("bkashHint")}</p>
         </div>
         {banner && <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50/90 px-4 py-3 text-sm text-red-700"><AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />{banner}</div>}
         <div className="flex flex-col-reverse gap-3 pt-1 sm:flex-row sm:justify-between">

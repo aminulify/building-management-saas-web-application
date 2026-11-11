@@ -6,7 +6,6 @@ import { AlertTriangle, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { FormProvider, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocale, useTranslations } from "next-intl";
-import { useSearchParams } from "next/navigation";
 import { Link } from "@/i18n/navigation";
 import { buttonClass, GradientButton } from "@/components/glass/GradientButton";
 import { GlassCard } from "@/components/glass/GlassCard";
@@ -17,7 +16,7 @@ import { FadeIn } from "@/components/motion/FadeIn";
 import { api, ApiError } from "@/lib/api-client";
 import { setSession } from "@/lib/auth-client";
 import { useAvailability } from "../hooks";
-import { ACCOUNT_ROLES, normalizePhone, personalSchema, registerFormSchema, STEP_FIELDS, stepOfField, type AccountRole, type RegisterFormValues } from "../schema";
+import { normalizePhone, personalSchema, registerFormSchema, STEP_FIELDS, stepOfField, type RegisterFormValues } from "../schema";
 import { uploadRegistrationFile, type RegUploadPurpose } from "../upload";
 import { RegisterSuccess } from "./RegisterSuccess";
 import { StepAddress } from "./StepAddress";
@@ -38,17 +37,11 @@ export function RegisterWizard() {
   const t = useTranslations("auth.register");
   const e = useTranslations("errors");
   const locale = useLocale();
-  const params = useSearchParams();
-
-  const preset = (() => {
-    const r = params.get("role")?.toUpperCase().replace("USER", "GENERAL_USER");
-    return (ACCOUNT_ROLES as readonly string[]).includes(r ?? "") ? (r as AccountRole) : undefined;
-  })();
 
   const methods = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
     mode: "onTouched",
-    defaultValues: { role: preset, fullName: "", username: "", email: "", phone: "", occupation: "", dateOfBirth: "", nid: "", division: "", district: "", upazila: "", union: "", street: "", postOffice: "", password: "", confirmPassword: "", consent: false },
+    defaultValues: { fullName: "", username: "", email: "", phone: "", occupation: "", dateOfBirth: "", nid: "", division: "", district: "", upazila: "", union: "", street: "", postOffice: "", password: "", confirmPassword: "", consent: false },
   });
   const { control, trigger, handleSubmit, setError } = methods;
 
@@ -158,7 +151,6 @@ export function RegisterWizard() {
       const res = await api<{ needsEmailConfirmation: boolean; session: { accessToken: string; refreshToken: string; expiresAt: number | null } | null; documents: { nidFront: boolean; nidBack: boolean } | null }>("/auth/register", {
         method: "POST",
         body: {
-          role: v.role,
           fullName: v.fullName.trim(),
           username: v.username.trim().toLowerCase(),
           email: v.email.trim().toLowerCase(),

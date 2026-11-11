@@ -26,6 +26,7 @@ export function LangSwitch({ className }: { className?: string }) {
           type="button"
           onClick={() => switchTo(l)}
           aria-pressed={l === locale}
+          suppressHydrationWarning // form-filler browser extensions add their own attributes to buttons before React starts
           className={clsx(
             "rounded-full px-3 py-1.5 uppercase transition-colors duration-300",
             l === locale ? "bg-brand-gradient text-white shadow" : "text-label hover:text-navy",

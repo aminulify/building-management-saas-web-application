@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { AppError } from "@/lib/errors";
 import { clientIp, rateLimit } from "@/lib/rate-limit";
 import { supabaseAnon } from "@/lib/supabase";
+import { nextTenantCode } from "@/modules/users/tenant-code";
 import { toActor } from "@/lib/auth/require-actor";
 
 /* ---------- which social providers are switched on in Supabase (cached 5 min) ---------- */
@@ -84,7 +85,7 @@ export async function completeOAuth(accessToken: string, input: z.infer<typeof c
   const meta = (sb.user_metadata ?? {}) as { full_name?: string; name?: string };
   const fullName = (meta.full_name ?? meta.name ?? email.split("@")[0]!).trim().slice(0, 100) || email;
   const user = await db.user.create({
-    data: { authId: sb.id, email, fullName, username: await freeUsername(email.split("@")[0]!), role: "GENERAL_USER", locale: input.locale },
+    data: { authId: sb.id, email, fullName, username: await freeUsername(email.split("@")[0]!), role: "GENERAL_USER", locale: input.locale, tenantCode: await nextTenantCode() },
   });
   return { user: publicUser(user), isNew: true };
 }

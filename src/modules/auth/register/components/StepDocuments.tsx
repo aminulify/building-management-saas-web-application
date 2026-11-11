@@ -46,7 +46,7 @@ function PhotoPicker({ file, onChange, state }: { file: File | null; onChange: (
           <p className="text-sm text-slate-400">{t("photo.hint")}</p>
           {file && <p className="mt-1 truncate text-xs font-medium text-label">{file.name}</p>}
           <div className="mt-2 flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-            <input
+            <input suppressHydrationWarning
               ref={ref} id={id} type="file" accept="image/png,image/jpeg,image/webp" className="peer sr-only"
               onChange={(e) => {
                 const f = e.target.files?.[0];
@@ -61,7 +61,7 @@ function PhotoPicker({ file, onChange, state }: { file: File | null; onChange: (
               {t("photo.choose")}
             </label>
             {file && (
-              <button type="button" onClick={() => { onChange(null); setProblem(null); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50">
+              <button suppressHydrationWarning type="button" onClick={() => { onChange(null); setProblem(null); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50">
                 <Trash2 className="size-3.5" aria-hidden />{t("remove")}
               </button>
             )}
@@ -92,7 +92,7 @@ export function StepDocuments({ docs, onDocs, states, errors }: Props) {
 
       <div>
         <label className="flex cursor-pointer items-start gap-3 rounded-xl p-3 text-sm text-navy transition-colors hover:bg-white/60">
-          <input type="checkbox" className="mt-0.5 size-5 shrink-0 cursor-pointer accent-brand-purple" {...register("consent")} />
+          <input suppressHydrationWarning type="checkbox" className="mt-0.5 size-5 shrink-0 cursor-pointer accent-brand-purple" {...register("consent")} />
           <span>
             <span className="inline-flex items-center gap-1.5 font-semibold"><ShieldCheck className="size-4 text-emerald-600" aria-hidden />{t("consent.title")}</span>
             <span className="mt-0.5 block text-xs leading-relaxed text-label">{t("consent.text")}</span>

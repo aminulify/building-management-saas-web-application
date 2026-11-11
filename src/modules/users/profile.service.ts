@@ -8,7 +8,9 @@ import type { Actor } from "@/lib/auth/require-actor";
 import { getEntitlement } from "@/lib/authz/entitlement";
 import { signStorageKey } from "@/modules/uploads/service";
 import { passwordSchema } from "@/modules/auth/schema";
-import { bdPhoneSchema } from "./schema";
+import { sha256 } from "@/lib/crypto";
+import { removeStorageKeys } from "@/modules/uploads/service";
+import { bdPhoneSchema, nidSchema } from "./schema";
 
 const address = z.object({
   division: z.string().trim().min(2).max(60), district: z.string().trim().min(2).max(60),
@@ -21,6 +23,10 @@ const address = z.object({
 export const profileUpdateSchema = z.object({
   fullName: z.string().trim().min(2).max(100),
   phone: bdPhoneSchema,
+  /** the sign-in e-mail: it must be free, and the sign-in account follows it */
+  email: z.string().trim().toLowerCase().email().max(120),
+  /** the national ID number (13–17 digits) */
+  nid: nidSchema,
   locale: z.enum(["bn", "en"]),
   gender: z.enum(["MALE", "FEMALE", "OTHER"]),
   dateOfBirth: z.coerce.date().max(new Date()),
@@ -29,15 +35,15 @@ export const profileUpdateSchema = z.object({
   /** notification preferences, e.g. { email: true, sms: false, push: true } */
   preferences: z.record(z.string(), z.union([z.boolean(), z.string(), z.number()])).refine((v) => JSON.stringify(v).length < 2000, "too_large"),
   address,
-  owner: z.object({ businessName: z.string().trim().max(120) }).partial().strict(),
-  tenant: z.object({ emergencyContact: bdPhoneSchema, occupation: z.string().trim().max(80) }).partial().strict(),
+  owner: z.object({ businessName: z.string().trim().max(120), bkashNumber: bdPhoneSchema }).partial().strict(),
+  tenant: z.object({ emergencyContact: bdPhoneSchema, occupation: z.string().trim().max(80), members: z.number().int().min(1).max(30) }).partial().strict(),
   gov: z.object({ department: z.string().trim().max(100), designation: z.string().trim().max(100) }).partial().strict(),
 }).partial().strict().refine((v) => Object.keys(v).length > 0, { message: "empty_update" });
 
 const select = {
-  id: true, username: true, ownerCode: true, role: true, status: true, fullName: true, email: true, phone: true, nidLast4: true,
+  id: true, username: true, ownerCode: true, tenantCode: true, role: true, status: true, fullName: true, email: true, phone: true, nidLast4: true,
   verificationStatus: true, locale: true, gender: true, occupation: true, dateOfBirth: true, avatarKey: true, preferences: true, createdAt: true,
-  address: true, ownerProfile: { select: { businessName: true } }, tenantProfile: { select: { emergencyContact: true, occupation: true } }, govAdminProfile: { select: { department: true, designation: true } },
+  address: true, ownerProfile: { select: { businessName: true, bkashNumber: true } }, tenantProfile: { select: { emergencyContact: true, occupation: true, members: true } }, govAdminProfile: { select: { department: true, designation: true } },
 } as const;
 
 export async function getProfile(actor: Actor) {
@@ -51,27 +57,52 @@ export async function getProfile(actor: Actor) {
 }
 
 export async function updateProfile(actor: Actor, input: z.infer<typeof profileUpdateSchema>, req: Request) {
-  const { owner, tenant, gov, avatarKey, address: addr, ...base } = input;
+  const { owner, tenant, gov, avatarKey, address: addr, email, nid, ...base } = input;
   if (avatarKey && (avatarKey.split("/")[0] !== "AVATAR" || avatarKey.split("/")[1] !== actor.id)) throw new AppError("FORBIDDEN", { reason: "not_your_upload" });
   if (gov && actor.role !== "GOV_ADMIN") throw new AppError("FORBIDDEN", { reason: "gov_only" });
+  if (tenant && actor.role !== "TENANT" && actor.role !== "GENERAL_USER") throw new AppError("FORBIDDEN", { reason: "tenant_block_only" });
+  // a verified tenant's NID number is fixed (the owner relies on it); a Tenant-Free account can still correct theirs
+  if (nid && actor.role === "TENANT") {
+    const cur = await db.user.findUniqueOrThrow({ where: { id: actor.id }, select: { nid: true } });
+    if (cur.nid && cur.nid !== nid) throw new AppError("FORBIDDEN", { reason: "nid_locked" });
+  }
+
+  const before = await db.user.findUniqueOrThrow({ where: { id: actor.id }, select: { email: true, authId: true, avatarKey: true, nidHash: true } });
+  const emailChanged = email !== undefined && email !== before.email;
+  const nidHash = nid ? sha256(nid) : undefined;
+  if (emailChanged && (await db.user.count({ where: { email, id: { not: actor.id } } }))) throw new AppError("CONFLICT", { field: "email" });
+  if (nidHash && nidHash !== before.nidHash && (await db.user.count({ where: { nidHash, id: { not: actor.id } } }))) throw new AppError("CONFLICT", { field: "nid" });
+  // the sign-in account changes first: if it refuses (taken, malformed) nothing else is touched
+  if (emailChanged && before.authId) {
+    const { error } = await supabaseAdmin().auth.admin.updateUserById(before.authId, { email, email_confirm: true });
+    if (error) throw new AppError("CONFLICT", { field: "email" });
+  }
 
   try {
     await db.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: actor.id }, data: { ...base, avatarKey } });
+      await tx.user.update({
+        where: { id: actor.id },
+        data: { ...base, avatarKey, ...(emailChanged ? { email } : {}), ...(nid && nidHash !== before.nidHash ? { nid, nidHash, nidLast4: nid.slice(-4) } : {}) },
+      });
       if (addr) {
         const cur = await tx.user.findUniqueOrThrow({ where: { id: actor.id }, select: { addressId: true } });
         if (cur.addressId) await tx.address.update({ where: { id: cur.addressId }, data: addr });
         else await tx.user.update({ where: { id: actor.id }, data: { addressId: (await tx.address.create({ data: addr })).id } });
       }
       if (owner && actor.role === "OWNER") await tx.ownerProfile.upsert({ where: { userId: actor.id }, update: owner, create: { userId: actor.id, ...owner } });
-      if (tenant && actor.role === "TENANT") await tx.tenantProfile.upsert({ where: { userId: actor.id }, update: tenant, create: { userId: actor.id, ...tenant } });
+      if (tenant) await tx.tenantProfile.upsert({ where: { userId: actor.id }, update: tenant, create: { userId: actor.id, ...tenant } });
       if (gov) await tx.govAdminProfile.update({ where: { userId: actor.id }, data: gov });
       await writeAudit({ actor, action: "profile.update", resourceType: "User", resourceId: actor.id, after: { fields: Object.keys(input) }, req }, tx);
     });
   } catch (e) {
-    if ((e as { code?: string }).code === "P2002") throw new AppError("CONFLICT", { field: "phone" });
+    if ((e as { code?: string }).code === "P2002") {
+      const target = String(((e as { meta?: { target?: unknown } }).meta?.target) ?? "");
+      throw new AppError("CONFLICT", { field: target.includes("email") ? "email" : target.includes("nid") ? "nid" : "phone" });
+    }
     throw e;
   }
+  // a new profile photo replaces the old one for good: the previous file is removed from storage (a failure only leaves an orphan file)
+  if (avatarKey && before.avatarKey && before.avatarKey !== avatarKey) await removeStorageKeys([before.avatarKey]).catch(() => undefined);
   return getProfile(actor);
 }
 

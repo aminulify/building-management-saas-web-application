@@ -62,7 +62,14 @@
     "rentReceived": "{tenantName} (Unit {unit}, {property}) paid ৳{amount}. Receipt {receipt}",
     "rentOverdue": "Rent overdue: {tenantName} (Unit {unit}, {property}) owes ৳{due}",
     "callMissed": "Missed call from {from}",
-    "signatureRequested": "{owner} asked you to sign the agreement for Unit {unit}"
+    "signatureRequested": "{owner} asked you to sign the agreement for Unit {unit}",
+    "maintenanceUpdated": "{tenantName} updated the request '{title}' (Unit {unit}, {property})",
+    "maintenanceRemoved": "{tenantName} removed the request '{title}' (Unit {unit}, {property})",
+    "rentInvoice": "Your rent invoice for {month} (৳{total}) has been generated",
+    "rentLate": "Final reminder: overdue rent ৳{due} for {month}",
+    "sosSent": "Your emergency alert was sent",
+    "sosUnsolved": "{reporter} reported the emergency ({alertType}) as UNSOLVED",
+    "tenantFree": "Your tenancy ended, so your account is Tenant-Free again. All your history is kept and the Subscription tab is back."
   },
   "common": {
     "language": "Language",
@@ -113,7 +120,6 @@
       "hidePassword": "Hide password",
       "passwordsMatch": "Passwords match",
       "fields": {
-        "role": "I am registering as",
         "fullName": "Full name",
         "username": "Username",
         "email": "Email address",
@@ -150,20 +156,6 @@
         "phone": "Bangladesh mobile, e.g. 017XXXXXXXX",
         "nid": "Only digits. Our team verifies it manually.",
         "upazilaFree": "We do not have the list for this district yet. Please type it."
-      },
-      "roles": {
-        "OWNER": {
-          "title": "Apartment owner",
-          "hint": "Manage properties, units, tenants and rent"
-        },
-        "TENANT": {
-          "title": "Tenant",
-          "hint": "Rent a home, pay rent, raise requests"
-        },
-        "GENERAL_USER": {
-          "title": "Property seeker",
-          "hint": "Search homes and land for free"
-        }
       },
       "rules": {
         "length": "At least 8 characters",
@@ -336,6 +328,16 @@
     }
   },
   "validation": {
+    "trxShort": "Enter the transaction ID (at least 4 characters).",
+    "trxLong": "The transaction ID is too long.",
+    "trxChars": "Use only letters and numbers.",
+    "trxUsed": "This transaction ID was already used.",
+    "titleShort": "Write at least 3 letters.",
+    "titleLong": "This is too long (120 letters at most).",
+    "descShort": "Write at least 5 letters.",
+    "descLong": "This is too long.",
+    "incidentDescShort": "Describe it in at least 10 letters.",
+    "sosDescLong": "Keep it within 500 letters.",
     "nameLength": "Enter your full name (2–100 letters).",
     "phoneFormat": "Enter a Bangladesh mobile number like 01712345678.",
     "phoneTaken": "An account with this phone number already exists.",
@@ -345,7 +347,6 @@
     "districtRequired": "Please select a district.",
     "occupationLong": "Occupation can be up to 80 letters.",
     "tooLong": "Too long.",
-    "roleRequired": "Please choose how you will use AmaderGhor.",
     "fullNameMin": "Enter your full name (at least 2 characters).",
     "fullNameMax": "Name is too long.",
     "usernameFormat": "Use 3–20 lowercase letters, digits or underscore.",
@@ -368,8 +369,8 @@
     "fileEmpty": "This file is empty.",
     "serverInvalid": "Please check this field.",
     "usernameTaken": "This username is already taken.",
-    "emailTaken": "An account with this email already exists.",
-    "nidTaken": "This NID is already registered.",
+    "emailTaken": "This email is already used by another account.",
+    "nidTaken": "This NID number is already registered.",
     "identifierRequired": "Enter your email or username.",
     "identifierShort": "Enter at least 3 characters.",
     "passwordRequiredLogin": "Enter your password.",
@@ -406,7 +407,10 @@
     "tenantRequired": "Find and select a tenant first.",
     "unitRequired": "Please select a vacant unit.",
     "notesTooLong": "Notes can be up to 1000 letters.",
-    "notInFuture": "The move-out date cannot be in the future."
+    "notInFuture": "The move-out date cannot be in the future.",
+    "preferredPast": "Pick a time that has not passed yet.",
+    "preferredFar": "Pick a date within the next year.",
+    "membersInvalid": "Enter a number from 1 to 30."
   },
   "errorPages": {
     "notFound": {
@@ -1191,7 +1195,10 @@
           "COMMERCIAL": "Commercial",
           "AGRICULTURAL": "Agricultural",
           "INDUSTRIAL": "Industrial"
-        }
+        },
+        "searchLabel": "Search by location",
+        "searchPlaceholder": "Search a location: area, road, landmark or postal code…",
+        "searchClear": "Clear the location search"
       },
       "results": {
         "aria": "Search results",
@@ -1724,7 +1731,9 @@
         "listings": "{n} listings",
         "properties": "{n} properties",
         "cta": "Choose a plan",
-        "plansError": "We could not load the plans. Please try again later."
+        "plansError": "We could not load the plans. Please try again later.",
+        "tenantNote": "Becoming an owner is only for users who are not verified tenants. You are a verified tenant, so a listing plan is not available to you.",
+        "userNote": "Becoming an owner is only for users who are not verified tenants. Choose a plan to start listing."
       }
     },
     "subscription": {
@@ -2473,7 +2482,8 @@
           "network": "No connection. Check your internet and try again.",
           "rate": "Too many uploads. Try again later.",
           "generic": "The document could not be sent. Try again."
-        }
+        },
+        "titleAgreement": "Rental agreement"
       },
       "agreements": {
         "title": "Tenant Agreements",
@@ -2534,7 +2544,8 @@
           "upazila": "Thana / Upazila",
           "union": "Union",
           "street": "Village / Street",
-          "postOffice": "Post office"
+          "postOffice": "Post office",
+          "bkashNumber": "Your bKash number"
         },
         "address": "Permanent address",
         "cancel": "Cancel",
@@ -2545,7 +2556,8 @@
           "invalid": "Please check the highlighted fields.",
           "network": "No connection. Check your internet and try again.",
           "generic": "The profile could not be saved. Try again."
-        }
+        },
+        "bkashHint": "Tenants see this number when they send you rent. Leave empty to show your phone number."
       }
     },
     "logout": {
@@ -2698,6 +2710,716 @@
     },
     "live": {
       "offline": "Live updates paused. Reconnecting…"
+    }
+  },
+  "tenant": {
+    "navLabel": "Tenant navigation",
+    "unread": "{count} unread notifications",
+    "roleTenant": "Tenant",
+    "loadError": "We could not load your dashboard. Please check your connection and try again.",
+    "retry": "Try again",
+    "loading": "Loading…",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "nav": {
+      "dashboard": "Dashboard",
+      "maintenance": "Maintenance",
+      "findHome": "Find Home",
+      "history": "History",
+      "notifications": "Notifications",
+      "messages": "Message",
+      "logout": "Logout",
+      "loggingOut": "Logging out…",
+      "marketplace": "Marketplace",
+      "subscription": "Subscriptions"
+    },
+    "dashboard": {
+      "metaTitle": "Tenant Dashboard · AmaderGhor",
+      "welcome": "Welcome back, {name}!",
+      "subtitle": "Here's what's happening with your apartment today.",
+      "loading": "Loading your dashboard…",
+      "error": "We could not load your dashboard.",
+      "retry": "Try again",
+      "noLease": {
+        "title": "No active lease yet",
+        "text": "When an owner adds you to a unit, your home, rent and help desk appear here. You can also look for a home to rent.",
+        "cta": "Find a home"
+      },
+      "lease": {
+        "title": "My Apartment",
+        "active": "Active Lease",
+        "unit": "Unit - {no}",
+        "home": "Home",
+        "started": "Lease Started",
+        "ends": "Lease Ends",
+        "present": "Present"
+      },
+      "payment": {
+        "title": "Next Payment Due",
+        "dueDate": "Due Date: {date}",
+        "late": "Late",
+        "lastPaid": "Last Paid: {date}",
+        "noPayments": "No payment received yet",
+        "send": "Send Paid Request",
+        "pending": "Pending Verification ⏳",
+        "notBilled": "Not billed yet",
+        "pendingNote": "{amount} sent by {method}. Waiting for your owner to confirm.",
+        "methods": {
+          "BKASH": "bKash",
+          "NAGAD": "Nagad",
+          "ROCKET": "Rocket",
+          "BANK": "Bank transfer"
+        }
+      },
+      "help": {
+        "title": "Help Desk",
+        "owner": "Property Owner",
+        "id": "ID",
+        "call": "Call",
+        "chat": "Chat",
+        "noPhone": "No phone number available",
+        "chatForbidden": "You cannot message this person right now.",
+        "chatError": "The chat could not be opened. Try again."
+      },
+      "quick": {
+        "title": "Quick Actions",
+        "repair": "Request Repair",
+        "agreement": "View Agreement",
+        "incident": "Report Incident"
+      },
+      "activity": {
+        "title": "Recent Activity",
+        "error": "We could not load your activity.",
+        "retry": "Try again",
+        "emptyTitle": "Nothing yet",
+        "emptyText": "Payments, repairs and reports will show up here.",
+        "more": "View More",
+        "payment": {
+          "done": "Rent Payment Successful",
+          "rejected": "Rent Payment Rejected",
+          "sent": "Rent Payment Sent"
+        },
+        "sos": "Emergency: {type}",
+        "sosTypes": {
+          "FIRE": "Fire",
+          "THEFT": "Theft",
+          "SECURITY": "Police",
+          "LEAKAGE": "Leakage",
+          "MEDICAL": "Medical",
+          "OTHER": "Other"
+        },
+        "status": {
+          "completed": "Completed",
+          "rejected": "Rejected",
+          "pendingVerification": "Pending Verification",
+          "inProgress": "In Progress",
+          "pending": "Pending",
+          "cancelled": "Cancelled",
+          "resolved": "Resolved",
+          "inReview": "In Review",
+          "open": "Open",
+          "solved": "Solved",
+          "falseAlarm": "False alarm",
+          "sent": "Alert sent"
+        }
+      },
+      "emergency": {
+        "title": "Alert",
+        "police": "Need Quickly Police",
+        "fire": "Need Fire Service"
+      },
+      "payModal": {
+        "title": "Send Paid Request",
+        "subtitle": "Tell {name} you have paid. They will confirm it.",
+        "month": "Month",
+        "amount": "Amount",
+        "sendTo": "Send the money to",
+        "copy": "Copy",
+        "copied": "Copied",
+        "noNumber": "Your owner has not shared a number yet. Please call them.",
+        "sendHint": "Send Money to {name}'s number, then enter the transaction ID below.",
+        "method": "Payment method",
+        "trx": "Transaction ID (TrxID)",
+        "trxHint": "You get it in the SMS after sending the money.",
+        "cancel": "Cancel",
+        "submit": "Send Paid Request",
+        "sending": "Sending…",
+        "done": "Payment request sent to landlord!",
+        "methods": {
+          "BKASH": "bKash",
+          "NAGAD": "Nagad",
+          "ROCKET": "Rocket",
+          "BANK": "Bank transfer"
+        },
+        "errors": {
+          "alreadyPending": "You already sent a request for this month. Wait for your owner to confirm.",
+          "alreadyPaid": "This month is already paid.",
+          "rate": "Too many requests. Try again later.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The request could not be sent. Try again."
+        }
+      },
+      "photos": {
+        "remove": "Remove {name}",
+        "add": "Add a picture",
+        "hint": "Up to {n} pictures (JPG, PNG, WebP · 5 MB each)."
+      },
+      "repair": {
+        "title": "Request Repair",
+        "subtitle": "Your owner sees this in their Maintenance page.",
+        "category": "Issue category",
+        "categories": {
+          "PLUMBING": "Plumbing",
+          "ELECTRICAL": "Electrical",
+          "GAS": "Gas",
+          "LIFT": "Lift",
+          "PAINT": "Paint",
+          "SECURITY": "Security",
+          "CLEANING": "Cleaning",
+          "OTHER": "Other"
+        },
+        "priority": "Priority",
+        "priorities": {
+          "LOW": "Low",
+          "MEDIUM": "Medium",
+          "HIGH": "High",
+          "CRITICAL": "Critical"
+        },
+        "titleLabel": "Title",
+        "titlePlaceholder": "Kitchen sink is leaking",
+        "description": "Description",
+        "descriptionPlaceholder": "Tell us what is wrong and where.",
+        "photos": "Photos (optional)",
+        "cancel": "Cancel",
+        "submit": "Send Request",
+        "sending": "Sending…",
+        "done": "Your repair request was sent.",
+        "sentTitle": "Request sent",
+        "sentText": "You can follow it here and in Recent Activity.",
+        "track": "Status",
+        "steps": {
+          "pending": "Pending",
+          "inProgress": "In Progress",
+          "completed": "Completed"
+        },
+        "rejected": "Your owner rejected this request.",
+        "cancelled": "This request was cancelled.",
+        "close": "Close",
+        "errors": {
+          "noLease": "You need an active lease to send a repair request.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The request could not be sent. Try again.",
+          "photo": {
+            "type": "Use a JPG, PNG or WebP picture.",
+            "size": "Each picture must be 5 MB or smaller.",
+            "many": "You can add up to 5 pictures."
+          }
+        }
+      },
+      "agreement": {
+        "title": "Rental Agreement",
+        "between": "Between {tenant} and {owner}",
+        "unit": "Unit - {no}",
+        "present": "Present",
+        "noneTitle": "No agreement uploaded yet",
+        "noneText": "Your owner has not uploaded the signed agreement. Ask them to add it.",
+        "loading": "Loading the agreement…",
+        "error": "We could not open the agreement.",
+        "retry": "Try again",
+        "previewTitle": "Agreement preview",
+        "close": "Close",
+        "download": "Download PDF"
+      },
+      "incident": {
+        "title": "Report Incident",
+        "subtitle": "Security or noise problem? Your owner is told at once.",
+        "category": "Type",
+        "categories": {
+          "SECURITY": "Security",
+          "NOISE": "Noise",
+          "BEHAVIOUR": "Behaviour",
+          "FACILITY": "Facility",
+          "PAYMENT": "Payment",
+          "OTHER": "Other"
+        },
+        "subject": "Subject",
+        "subjectPlaceholder": "Loud music at night",
+        "description": "What happened?",
+        "descriptionPlaceholder": "Describe the problem, when it happens and who is involved.",
+        "photos": "Evidence (optional)",
+        "cancel": "Cancel",
+        "submit": "Send Report",
+        "sending": "Sending…",
+        "done": "Your report was sent to the owner.",
+        "errors": {
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The report could not be sent. Try again.",
+          "photo": {
+            "type": "Use a JPG, PNG or WebP picture.",
+            "size": "Each picture must be 5 MB or smaller.",
+            "many": "You can add up to 5 pictures."
+          }
+        }
+      },
+      "sos": {
+        "title": "Emergency Alert",
+        "subtitle": "Your details are filled in. Add a pin and a few words.",
+        "name": "Tenant name",
+        "phone": "Contact number",
+        "service": "Service",
+        "policeService": "Police Emergency 🚨",
+        "fireService": "Fire Service 🚒",
+        "address": "Address",
+        "gps": "📍 Attach current GPS pin",
+        "gpsAttached": "GPS pin attached",
+        "gpsDenied": "Location access is blocked. Allow it in your browser, or send the alert without it.",
+        "gpsUnsupported": "This device cannot share its location.",
+        "description": "Emergency details",
+        "descriptionPlaceholder": "What is happening?",
+        "cancel": "Cancel",
+        "submit": "Send Emergency Alert",
+        "sending": "Sending…",
+        "done": "Emergency alert sent.",
+        "already": "You already sent this alert a moment ago.",
+        "sentTitle": "Alert sent",
+        "sentText": "Your alert reached AmaderGhor and your owner. Stay safe.",
+        "track": "Status",
+        "close": "Close",
+        "call999": "In danger? Also call 999 now.",
+        "stages": {
+          "RECEIVED_BY_PLATFORM": "Received by AmaderGhor",
+          "SEEN_BY_GOV": "Seen by the government team",
+          "FORWARDED": "Forwarded to the emergency service",
+          "SOLVED": "Solved"
+        },
+        "errors": {
+          "rate": "Too many alerts in the last hour. Please call 999.",
+          "network": "No connection. Please call 999.",
+          "generic": "The alert could not be sent. Please call 999."
+        }
+      }
+    },
+    "maintenance": {
+      "metaTitle": "Maintenance",
+      "title": "<hl>Maintenance</hl> Requests",
+      "subtitle": "Report issues and track repair status.",
+      "newRequest": "New Request",
+      "noLease": "You need an active lease to send repair requests. Ask your landlord to add you to a unit.",
+      "loading": "Loading your requests",
+      "error": "We could not load your requests.",
+      "retry": "Try again",
+      "stats": {
+        "aria": "Request numbers",
+        "active": "Active requests",
+        "completed": "Completed",
+        "pending": "Pending",
+        "error": "The numbers could not be loaded."
+      },
+      "tabs": {
+        "aria": "Filter by status",
+        "all": "All",
+        "active": "Active",
+        "completed": "Completed"
+      },
+      "list": {
+        "aria": "Your maintenance requests",
+        "loadMore": "Load More Issues",
+        "loadingMore": "Loading…",
+        "end": "All {n} issues are shown.",
+        "moreError": "Could not load more issues. Try again."
+      },
+      "empty": {
+        "allTitle": "No requests yet",
+        "allText": "When something breaks, send a request and follow it here from Pending to Completed.",
+        "tabTitle": "Nothing here",
+        "tabText": "No requests have this status right now.",
+        "showAll": "Show all requests"
+      },
+      "card": {
+        "edit": "Edit",
+        "closed": "A rejected or cancelled request cannot be edited.",
+        "preferred": "Preferred: {when}"
+      },
+      "tags": {
+        "aria": "Where this request is filed",
+        "apartment": "Apartment",
+        "unit": "Unit",
+        "unitValue": "Unit - {unit}",
+        "tenant": "Tenant"
+      },
+      "form": {
+        "title": "Issue title",
+        "titlePlaceholder": "e.g. Geyser is making a loud noise",
+        "category": "Category",
+        "preferred": "Preferred repair date & time",
+        "preferredHint": "Optional. Your landlord will try to follow it.",
+        "priority": "Priority level",
+        "description": "Description",
+        "descriptionPlaceholder": "Tell us what is wrong and where."
+      },
+      "new": {
+        "title": "New Maintenance Request",
+        "subtitle": "Your landlord is told as soon as you send it.",
+        "photos": "Photo or file (optional)",
+        "cancel": "Cancel",
+        "submit": "Submit Request",
+        "sending": "Sending…",
+        "done": "Request sent. Your landlord has been notified.",
+        "errors": {
+          "noLease": "You need an active lease to send a request.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The request could not be sent. Try again.",
+          "photo": {
+            "type": "Use a JPG, PNG or WebP picture.",
+            "size": "Each picture must be 5 MB or smaller.",
+            "many": "You can add up to 5 pictures."
+          }
+        }
+      },
+      "edit": {
+        "title": "Edit Issue",
+        "subtitle": "Changes reach your landlord straight away.",
+        "loadError": "We could not open this request.",
+        "retry": "Try again",
+        "condition": "Condition / Status",
+        "conditionHint": "Choose Completed when it is fixed. Your landlord moves a request to In-Progress.",
+        "conditionInProgress": "Work has started, so your landlord manages the status. You can mark it Completed once it is fixed.",
+        "locked": "Work has started, so the details can no longer be changed. Choose Pending to reopen a completed request.",
+        "evidence": "Attached image / evidence",
+        "noPhoto": "No photo attached.",
+        "photoAlt": "Attached photo",
+        "noPreview": "No preview",
+        "removePhoto": "Remove this photo",
+        "replace": "Add or replace a photo",
+        "cancel": "Cancel",
+        "submit": "Update Request",
+        "saving": "Saving…",
+        "done": "Request updated. Your landlord has been notified.",
+        "errors": {
+          "locked": "This request cannot be changed in its current state.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The request could not be updated. Try again.",
+          "photo": {
+            "type": "Use a JPG, PNG or WebP picture.",
+            "size": "Each picture must be 5 MB or smaller.",
+            "many": "You can add up to 5 pictures."
+          }
+        }
+      },
+      "delete": {
+        "title": "Delete this request?",
+        "text": "Are you sure you want to delete this request? This action cannot be undone.",
+        "cancel": "Cancel",
+        "confirm": "Delete"
+      },
+      "toast": {
+        "deleted": "Request deleted.",
+        "inProgress": "Work has already started on this request. Ask your landlord, or mark it Completed.",
+        "error": "That did not work. Please try again."
+      }
+    },
+    "history": {
+      "metaTitle": "History",
+      "title": "Rental & Payment <hl>History</hl>",
+      "subtitle": "Every home you have rented, with its payments and invoices.",
+      "loading": "Loading your rental history",
+      "error": "We could not load your rental history.",
+      "retry": "Try again",
+      "empty": {
+        "title": "No rental history yet",
+        "text": "Once your landlord adds you to a unit, your stay and every payment appear here.",
+        "cta": "Find a home"
+      },
+      "end": {
+        "title": "No Older Records",
+        "text": "We couldn't find any rental records prior to {month} associated with your account.",
+        "textNone": "We couldn't find any older rental records associated with your account."
+      },
+      "toast": {
+        "invoice": "Invoice for {month} downloaded.",
+        "invoiceError": "The invoice could not be created. Please try again."
+      },
+      "summary": {
+        "aria": "Rental summary",
+        "years": "Total years rented",
+        "yearsValue": "{n} Years",
+        "since": "Since {month}",
+        "noStay": "No stay yet",
+        "houses": "Properties lived in",
+        "housesValue": "{n} {count, plural, one {House} other {Houses}}",
+        "and": "&",
+        "unpaid": "Unpaid balance",
+        "cleared": "All dues cleared ✓",
+        "late": "{n, plural, one {# month} other {# months}} pending payment",
+        "dueSoon": "Due by day {day} of the month"
+      },
+      "stay": {
+        "present": "Present",
+        "period": "Rental period",
+        "active": "Active",
+        "completed": "Completed",
+        "entryExit": "Entry & exit records",
+        "checkedIn": "Checked in",
+        "checkedOut": "Checked out",
+        "ongoing": "Ongoing",
+        "unitDetails": "Unit details",
+        "unitName": "Unit name",
+        "landlord": "Landlord",
+        "monthlyRent": "Monthly rent",
+        "ledger": "Payment ledger (recent)",
+        "viewAll": "View All ৳ Receipts",
+        "showLess": "Show recent only",
+        "noRecords": "No rent bills for this stay yet.",
+        "moreError": "Could not load more receipts. Try again."
+      },
+      "ledger": {
+        "month": "Billing month",
+        "amount": "Amount",
+        "status": "Status",
+        "action": "Action",
+        "state": {
+          "PAID": "Paid",
+          "PENDING": "Pending",
+          "UNPAID": "Unpaid"
+        },
+        "late": "Late",
+        "invoice": "Invoice",
+        "invoiceFor": "Download the invoice for {month}",
+        "sendRequest": "Send paid request",
+        "sendFor": "Send a paid request for {month}",
+        "pendingRequest": "Pending request",
+        "closed": "Closed"
+      }
+    },
+    "notifications": {
+      "metaTitle": "Notifications",
+      "title": "Your <hl>Activity</hl>",
+      "subtitle": "Stay updated with your residency.",
+      "markAll": "Mark all as read ({n})",
+      "loading": "Loading your notifications",
+      "error": "We could not load your notifications.",
+      "retry": "Try again",
+      "unread": "Unread",
+      "summary": {
+        "aria": "Your activity numbers",
+        "loading": "Loading",
+        "next": "Next payment",
+        "noLease": "No active lease",
+        "hintPending": "Your payment request is waiting for the landlord",
+        "hintPaid": "All paid. Next bill due",
+        "hintLate": "{n, plural, one {# day} other {# days}} late",
+        "hintToday": "Due today",
+        "hintIn": "Due in {n, plural, one {# day} other {# days}}",
+        "pending": "Pending tasks",
+        "pendingValue": "{n} {count, plural, one {Request} other {Requests}} Active",
+        "issues": "Quick issues",
+        "issuesHint": "{rules, plural, one {# rule warning} other {# rule warnings}} · {alerts, plural, one {# SOS alert} other {# SOS alerts}}",
+        "error": "The numbers could not be loaded."
+      },
+      "tabs": {
+        "aria": "Filter notifications",
+        "all": "All",
+        "payment": "Payment",
+        "services": "Services",
+        "issues": "Issues"
+      },
+      "list": {
+        "aria": "Your notifications",
+        "loadMore": "Load More Notifications",
+        "loadingMore": "Loading…",
+        "end": "You are all caught up.",
+        "moreError": "Could not load more notifications. Try again."
+      },
+      "empty": {
+        "allTitle": "Nothing yet",
+        "allText": "Rent bills, repair updates and emergency follow-ups will show up here.",
+        "tabTitle": "Nothing here",
+        "tabText": "No notifications in this group right now.",
+        "showAll": "Show all"
+      },
+      "tag": {
+        "unpaid": "Unpaid",
+        "payment": "Payment",
+        "maintenance": "Maintenance",
+        "accept": "Accept solve issue",
+        "quick": "Quick solve",
+        "update": "Update",
+        "residency": "Residency",
+        "issue": "Issue"
+      },
+      "card": {
+        "title": {
+          "rent": {
+            "invoice": "Rent Invoice Generated",
+            "late": "Violate Agreement",
+            "reminder": "Rent Reminder",
+            "payment": "Payment Recorded",
+            "verified": "Payment Reviewed",
+            "adjusted": "Bill Changed"
+          },
+          "maintenance": {
+            "new": "Maintenance Request",
+            "status": "Maintenance Update",
+            "comment": "New Comment",
+            "updated": "Request Updated",
+            "deleted": "Request Removed",
+            "removed": "Request Removed"
+          },
+          "sos": {
+            "sent": "Emergency Alert"
+          },
+          "tenancy": {
+            "assigned": "Added to a Unit",
+            "accepted": "Tenancy Accepted",
+            "ended": "Tenancy Ended",
+            "signature": "Agreement Signature"
+          },
+          "complaint": {
+            "new": "Complaint",
+            "update": "Complaint Update"
+          },
+          "update": "Notification"
+        },
+        "invoice": "Your rent invoice for {month} ({total}) has been generated. Please pay by the 5th to avoid violate agreement.",
+        "late": "Final Reminder: Overdue Rent {due} – Pay by Today",
+        "reminder": "Rent reminder: {due} due for {month}.",
+        "sosPending": "Your alert was received. The team will look at it soon.",
+        "sosProcessing": "Your alert is being handled right now.",
+        "sosSolved": "We solve your issue. Now \"Accept\" the notification.",
+        "sosDone": "This issue was solved and accepted.",
+        "sosClosed": "This alert was closed as a false alarm."
+      },
+      "badge": {
+        "PAID": "Paid",
+        "PENDING_REQUEST": "Pending request",
+        "PENDING": "Pending",
+        "PROCESSING": "Processing",
+        "COMPLETED": "Completed",
+        "CLOSED": "Closed"
+      },
+      "action": {
+        "pay": "Send Pay Request",
+        "track": "Track Status",
+        "accept": "Accept",
+        "unsolved": "Unsolved",
+        "read": "Mark as Read"
+      },
+      "toast": {
+        "allRead": "All notifications marked as read.",
+        "accepted": "Thank you! The issue is marked Completed.",
+        "unsolved": "We reopened it and told your landlord and the government team.",
+        "error": "That did not work. Please try again."
+      },
+      "track": {
+        "title": "Track Status",
+        "gone": "This request is not available any more.",
+        "close": "Close",
+        "all": "All requests",
+        "technician": "Technician: {name}"
+      }
+    },
+    "roleUser": "Tenant-Free",
+    "freePlan": {
+      "title": "Free Plan",
+      "copy": "Unlock premium features like auto-pay, and become an Apartment Owner.",
+      "cta": "Upgrade Now",
+      "waitingCopy": "Your payment is being checked. You become an Apartment Owner as soon as it is approved.",
+      "waitingCta": "View status",
+      "badge": "Current"
+    },
+    "profile": {
+      "metaTitle": "Profile",
+      "loading": "Loading your profile",
+      "error": "We could not load your profile.",
+      "retry": "Try again",
+      "heroAria": "Your profile",
+      "changePhoto": "Change profile photo",
+      "update": "Update Profile",
+      "status": {
+        "free": "Tenant Free",
+        "verified": "Tenant"
+      },
+      "personal": {
+        "title": "Personal Information",
+        "fullName": "Full name",
+        "phone": "Phone number",
+        "email": "Email address",
+        "occupation": "Occupation",
+        "nid": "NID number",
+        "dob": "Date of birth",
+        "tenantId": "Tenant ID",
+        "member": "Member",
+        "idNote": "Your Tenant ID was given when you signed up. It never changes, even when your account becomes a verified tenant or an apartment owner."
+      },
+      "address": {
+        "title": "Permanent Address",
+        "division": "Division",
+        "district": "District",
+        "upazila": "Thana / Upazila",
+        "union": "Union",
+        "street": "Village / Street",
+        "postOffice": "Post office"
+      },
+      "documents": {
+        "title": "Documents",
+        "nidFront": "NID front side",
+        "nidBack": "NID back side",
+        "agreement": "Agreement",
+        "noAgreement": "No agreement available",
+        "notUploaded": "Not uploaded yet",
+        "upload": "Upload",
+        "landlordCopy": "Shared by your landlord · {date}",
+        "state": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending",
+          "REJECTED": "Fake",
+          "NONE": "Not uploaded",
+          "AVAILABLE": "Available"
+        },
+        "hint": "Tap a document to add or replace it. The team checks it and the status changes."
+      },
+      "edit": {
+        "title": "Update Profile",
+        "subtitle": "Your Tenant ID is locked. Everything else can be changed.",
+        "address": "Permanent address",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "done": "Profile updated.",
+        "tenantIdHint": "Locked: given once and never changes.",
+        "fields": {
+          "fullName": "Full name",
+          "phone": "Phone number",
+          "email": "Email address",
+          "occupation": "Occupation",
+          "nid": "NID number",
+          "dateOfBirth": "Date of birth",
+          "members": "Member count",
+          "tenantId": "Tenant ID",
+          "division": "Division",
+          "district": "District",
+          "upazila": "Thana / Upazila",
+          "union": "Union",
+          "street": "Village / Street",
+          "postOffice": "Post office",
+          "username": "Username"
+        },
+        "errors": {
+          "invalid": "Some details are not valid. Check the fields and try again.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The profile could not be saved. Try again."
+        },
+        "usernameHint": "Locked: your username never changes.",
+        "nidHint": "Locked: a verified tenant's NID number is fixed."
+      },
+      "unit": {
+        "title": "Current Unit",
+        "unitFloor": "Unit {unit} • {floor, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} Floor",
+        "landlord": "Landlord",
+        "entry": "Entry",
+        "exit": "Exit",
+        "no": "No"
+      }
     }
   }
 }

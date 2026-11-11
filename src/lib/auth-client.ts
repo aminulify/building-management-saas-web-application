@@ -1,4 +1,5 @@
 import { api, ApiError } from "./api-client";
+import { landingOf } from "@/shared/areas";
 
 /**
  * Browser session handling.
@@ -44,13 +45,14 @@ export const AFTER_LOGOUT_PATH = "/login";
 export const ROLE_HOME: Record<string, string> = {
   SUPER_ADMIN: "/admin/dashboard",
   GOV_ADMIN: "/gov/dashboard",
-  OWNER: "/owner/dashboard",
-  TENANT: "/tenant/dashboard",
-  GENERAL_USER: "/user/dashboard",
+  OWNER: landingOf("OWNER"),
+  TENANT: landingOf("TENANT"),
+  /** a new sign-up is a Tenant-Free account: the same pages as a verified tenant, plus Subscription */
+  GENERAL_USER: landingOf("GENERAL_USER"),
 };
 
 /** Dashboards built so far; every other role still lands on the account page. */
-export const homeFor = (role: string | undefined): string => (role === "OWNER" ? ROLE_HOME.OWNER! : POST_LOGIN_PATH);
+export const homeFor = (role: string | undefined): string => (role === "OWNER" ? ROLE_HOME.OWNER! : role === "TENANT" ? ROLE_HOME.TENANT! : role === "GENERAL_USER" ? ROLE_HOME.GENERAL_USER! : POST_LOGIN_PATH);
 
 interface Refreshed { session: StoredSession }
 

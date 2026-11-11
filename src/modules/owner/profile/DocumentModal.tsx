@@ -47,7 +47,7 @@ function Body({ kind, state, onClose, onSaved, setBusy }: { kind: DocKind; state
     if (!file) return;
     setSaving(true); setError(null);
     try {
-      const key = await uploadPrivate(kind, file, file.type);
+      const key = await uploadPrivate(kind === "AGREEMENT" ? "VERIFICATION_DOC" : kind, file, file.type); // a tenant's own agreement copy is a general verification document
       await authApi("/me/documents", { method: "POST", body: { kind, storageKey: key } });
       toast("success", t("done"));
       onSaved(); onClose();
@@ -59,7 +59,7 @@ function Body({ kind, state, onClose, onSaved, setBusy }: { kind: DocKind; state
 
   return (
     <div>
-      <h2 id="doc-title" className="pr-10 text-xl font-bold text-navy sm:text-2xl">{t(kind === "NID_FRONT" ? "titleFront" : "titleBack")}</h2>
+      <h2 id="doc-title" className="pr-10 text-xl font-bold text-navy sm:text-2xl">{t(kind === "NID_FRONT" ? "titleFront" : kind === "NID_BACK" ? "titleBack" : "titleAgreement")}</h2>
       <p className="mt-1 text-sm text-slate-600">{t("hint")}</p>
       {state?.status === "REJECTED" && <p role="status" className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-xs font-medium text-red-700">{t("rejected")}{state.notes ? ` ${state.notes}` : ""}</p>}
       {verified && <p role="status" className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-800"><FileCheck2 className="size-4 shrink-0" aria-hidden />{t("verified")}</p>}

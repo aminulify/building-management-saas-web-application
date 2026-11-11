@@ -14,7 +14,9 @@ model EmergencyAlert {
   assignedOfficerId String?                               @db.Uuid
   acknowledgedAt    DateTime?                             @db.Timestamptz
   resolvedAt        DateTime?                             @db.Timestamptz
-  /** the reporter pressed "Accept & Close Issue" after the alert was marked SOLVED */
+  /**
+   * the reporter pressed "Accept & Close Issue" after the alert was marked SOLVED
+   */
   acceptedAt        DateTime?                             @db.Timestamptz
   dedupeKey         String?
   createdAt         DateTime                              @default(now()) @db.Timestamptz

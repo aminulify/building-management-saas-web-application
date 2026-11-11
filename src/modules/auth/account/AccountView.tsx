@@ -31,7 +31,7 @@ export function AccountView() {
     setState("loading");
     try {
       const profile = await authApi<Me>("/me");
-      if (profile.role === "OWNER") { router.replace(homeFor("OWNER") as never); return; } // owners have their own dashboard
+      if (profile.role === "OWNER" || profile.role === "TENANT" || profile.role === "GENERAL_USER") { router.replace(homeFor(profile.role) as never); return; } // these roles have their own area
       setMe(profile);
       setState("ready");
     } catch (e) {

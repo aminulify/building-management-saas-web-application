@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AlertCircle, ChevronDown, FilterX, Loader2, MapPin, RefreshCw } from "lucide-react";
+import { AlertCircle, ChevronDown, FilterX, Loader2, MapPin, RefreshCw, Search, X } from "lucide-react";
 import { clsx } from "clsx";
 import { useLocale, useTranslations } from "next-intl";
 import { activeCount, cleanAmount, EMPTY_FILTERS, priceRangeInvalid, toggle } from "./filters";
@@ -84,6 +84,14 @@ export function FilterCard({ filters: f, onChange, market = false }: Props) {
             <FilterX className="size-3.5" aria-hidden />{t("clearAll")} <span className="rounded-full bg-sky-100 px-1.5 text-[0.7rem] text-sky-700">{count}</span>
           </button>
         )}
+      </div>
+
+      <div className="glass-input mb-3 flex h-12 items-center gap-2.5 rounded-xl px-3.5">
+        <Search className="size-5 shrink-0 text-slate-400" aria-hidden />
+        <label htmlFor="fh-search" className="sr-only">{t("searchLabel")}</label>
+        <input id="fh-search" type="search" value={f.q} maxLength={80} autoComplete="off" onChange={(e) => onChange({ q: e.target.value })} placeholder={t("searchPlaceholder")}
+          className="h-full min-w-0 flex-1 bg-transparent text-[0.95rem] text-navy outline-none placeholder:text-slate-400 [&::-webkit-search-cancel-button]:hidden" />
+        {f.q && <button type="button" onClick={() => onChange({ q: "" })} aria-label={t("searchClear")} className="rounded p-1 text-slate-400 hover:text-navy"><X className="size-4" aria-hidden /></button>}
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">

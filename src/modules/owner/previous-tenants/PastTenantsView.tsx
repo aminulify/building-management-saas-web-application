@@ -109,7 +109,7 @@ export function PastTenantsView() {
             <span aria-hidden className="grid size-16 place-items-center rounded-2xl bg-violet-100 text-violet-600"><History className="size-8" /></span>
             <h2 className="text-lg font-bold text-navy">{t("emptyTitle")}</h2>
             <p className="max-w-sm text-sm text-slate-600">{t("emptyText")}</p>
-            <Link href={"/owner/tenants" as never} className="btn btn-primary mt-1 h-11 px-6">{t("goTenants")}</Link>
+            <Link href={"/home-owner/tenants" as never} className="btn btn-primary mt-1 h-11 px-6">{t("goTenants")}</Link>
           </FadeIn>
         )}
 

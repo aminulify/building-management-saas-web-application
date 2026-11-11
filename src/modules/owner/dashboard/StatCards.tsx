@@ -71,12 +71,12 @@ export function StatCards({ overview, stats, state, onRetry }: Props) {
   const { portfolio, rentThisMonth } = overview;
   const occupied = portfolio.units.OCCUPIED ?? 0;
   const cards: Omit<CardProps, "index">[] = [
-    { tone: "sky", icon: Building2, label: t("properties"), value: portfolio.properties, format: num, sub: t("propertiesSub", { n: portfolio.activeTenants }), href: "/owner/properties" },
-    { tone: "blue", icon: DoorOpen, label: t("units"), value: portfolio.totalUnits, format: num, sub: t("unitsSub", { occupied: num(occupied), vacant: num(portfolio.totalUnits - occupied) }), href: "/owner/units" },
-    { tone: "red", icon: Wallet, label: t("unpaid"), value: stats.unpaidUnitsLast30Days, format: num, sub: t("unpaidSub"), href: "/owner/rent" },
-    { tone: "amber", icon: Wrench, label: t("maintenance"), value: stats.maintenance.solvedRate, format: pct, sub: t("maintenanceSub", { solved: num(stats.maintenance.solved), total: num(stats.maintenance.total) }), href: "/owner/maintenance" },
-    { tone: "green", icon: Banknote, label: t("totalRent"), value: Number(rentThisMonth.expected), format: taka, sub: t("totalRentSub", { collected: taka(Number(rentThisMonth.collected)) }), href: "/owner/rent" },
-    { tone: "pink", icon: TrendingUp, label: t("rentPaid"), value: rentThisMonth.collectionRate, format: pct, sub: t("rentPaidSub", { outstanding: taka(Number(rentThisMonth.outstanding)) }), href: "/owner/rent" },
+    { tone: "sky", icon: Building2, label: t("properties"), value: portfolio.properties, format: num, sub: t("propertiesSub", { n: portfolio.activeTenants }), href: "/home-owner/properties" },
+    { tone: "blue", icon: DoorOpen, label: t("units"), value: portfolio.totalUnits, format: num, sub: t("unitsSub", { occupied: num(occupied), vacant: num(portfolio.totalUnits - occupied) }), href: "/home-owner/units" },
+    { tone: "red", icon: Wallet, label: t("unpaid"), value: stats.unpaidUnitsLast30Days, format: num, sub: t("unpaidSub"), href: "/home-owner/rent" },
+    { tone: "amber", icon: Wrench, label: t("maintenance"), value: stats.maintenance.solvedRate, format: pct, sub: t("maintenanceSub", { solved: num(stats.maintenance.solved), total: num(stats.maintenance.total) }), href: "/home-owner/maintenance" },
+    { tone: "green", icon: Banknote, label: t("totalRent"), value: Number(rentThisMonth.expected), format: taka, sub: t("totalRentSub", { collected: taka(Number(rentThisMonth.collected)) }), href: "/home-owner/rent" },
+    { tone: "pink", icon: TrendingUp, label: t("rentPaid"), value: rentThisMonth.collectionRate, format: pct, sub: t("rentPaidSub", { outstanding: taka(Number(rentThisMonth.outstanding)) }), href: "/home-owner/rent" },
   ];
 
   return (

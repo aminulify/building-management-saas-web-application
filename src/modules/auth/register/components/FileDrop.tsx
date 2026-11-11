@@ -60,7 +60,7 @@ export function FileDrop({ label, title, hint, file, onChange, state = "idle", e
           state === "done" && "border-emerald-400 bg-emerald-50/50",
         )}
       >
-        <input
+        <input suppressHydrationWarning
           ref={inputRef}
           id={id}
           type="file"
@@ -82,7 +82,7 @@ export function FileDrop({ label, title, hint, file, onChange, state = "idle", e
               <label htmlFor={id} className="inline-flex cursor-pointer items-center gap-1 rounded-md px-2 py-1 font-semibold text-label hover:bg-white/80 hover:text-navy">
                 <RefreshCw className="size-3.5" aria-hidden />{t("replace")}
               </label>
-              <button type="button" onClick={() => { onChange(null); setLocalError(null); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-red-600 hover:bg-red-50">
+              <button suppressHydrationWarning type="button" onClick={() => { onChange(null); setLocalError(null); }} className="inline-flex items-center gap-1 rounded-md px-2 py-1 font-semibold text-red-600 hover:bg-red-50">
                 <Trash2 className="size-3.5" aria-hidden />{t("remove")}
               </button>
             </div>

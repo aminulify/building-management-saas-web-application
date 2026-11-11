@@ -80,7 +80,7 @@ function Details({ row, onClose, onMessage, onEdit }: { row: DirectoryRow; onClo
           </ul>
         )}
       </div>
-      <p className="mt-2 text-right text-xs"><Link href={"/owner/rent" as never} className="font-semibold text-[#0A84F0] underline underline-offset-2">{t("openRent")}</Link></p>
+      <p className="mt-2 text-right text-xs"><Link href={"/home-owner/rent" as never} className="font-semibold text-[#0A84F0] underline underline-offset-2">{t("openRent")}</Link></p>
 
       <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
         <button type="button" onClick={onClose} className="btn btn-white h-11 sm:min-w-28">{t("close")}</button>

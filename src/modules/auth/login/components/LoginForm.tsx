@@ -105,7 +105,7 @@ export function LoginForm() {
           </GlassField>
 
           <label className="flex w-fit cursor-pointer items-center gap-2.5 text-sm font-medium text-navy">
-            <input type="checkbox" className="size-4.5 cursor-pointer rounded accent-brand-pink" disabled={submitting || done} {...register("remember")} />
+            <input suppressHydrationWarning type="checkbox" className="size-4.5 cursor-pointer rounded accent-brand-pink" disabled={submitting || done} {...register("remember")} />
             {t("stayLoggedIn")}
           </label>
 

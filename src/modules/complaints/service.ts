@@ -14,6 +14,11 @@ export async function createComplaint(actor: Actor, input: z.infer<typeof compla
   return db.$transaction(async (tx) => {
     const c = await tx.complaint.create({ data: { ...input, reporterId: actor.id, events: { create: { actorId: actor.id, action: "CREATED" } } } });
     await notify(await activeUserIds("SUPER_ADMIN", tx), { type: "complaint.new", titleKey: "notifications.complaintNew", params: { subject: c.subject }, link: `/admin/complaints/${c.id}` }, tx);
+    // a tenant reporting an incident at their own property: the landlord is told directly as well
+    if (input.propertyId && actor.role === "TENANT") {
+      const own = await tx.rentalAgreement.findFirst({ where: { tenantId: actor.id, status: "ACTIVE", unit: { propertyId: input.propertyId } }, select: { ownerId: true } });
+      if (own) await notify([own.ownerId], { type: "complaint.new", titleKey: "notifications.complaintNew", params: { subject: c.subject, complaintId: c.id }, link: "/home-owner/notifications", priority: "HIGH" }, tx);
+    }
     await writeAudit({ actor, action: "complaint.create", resourceType: "Complaint", resourceId: c.id, req }, tx);
     return c;
   });
