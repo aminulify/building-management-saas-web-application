@@ -37,6 +37,9 @@ export const safeNext = (next: string | null | undefined): string | null =>
 /** Dashboards are separate modules; until they exist everyone lands on the account page. */
 export const POST_LOGIN_PATH = "/account";
 
+/** Where a signed-out person is sent. The public homepage is a later module (12): until it exists "/" is a 404, so this is the sign-in page. Change it to "/" then. */
+export const AFTER_LOGOUT_PATH = "/login";
+
 /** Where each role will land once the dashboards are built (architecture §10). */
 export const ROLE_HOME: Record<string, string> = {
   SUPER_ADMIN: "/admin/dashboard",

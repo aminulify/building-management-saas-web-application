@@ -66,6 +66,25 @@ enum UnitAvailability {
   ARCHIVED
 }
 
+/// why a tenant moved out (Previous Tenants page)
+enum LeaveReason {
+  JOB_TRANSFER
+  PURCHASED_HOME
+  UPGRADED_UNIT
+  LEASE_EXPIRED
+  OTHER
+}
+
+/// the owner's rating of a past tenant
+enum TenantBehavior {
+  EXCELLENT
+  GOOD
+  AVERAGE
+  UGLY
+  BAD
+  VERY_BAD
+}
+
 enum AgreementStatus {
   INVITED
   ACTIVE

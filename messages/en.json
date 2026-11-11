@@ -60,7 +60,9 @@
     "visitCancelled": "{from} cancelled the visit to “{title}”",
     "maintenanceDeleted": "Your maintenance request '{title}' was removed by the owner",
     "rentReceived": "{tenantName} (Unit {unit}, {property}) paid ৳{amount}. Receipt {receipt}",
-    "rentOverdue": "Rent overdue: {tenantName} (Unit {unit}, {property}) owes ৳{due}"
+    "rentOverdue": "Rent overdue: {tenantName} (Unit {unit}, {property}) owes ৳{due}",
+    "callMissed": "Missed call from {from}",
+    "signatureRequested": "{owner} asked you to sign the agreement for Unit {unit}"
   },
   "common": {
     "language": "Language",
@@ -334,6 +336,15 @@
     }
   },
   "validation": {
+    "nameLength": "Enter your full name (2–100 letters).",
+    "phoneFormat": "Enter a Bangladesh mobile number like 01712345678.",
+    "phoneTaken": "An account with this phone number already exists.",
+    "dobRequired": "Select your date of birth.",
+    "dobFuture": "The date of birth cannot be in the future.",
+    "divisionRequired": "Select a division.",
+    "districtRequired": "Please select a district.",
+    "occupationLong": "Occupation can be up to 80 letters.",
+    "tooLong": "Too long.",
     "roleRequired": "Please choose how you will use AmaderGhor.",
     "fullNameMin": "Enter your full name (at least 2 characters).",
     "fullNameMax": "Name is too long.",
@@ -341,14 +352,10 @@
     "emailInvalid": "Enter a valid email address.",
     "phoneInvalid": "Enter a valid Bangladesh mobile number (e.g. 017XXXXXXXX).",
     "occupationMax": "Occupation is too long.",
-    "dobRequired": "Select your date of birth.",
     "dobInvalid": "Enter a valid date of birth in the past.",
     "nidFormat": "NID must be 13 to 17 digits.",
-    "divisionRequired": "Select a division.",
-    "districtRequired": "Please select a district.",
     "upazilaRequired": "Select or enter your Thana / Upazila.",
     "streetRequired": "Enter your village / street address.",
-    "tooLong": "Too long.",
     "passwordMin": "Use at least 8 characters.",
     "passwordMax": "Use at most 72 characters.",
     "passwordLetter": "Include at least one letter.",
@@ -362,7 +369,6 @@
     "serverInvalid": "Please check this field.",
     "usernameTaken": "This username is already taken.",
     "emailTaken": "An account with this email already exists.",
-    "phoneTaken": "An account with this phone number already exists.",
     "nidTaken": "This NID is already registered.",
     "identifierRequired": "Enter your email or username.",
     "identifierShort": "Enter at least 3 characters.",
@@ -398,7 +404,9 @@
     "leaseDateRequired": "Choose the lease end date.",
     "leaseAfterEntry": "The lease must end after the entry date.",
     "tenantRequired": "Find and select a tenant first.",
-    "unitRequired": "Please select a vacant unit."
+    "unitRequired": "Please select a vacant unit.",
+    "notesTooLong": "Notes can be up to 1000 letters.",
+    "notInFuture": "The move-out date cannot be in the future."
   },
   "errorPages": {
     "notFound": {
@@ -2164,6 +2172,532 @@
         "acceptError": "Could not close the issue. Try again.",
         "closed": "Closed on {when}"
       }
+    },
+    "previousTenants": {
+      "metaTitle": "Previous Tenants · AmaderGhor",
+      "title": "Previous <hl>Tenants</hl>",
+      "subtitle": "Records of past lease agreements and tenant history.",
+      "totalRecords": "Records",
+      "search": "Filter by tenant name...",
+      "searchLabel": "Filter by tenant name or phone",
+      "clearSearch": "Clear search",
+      "propertyLabel": "Filter by property",
+      "statusLabel": "Filter by behaviour",
+      "allProperties": "All Properties",
+      "allStatus": "Status",
+      "loading": "Loading previous tenants…",
+      "error": "We could not load your previous tenants.",
+      "retry": "Try again",
+      "emptyTitle": "No previous tenants yet",
+      "emptyText": "When a tenant moves out, their lease, rent history and your rating are kept here.",
+      "goTenants": "Go to Tenants",
+      "noResultsTitle": "No past tenants match",
+      "noResultsText": "Try another name, property or behaviour.",
+      "clearFilters": "Clear filters",
+      "showing": "Showing {from}–{to} of {total} records",
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {page} of {pages}",
+      "to": "to",
+      "unit": "Unit - {no}",
+      "openHistory": "Open the history of {name}",
+      "cols": {
+        "tenant": "Tenant",
+        "property": "Property Details",
+        "lease": "Lease Period",
+        "reason": "Reason for Leaving",
+        "behavior": "Behavior",
+        "actions": "Actions"
+      },
+      "actions": {
+        "edit": "Edit record",
+        "remove": "Remove from list"
+      },
+      "behavior": {
+        "EXCELLENT": "Excellent",
+        "GOOD": "Good",
+        "AVERAGE": "Average",
+        "UGLY": "Ugly",
+        "BAD": "Bad",
+        "VERY_BAD": "Very Bad",
+        "UNRATED": "Not rated"
+      },
+      "reason": {
+        "JOB_TRANSFER": "Job Transfer",
+        "PURCHASED_HOME": "Purchased Home",
+        "UPGRADED_UNIT": "Upgraded Unit",
+        "LEASE_EXPIRED": "Lease Expired",
+        "OTHER": "Other Reason"
+      },
+      "edit": {
+        "title": "Edit Tenant Record",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "done": "The record of {name} was updated.",
+        "notSet": "Not set",
+        "fields": {
+          "reason": "Reason for leaving",
+          "behavior": "Behaviour rating",
+          "period": "Lease period",
+          "moveIn": "Move-in date",
+          "moveOut": "Move-out date",
+          "notes": "Private notes"
+        },
+        "notesPlaceholder": "Only you can see these notes.",
+        "notesHint": "{n}/1000 · only you can see these notes",
+        "errors": {
+          "gone": "This record is no longer available.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The record could not be saved. Try again."
+        }
+      },
+      "remove": {
+        "title": "Remove this record?",
+        "text": "{name} ({property}, Unit - {unit}) will no longer appear in Previous Tenants.",
+        "note": "The lease and the rent history stay safely in your books.",
+        "cancel": "Cancel",
+        "confirm": "Remove",
+        "removing": "Removing…",
+        "done": "{name} was removed from the list.",
+        "errors": {
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The record could not be removed. Try again."
+        }
+      },
+      "history": {
+        "title": "Tenant history",
+        "loading": "Loading the tenant history…",
+        "error": "We could not load this tenant's history.",
+        "retry": "Try again",
+        "profile": "Profile",
+        "phone": "Phone",
+        "email": "Email",
+        "nid": "NID number",
+        "family": "Family members",
+        "people": "{n} people",
+        "residency": "Residency summary",
+        "place": "Property & unit",
+        "stay": "Total stay",
+        "moveIn": "Move-in",
+        "moveOut": "Move-out",
+        "reason": "Reason for leaving",
+        "notes": "Your notes",
+        "years": "{n, plural, one {# year} other {# years}}",
+        "months": "{n, plural, one {# month} other {# months}}",
+        "days": "{n, plural, one {# day} other {# days}}",
+        "terminated": "Terminated",
+        "ledger": "Monthly rent ledger",
+        "noLedger": "No rent was billed during this stay.",
+        "cols": {
+          "month": "Month",
+          "due": "Rent",
+          "paid": "Paid",
+          "status": "Status"
+        },
+        "status": {
+          "PAID_ON_TIME": "Paid On Time",
+          "PAID_LATE": "Paid Late",
+          "DEFAULTED": "Defaulted"
+        },
+        "summary": "Financial summary",
+        "sum": {
+          "collected": "Total rent collected",
+          "onTime": "On-time payment rate",
+          "dues": "Dues at checkout"
+        },
+        "pdf": "Download Tenant Statement PDF",
+        "pdfDone": "The statement was downloaded.",
+        "pdfError": "The PDF could not be created. Try again.",
+        "reassign": "Re-Assign to Vacant Unit",
+        "reassignBusy": "This person already rents another unit.",
+        "message": "Message Tenant",
+        "messageOnlyCurrent": "You can message a tenant only while they rent from you.",
+        "messageForbidden": "You cannot message this person.",
+        "messageError": "The chat could not be opened. Try again."
+      },
+      "reassign": {
+        "title": "Re-Assign to Vacant Unit",
+        "for": "Move {name} into another unit as a new tenancy.",
+        "property": "Property",
+        "unit": "Vacant unit",
+        "start": "Move-in date",
+        "end": "Lease ends",
+        "members": "Family members",
+        "pickProperty": "Select a property",
+        "propertyFirst": "Choose a property first",
+        "pickUnit": "Select a vacant unit",
+        "loading": "Loading…",
+        "noProperties": "You have no properties",
+        "noVacant": "No vacant unit",
+        "noVacantHelp": "There is no vacant unit in this property.",
+        "goUnits": "Manage units",
+        "unitOption": "Unit - {no}",
+        "propertiesError": "Could not load properties",
+        "note": "A new active tenancy is created at the unit's rent. The old record stays in Previous Tenants.",
+        "cancel": "Cancel",
+        "confirm": "Re-Assign",
+        "saving": "Assigning…",
+        "done": "{name} was moved into Unit - {unit}.",
+        "loadError": "Could not load the list.",
+        "retry": "Try again",
+        "errors": {
+          "pick": "Choose a property and a vacant unit.",
+          "dates": "The lease must end after the move-in date.",
+          "members": "Family members must be between 1 and 30.",
+          "busy": "This person already has an active tenancy.",
+          "taken": "That unit was just taken. Choose another.",
+          "forbidden": "You cannot assign tenants right now. Check your plan.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The tenant could not be assigned. Try again."
+        }
+      }
+    },
+    "profile": {
+      "metaTitle": "Owner Profile · AmaderGhor",
+      "title": "Owner Profile",
+      "loading": "Loading your profile…",
+      "error": "We could not load your profile.",
+      "retry": "Try again",
+      "heroAria": "Profile summary",
+      "changePhoto": "Change profile photo",
+      "memberSince": "Member since {year}",
+      "update": "Update Profile",
+      "strength": "Profile Strength",
+      "missing": {
+        "avatar": "Add a profile photo",
+        "fullName": "Add your name",
+        "phone": "Add your phone number",
+        "email": "Add your email",
+        "occupation": "Add your occupation",
+        "dateOfBirth": "Add your date of birth",
+        "nid": "Add your NID number",
+        "division": "Add your division",
+        "district": "Add your district",
+        "upazila": "Add your upazila",
+        "union": "Add your union",
+        "street": "Add your village / street",
+        "postOffice": "Add your post office",
+        "nidFront": "Upload the NID front side",
+        "nidBack": "Upload the NID back side"
+      },
+      "personal": {
+        "title": "Personal Information",
+        "fullName": "Full name",
+        "phone": "Phone number",
+        "email": "Email address",
+        "occupation": "Occupation",
+        "nid": "NID number",
+        "dob": "Date of birth",
+        "ownerId": "Owner ID",
+        "verification": "Verification",
+        "status": {
+          "UNVERIFIED": "Not verified",
+          "PENDING": "Pending",
+          "VERIFIED": "Verified",
+          "REJECTED": "Rejected"
+        },
+        "idNote": "Your Owner ID and username are created at sign-up and cannot be changed."
+      },
+      "address": {
+        "title": "Permanent Address",
+        "division": "Division",
+        "district": "District",
+        "upazila": "Thana / Upazila",
+        "union": "Union",
+        "street": "Village / Street",
+        "postOffice": "Post office"
+      },
+      "portfolio": {
+        "title": "Portfolio Summary",
+        "properties": "Properties",
+        "units": "Units",
+        "tenants": "Tenants",
+        "mine": "My properties",
+        "none": "You have not added a property yet."
+      },
+      "documents": {
+        "title": "Documents",
+        "nidFront": "NID Front Side",
+        "nidBack": "NID Back Side",
+        "agreement": "Agreement",
+        "state": {
+          "NONE": "Not uploaded",
+          "PENDING": "Pending",
+          "VERIFIED": "Verified",
+          "REJECTED": "Rejected"
+        },
+        "agreementCount": "{done}/{total} uploaded",
+        "hint": "Tap a document to upload or open it."
+      },
+      "avatar": {
+        "title": "Profile photo",
+        "hint": "Drag the photo to move it and use the slider to zoom. The circle is what everyone sees.",
+        "previewAlt": "Photo preview",
+        "currentAlt": "Your current photo",
+        "drop": "Choose or drop a photo",
+        "zoom": "Zoom",
+        "another": "Choose another photo",
+        "choose": "Choose a photo",
+        "cancel": "Cancel",
+        "save": "Save Photo",
+        "saving": "Saving…",
+        "done": "Your photo was updated.",
+        "errors": {
+          "type": "Use a JPG, PNG or WebP picture.",
+          "size": "The picture must be 5 MB or smaller.",
+          "unreadable": "This picture cannot be opened.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The photo could not be saved. Try again."
+        }
+      },
+      "doc": {
+        "titleFront": "NID front side",
+        "titleBack": "NID back side",
+        "hint": "Send a clear photo or PDF. The Super Admin team reviews it and the status changes to Pending.",
+        "rejected": "This document was rejected.",
+        "verified": "This document is verified. No change is needed.",
+        "previewAlt": "Document preview",
+        "drop": "Drop the file here",
+        "types": "JPG, PNG, WebP or PDF · up to 10 MB",
+        "choose": "Choose a file",
+        "camera": "Use camera",
+        "cancel": "Cancel",
+        "close": "Close",
+        "send": "Submit for review",
+        "sending": "Sending…",
+        "done": "Sent for review. The status is Pending.",
+        "errors": {
+          "type": "Use a JPG, PNG, WebP or PDF file.",
+          "size": "The file must be 10 MB or smaller.",
+          "network": "No connection. Check your internet and try again.",
+          "rate": "Too many uploads. Try again later.",
+          "generic": "The document could not be sent. Try again."
+        }
+      },
+      "agreements": {
+        "title": "Tenant Agreements",
+        "subtitle": "Lease agreements of your active tenants.",
+        "back": "Back to the list",
+        "download": "Download",
+        "unit": "Unit - {no}",
+        "viewerTitle": "Agreement file",
+        "linkNote": "This link works for a few minutes. Open the agreement again for a new one.",
+        "error": "We could not load the agreements.",
+        "retry": "Try again",
+        "emptyTitle": "No active tenants",
+        "emptyText": "Agreements appear here once a tenant lives in one of your units.",
+        "goTenants": "Go to Tenants",
+        "hasFile": "File uploaded",
+        "noFile": "No file yet",
+        "view": "View",
+        "replace": "Replace file",
+        "upload": "Upload file",
+        "sign": "Request signature",
+        "signAgain": "Request again",
+        "signRequestedOn": "Signature requested on {date}",
+        "uploaded": "The agreement of {name} was saved.",
+        "signRequested": "{name} was asked to sign.",
+        "errors": {
+          "network": "No connection. Check your internet and try again.",
+          "generic": "Something went wrong. Try again.",
+          "type": "Use a PDF, JPG, PNG or WebP file.",
+          "size": "The file must be 10 MB or smaller.",
+          "signTooSoon": "A request was just sent. Try again in an hour."
+        }
+      },
+      "property": {
+        "donutAria": "{occupied} of {total} units are occupied",
+        "occupied": "Occupied",
+        "total": "Total",
+        "vacant": "Vacant",
+        "error": "We could not load the details.",
+        "retry": "Try again",
+        "type": "Type",
+        "floors": "Floors",
+        "address": "Address",
+        "about": "About",
+        "assign": "Assign a tenant",
+        "units": "View units",
+        "manage": "Manage property"
+      },
+      "edit": {
+        "title": "Update Profile",
+        "locked": "Email, NID, Owner ID and username cannot be changed here.",
+        "fields": {
+          "fullName": "Full name",
+          "phone": "Phone number",
+          "occupation": "Occupation",
+          "dateOfBirth": "Date of birth",
+          "division": "Division",
+          "district": "District",
+          "upazila": "Thana / Upazila",
+          "union": "Union",
+          "street": "Village / Street",
+          "postOffice": "Post office"
+        },
+        "address": "Permanent address",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "done": "Your profile was updated.",
+        "errors": {
+          "invalid": "Please check the highlighted fields.",
+          "network": "No connection. Check your internet and try again.",
+          "generic": "The profile could not be saved. Try again."
+        }
+      }
+    },
+    "logout": {
+      "title": "Are you sure you want to logout?",
+      "text": "You will be signed out of AmaderGhor on this device.",
+      "cancel": "Cancel",
+      "confirm": "Yes, Logout",
+      "loggingOut": "Logging out…",
+      "done": "You have been logged out."
+    },
+    "openProfile": "Open my profile"
+  },
+  "chat": {
+    "metaTitle": "Message · AmaderGhor",
+    "title": "Message",
+    "retry": "Try again",
+    "search": {
+      "aria": "Search chats",
+      "placeholder": "Search chats",
+      "clear": "Clear search",
+      "people": "Start a new chat",
+      "start": "Message",
+      "noMatch": "No chat or person matches “{q}”"
+    },
+    "list": {
+      "aria": "Chats",
+      "loading": "Loading chats…",
+      "error": "We could not load your chats.",
+      "noMessages": "No messages yet",
+      "emptyTitle": "No chats yet",
+      "emptyText": "Start a chat with the people you manage. Messages show up here as they arrive.",
+      "unitLine": "{property} (Unit - {unit})",
+      "unread": "{n} unread"
+    },
+    "stamp": {
+      "yesterday": "Yesterday"
+    },
+    "preview": {
+      "you": "You:",
+      "voice": "Voice message",
+      "call": "Voice call"
+    },
+    "roles": {
+      "SUPER_ADMIN": "Super Admin",
+      "GOV_ADMIN": "Government Admin",
+      "OWNER": "Apartment Owner",
+      "TENANT": "Tenant",
+      "GENERAL_USER": "User"
+    },
+    "support": {
+      "title": "AmaderGhor Support",
+      "subtitle": "Support team"
+    },
+    "status": {
+      "online": "Online",
+      "offline": "Offline",
+      "lastSeen": "Last seen {time}"
+    },
+    "thread": {
+      "aria": "Conversation",
+      "back": "Back to chats",
+      "loading": "Loading messages…",
+      "error": "We could not load this conversation.",
+      "selectTitle": "Select a chat",
+      "selectText": "Pick a conversation on the left to read and send messages.",
+      "emptyTitle": "No messages yet",
+      "emptyText": "Say hello to {name}.",
+      "older": "Load earlier messages",
+      "sendError": {
+        "forbidden": "This message was not sent. You can only message tenants who currently live in your properties.",
+        "rate": "You are sending too fast. Wait a few seconds and try again.",
+        "network": "No connection. Check your internet and try again.",
+        "generic": "The message could not be sent. Try again."
+      }
+    },
+    "divider": {
+      "today": "Today",
+      "yesterday": "Yesterday"
+    },
+    "bubble": {
+      "sending": "Sending",
+      "sent": "Sent",
+      "read": "Read",
+      "failed": "Not sent",
+      "retry": "Try again"
+    },
+    "voice": {
+      "play": "Play voice message",
+      "pause": "Pause voice message",
+      "progress": "Voice message position",
+      "failed": "Cannot play"
+    },
+    "callLog": {
+      "done": "Voice call · {d}",
+      "missed": "Missed voice call",
+      "noAnswer": "No answer",
+      "declinedIn": "You declined the call",
+      "declinedOut": "Call declined"
+    },
+    "composer": {
+      "aria": "Write a message",
+      "placeholder": "Type a message…",
+      "send": "Send",
+      "record": "Record a voice message",
+      "recording": "Recording a voice message",
+      "cancelRecording": "Cancel recording",
+      "sendVoice": "Send voice message",
+      "dismiss": "Dismiss",
+      "micDenied": "Microphone access is blocked. Allow it in your browser to record.",
+      "micUnsupported": "This browser cannot record audio.",
+      "micFailed": "The microphone could not be started."
+    },
+    "call": {
+      "start": "Call {name}",
+      "ringing": "Ringing…",
+      "incoming": "Incoming voice call",
+      "connecting": "Connecting…",
+      "ended": "Call ended",
+      "unreachable": "Not available right now",
+      "accept": "Accept",
+      "decline": "Decline",
+      "mute": "Mute",
+      "unmute": "Unmute",
+      "speaker": "Speaker",
+      "speakerOn": "Speaker on",
+      "speakerOff": "Speaker off",
+      "end": "End call",
+      "problem": {
+        "mic": "Allow the microphone to make or answer calls.",
+        "busy": "One of you is already on a call.",
+        "forbidden": "You cannot call this person.",
+        "network": "The call could not be started. Check your connection.",
+        "dropped": "The call dropped."
+      }
+    },
+    "new": {
+      "open": "New chat",
+      "title": "New chat",
+      "search": "Search by name, unit or property",
+      "ownerHint": "Tenants of your properties.",
+      "tenantHint": "Your landlord.",
+      "adminHint": "Search any apartment owner or tenant by name or username.",
+      "typeMore": "Type at least 2 letters to search.",
+      "none": "There is nobody to message yet.",
+      "noMatch": "No one matches your search.",
+      "error": "We could not load the list.",
+      "unitLine": "{property} (Unit - {unit})",
+      "forbidden": "You cannot message this person.",
+      "failed": "The chat could not be opened. Try again."
+    },
+    "live": {
+      "offline": "Live updates paused. Reconnecting…"
     }
   }
 }

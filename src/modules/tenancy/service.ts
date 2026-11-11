@@ -118,7 +118,7 @@ export async function endTenancy(actor: Actor, id: string, input: z.infer<typeof
   return db.$transaction(async (tx) => {
     const out = await tx.rentalAgreement.update({
       where: { id },
-      data: { status: input.terminated ? "TERMINATED" : "ENDED", endDate: input.endDate ?? new Date(), settlementAmount: input.settlementAmount },
+      data: { status: input.terminated ? "TERMINATED" : "ENDED", endDate: input.endDate ?? new Date(), settlementAmount: input.settlementAmount, leaveReason: input.leaveReason, behavior: input.behavior, ownerNotes: input.ownerNotes },
     });
     await tx.unit.update({ where: { id: a.unitId }, data: { availability: "AVAILABLE" } });
     await notify([a.tenantId], { type: "tenancy.ended", titleKey: "notifications.tenancyEnded", params: { unit: a.unit.unitNumber } }, tx);

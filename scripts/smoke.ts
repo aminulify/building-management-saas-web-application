@@ -39,6 +39,30 @@ function check(label: string, ok: boolean, info?: unknown) {
 }
 const section = (s: string) => console.log("\n== " + s);
 
+/** Live event stream (/events) of one user, collected in the background. */
+async function openStream(token: string) {
+  const ctrl = new AbortController();
+  const events: { event: string; data: any }[] = [];
+  const res = await fetch(BASE + "/events", { headers: { authorization: `Bearer ${token}` }, signal: ctrl.signal });
+  void (async () => {
+    const reader = res.body!.getReader(); const dec = new TextDecoder(); let buf = "";
+    try {
+      for (;;) {
+        const { done, value } = await reader.read(); if (done) break;
+        buf += dec.decode(value, { stream: true });
+        const parts = buf.split("\n\n"); buf = parts.pop() ?? "";
+        for (const p of parts) { const ev = /^event: (.+)$/m.exec(p)?.[1]; const d = /^data: (.+)$/m.exec(p)?.[1]; if (ev && d) events.push({ event: ev, data: JSON.parse(d) }); }
+      }
+    } catch { /* closed */ }
+  })();
+  const wait = async (event: string, pred: (d: any) => boolean = () => true, ms = 6000) => {
+    const t0 = Date.now();
+    while (Date.now() - t0 < ms) { const e = events.find((x) => x.event === event && pred(x.data)); if (e) return e.data; await new Promise((r) => setTimeout(r, 60)); }
+    return null;
+  };
+  return { status: res.status, events, wait, close: () => ctrl.abort() };
+}
+
 function jwtExpired(t: string) {
   try { return JSON.parse(Buffer.from(t.split(".")[1]!, "base64url").toString()).exp * 1000 < Date.now() + 5_000; } catch { return false; }
 }
@@ -148,6 +172,7 @@ async function cleanup() {
       ["notifications", () => db.notification.deleteMany({ where: { userId: { in: ids } } })],
       ["audit", () => db.auditLog.deleteMany({ where: { actorId: { in: ids } } })],
       ["call requests", () => db.callRequest.deleteMany({ where: { OR: [{ conversationId: { in: convs } }, { requesterId: { in: ids } }] } })],
+      ["live calls", () => db.call.deleteMany({ where: { OR: [{ conversationId: { in: convs } }, { callerId: { in: ids } }, { calleeId: { in: ids } }] } })],
       ["messages", () => db.message.deleteMany({ where: { conversationId: { in: convs } } })],
       ["participants", () => db.conversationParticipant.deleteMany({ where: { conversationId: { in: convs } } })],
       ["conversations", () => db.conversation.deleteMany({ where: { id: { in: convs } } })],
@@ -924,6 +949,123 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("…hidden for tenant", r.data?.items?.length === 0, r.body);
   r = await call("GET", `/conversations/${conv}/messages`, T("owner"));
   check("…still visible for owner", r.data?.items?.length === 1, r.body);
+
+  section("chat page: contacts, voice notes, live events, calls");
+  r = await call("GET", "/conversations/contacts", T("owner"));
+  check("owner's contacts = own tenants, with unit and property", r.status === 200 && r.data?.some((c: any) => c.id === users.tenant!.id && !!c.unit && !!c.property), r.body);
+  r = await call("GET", `/conversations/contacts?q=${encodeURIComponent("zzzznobody")}`, T("owner"));
+  check("contacts search with no match → empty", r.status === 200 && r.data?.length === 0, r.body);
+  r = await call("GET", "/conversations/contacts", T("tenant"));
+  check("tenant's contacts = own landlord only", r.status === 200 && r.data?.length === 1 && r.data[0].id === users.owner!.id, r.body);
+  r = await call("GET", "/conversations/contacts?q=Test", T("general"));
+  check("general user has no contacts", r.status === 200 && r.data?.length === 0, r.body);
+  r = await call("GET", "/conversations/contacts?q=T", T("gov"));
+  check("gov admin: one letter finds nobody (needs 2)", r.status === 200 && r.data?.length === 0, r.body);
+  r = await call("GET", `/conversations/contacts?q=${encodeURIComponent("Test tenant")}`, T("gov"));
+  check("gov admin finds any tenant by name", r.status === 200 && r.data?.some((c: any) => c.id === users.tenant!.id), r.body);
+  r = await call("GET", `/conversations/contacts?q=${encodeURIComponent("Test owner")}`, T("super"));
+  check("super admin finds any owner by name", r.status === 200 && r.data?.some((c: any) => c.id === users.owner!.id), r.body);
+  r = await call("GET", "/conversations/contacts");
+  check("contacts signed out → 401", r.status === 401, r.body);
+
+  r = await call("GET", "/conversations", T("owner"));
+  const row = r.data?.find((c: any) => c.id === conv);
+  check("chat list row names the tenant, unit, property, picture field, online flag", !!row?.participants?.[0]?.fullName && !!row.participants[0].unit && !!row.participants[0].property && "avatarUrl" in row.participants[0] && typeof row.participants[0].online === "boolean" && row.lastMessage?.kind === "text", row);
+
+  r = await call("POST", `/conversations/${conv}/messages`, T("owner"), { clientId: randomUUID(), body: "   " });
+  check("an empty message is refused → 422", r.status === 422, r.body);
+  r = await call("POST", "/uploads/sign", T("owner"), { purpose: "VOICE_MESSAGE", mime: "image/png", size: 1000 });
+  check("voice upload refuses a picture type → 422", r.status === 422, r.body);
+  r = await call("POST", "/uploads/sign", T("owner"), { purpose: "VOICE_MESSAGE", mime: "audio/webm", size: 6 * 1024 * 1024 });
+  check("voice upload over 5 MB → 422", r.status === 422, r.body);
+  r = await call("POST", "/uploads/sign", T("owner"), { purpose: "VOICE_MESSAGE", mime: "audio/webm", size: 2048 });
+  const vkey = r.data?.key;
+  check("owner gets a signed upload for a voice note", r.status === 200 && !!vkey && vkey.startsWith(`VOICE_MESSAGE/${users.owner!.id}/`) && vkey.endsWith(".webm"), r.body);
+  const vup = await sb.storage.from(BUCKET).upload(vkey, new Blob([new Uint8Array(2048)], { type: "audio/webm" }), { contentType: "audio/webm" });
+  check("the audio file is stored in the private bucket", !vup.error, vup.error);
+  uploaded.push(vkey);
+  const voice = { kind: "voice", key: vkey, mime: "audio/webm", size: 2048, durationSec: 35 };
+
+  const tenantStream = await openStream(T("tenant"));
+  check("event stream opens (200)", tenantStream.status === 200 && !!(await tenantStream.wait("ready")));
+  r = await call("GET", `/presence?userIds=${users.tenant!.id}`, T("owner"));
+  check("an open stream makes the person ● Online", r.data?.[0]?.online === true, r.body);
+  r = await call("POST", `/conversations/${conv}/messages`, T("general"), { clientId: randomUUID(), body: "", attachments: [voice] });
+  check("a stranger cannot send in this chat → 404", r.status === 404, r.body);
+  r = await call("POST", `/conversations/${conv}/messages`, T("tenant"), { clientId: randomUUID(), body: "", attachments: [voice] });
+  check("someone else's voice file cannot be attached → 403", r.status === 403, r.body);
+  r = await call("POST", `/conversations/${conv}/messages`, T("owner"), { clientId: randomUUID(), body: "", attachments: [{ ...voice, durationSec: 999 }] });
+  check("voice note longer than 5 minutes → 422", r.status === 422, r.body);
+  r = await call("POST", `/conversations/${conv}/messages`, T("owner"), { clientId: randomUUID(), body: "", attachments: [voice] });
+  const vm = r.data;
+  check("owner sends a voice message: playable link, no storage key", r.status === 201 && vm?.attachments?.[0]?.kind === "voice" && /^https?:/.test(vm.attachments[0].url ?? "") && vm.attachments[0].key === undefined && vm.attachments[0].durationSec === 35, r.body);
+  const pushed = await tenantStream.wait("message:new", (d) => d.message?.id === vm?.id);
+  check("the tenant's open page gets it live", !!pushed && pushed.conversationId === conv && pushed.message.attachments[0].kind === "voice", pushed);
+  r = await call("GET", "/conversations", T("tenant"));
+  check("chat list preview says voice message and counts it unread", r.data?.find((c: any) => c.id === conv)?.lastMessage?.kind === "voice" && r.data.find((c: any) => c.id === conv).unread >= 1, r.body);
+  const ownerStream = await openStream(T("owner"));
+  await ownerStream.wait("ready");
+  r = await call("POST", `/conversations/${conv}/read`, T("tenant"));
+  const readEv = await ownerStream.wait("message:read", (d) => d.userId === users.tenant!.id);
+  check("the sender sees the read mark live (double tick)", r.status === 200 && !!readEv && readEv.lastReadMessageId === vm?.id, readEv);
+  r = await call("GET", `/conversations/${conv}/messages`, T("owner"));
+  check("the message list says up to where the other person has read", r.status === 200 && r.data?.readUpTo === vm?.id, r.body);
+
+  // live voice call
+  r = await call("POST", "/calls", T("general"), { conversationId: conv });
+  check("a stranger cannot call into this chat → 404", r.status === 404, r.body);
+  r = await call("POST", "/calls", T("owner"), { conversationId: conv });
+  const callId = r.data?.id;
+  check("owner starts a call; the tenant's page is open so it rings", r.status === 201 && !!callId && r.data?.reachable === true, r.body);
+  const inc = await tenantStream.wait("call:incoming", (d) => d.callId === callId);
+  check("tenant gets the incoming call with the caller's name", !!inc && inc.caller.id === users.owner!.id && !!inc.caller.fullName, inc);
+  r = await call("POST", "/calls", T("tenant"), { conversationId: conv });
+  check("a second call while one is ringing → 409 busy", r.status === 409, r.body);
+  r = await call("POST", `/calls/${callId}/accept`, T("owner"));
+  check("the caller cannot accept their own call → 403", r.status === 403, r.body);
+  r = await call("POST", `/calls/${callId}/signal`, T("general"), { data: { kind: "offer", payload: {} } });
+  check("a stranger cannot send call signals → 404", r.status === 404, r.body);
+  r = await call("POST", `/calls/${callId}/signal`, T("owner"), { data: { kind: "offer", payload: { type: "offer", sdp: "v=0" } } });
+  const sig = await tenantStream.wait("call:signal", (d) => d.callId === callId);
+  check("offer is relayed to the other side", r.status === 200 && sig?.kind === "offer" && sig.payload?.sdp === "v=0", sig);
+  r = await call("POST", `/calls/${callId}/signal`, T("owner"), { data: { kind: "bogus", payload: {} } });
+  check("unknown signal kind → 422", r.status === 422, r.body);
+  r = await call("POST", `/calls/${callId}/accept`, T("tenant"));
+  check("tenant answers", r.status === 200 && r.data?.status === "ACCEPTED", r.body);
+  check("the caller is told it was answered", !!(await ownerStream.wait("call:accepted", (d) => d.callId === callId)));
+  await new Promise((res) => setTimeout(res, 1200));
+  r = await call("POST", `/calls/${callId}/end`, T("tenant"));
+  check("either side can end it; duration is recorded", r.status === 200 && r.data?.status === "ENDED" && r.data?.durationSec >= 1, r.body);
+  const ended = await ownerStream.wait("call:ended", (d) => d.callId === callId);
+  check("both sides are told it ended", !!ended && ended.status === "ENDED", ended);
+  r = await call("GET", `/conversations/${conv}/messages`, T("tenant"));
+  check("the call appears in the chat as voice call with its duration", r.data?.items?.some((m: any) => m.attachments?.[0]?.kind === "call" && m.attachments[0].callId === callId && m.attachments[0].status === "ENDED" && m.attachments[0].durationSec >= 1), r.body);
+  r = await call("POST", `/calls/${callId}/signal`, T("owner"), { data: { kind: "ice", payload: {} } });
+  check("signals after the call ended → 409", r.status === 409, r.body);
+  r = await call("POST", `/calls/${callId}/end`, T("owner"));
+  check("ending twice changes nothing", r.status === 200 && r.data?.status === "ENDED", r.body);
+
+  // declined call
+  r = await call("POST", "/calls", T("owner"), { conversationId: conv });
+  const callB = r.data?.id;
+  await tenantStream.wait("call:incoming", (d) => d.callId === callB);
+  r = await call("POST", `/calls/${callB}/missed`, T("tenant"));
+  check("only the caller can mark a call missed → 403", r.status === 403, r.body);
+  r = await call("POST", `/calls/${callB}/reject`, T("tenant"));
+  check("tenant declines a call", r.status === 200 && r.data?.status === "REJECTED", r.body);
+
+  // unreachable: tenant closes the page, then the owner calls
+  tenantStream.close();
+  await new Promise((res) => setTimeout(res, 800));
+  r = await call("GET", `/presence?userIds=${users.tenant!.id}`, T("owner"));
+  check("closing the page makes the person Offline at once", r.data?.[0]?.online === false, r.body);
+  r = await call("POST", "/calls", T("owner"), { conversationId: conv });
+  check("calling someone who is not online is recorded as missed", r.status === 201 && r.data?.reachable === false, r.body);
+  r = await call("GET", "/notifications?limit=30", T("tenant"));
+  check("they get a missed-call notification", r.data?.items?.some((n: any) => n.type === "call.missed" && n.params?.conversationId === conv), r.body);
+  r = await call("GET", `/conversations/${conv}/messages`, T("owner"));
+  check("and a missed call line in the chat", r.data?.items?.some((m: any) => m.attachments?.[0]?.kind === "call" && m.attachments[0].status === "MISSED"), r.body);
+  ownerStream.close();
   r = await call("POST", "/conversations", T("gov"), { type: "INSPECTION", recipientId: users.owner!.id });
   check("gov opens inspection chat with owner", r.status === 201, r.body);
   r = await call("POST", "/conversations", T("general"), { type: "SUPPORT" });
@@ -1219,6 +1361,8 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("POST", "/listings", T("general"), land);
   const land2 = r.data?.id;
   const k1 = `LISTING_IMAGE/${users.general!.id}/${tag}-a.jpg`, k2 = `LISTING_IMAGE/${users.general!.id}/${tag}-b.jpg`;
+  for (const k of [k1, k2]) await sb.storage.from(BUCKET).upload(k, new Uint8Array([0xff, 0xd8, 0xff, 0xd9]), { contentType: "image/jpeg", upsert: true }); // the files really exist in storage, so they can be signed
+  uploaded.push(k1, k2);
   r = await call("POST", `/listings/${land2}/submit`, T("general"));
   check("publish without a photo → 422", r.status === 422, r.body);
   r = await call("POST", `/listings/${land2}/images`, T("general"), { storageKey: k1, order: 0 });
@@ -1822,13 +1966,120 @@ r = await call("POST", "/properties", T("tenant"), propBody);
     check("super archives a user", r.status === 200 && r.data?.status === "INACTIVE" && !!r.data?.archivedAt, r.body);
   }
 
+  section("owner profile");
+  r = await call("GET", "/me/owner-overview", T("owner"));
+  const ov0 = r.data;
+  check("overview: identity, owner id, member since, strength, portfolio, documents", r.status === 200 && ov0?.user?.username === users.owner!.username && /^OW\d+$/.test(ov0?.user?.ownerCode ?? "") && !!ov0?.user?.memberSince && ov0?.strength?.percent >= 0 && ov0.strength.percent <= 100 && Array.isArray(ov0.strength.missing) && ov0?.portfolio?.properties >= 1 && ov0.portfolio.tenants >= 1 && Array.isArray(ov0?.properties) && "nidFront" in ov0.documents && ov0.documents.agreement.total >= 1, r.body);
+  check("overview: the NID number is masked", ov0?.user?.nid === null || /^•+\d{4}$/.test(ov0.user.nid), ov0?.user);
+  r = await call("GET", "/me/owner-overview", T("tenant"));
+  check("overview: a tenant cannot open the owner profile → 403", r.status === 403, r.body);
+  r = await call("GET", "/me/owner-overview");
+  check("overview: signed out → 401", r.status === 401, r.body);
+  r = await call("GET", "/me", T("owner"));
+  check("/me carries the picture link field for the sidebar", r.status === 200 && "avatarUrl" in r.data, r.body);
+
+  r = await call("PATCH", "/me", T("owner"), { occupation: "Businessman", address: { division: "Chattogram", district: "Cumilla", upazila: "Muradnagar", union: "South Keraniganj", street: "Dhamura", postOffice: "Doshani Bazar" } });
+  check("update profile: occupation and the full permanent address (union, post office)", r.status === 200 && r.data?.address?.union === "South Keraniganj" && r.data?.address?.postOffice === "Doshani Bazar", r.body);
+  r = await call("GET", "/me/owner-overview", T("owner"));
+  check("overview shows the new address and a higher strength", r.data?.address?.postOffice === "Doshani Bazar" && r.data?.address?.union === "South Keraniganj" && r.data?.user?.occupation === "Businessman" && r.data.strength.percent > ov0.strength.percent, r.data);
+  r = await call("PATCH", "/me", T("owner"), { address: { division: "X", district: "Y" } });
+  check("a too-short address is refused → 422", r.status === 422, r.body);
+
+  await db.rentalAgreement.update({ where: { id: agreement?.id }, data: { agreementDocKey: null, signatureRequestedAt: null } }); // start from a tenancy with no file (an earlier step attached one)
+  r = await call("GET", "/tenancies/agreements", T("owner"));
+  const agRow = r.data?.find((x: any) => x.id === agreement?.id);
+  check("agreements: active tenancies with tenant, unit, property and file state", r.status === 200 && !!agRow && agRow.hasDocument === false && agRow.signatureRequestedAt === null && !!agRow.tenant?.fullName && !!agRow.unit?.unitNumber && !!agRow.property?.name, r.body);
+  r = await call("GET", "/tenancies/agreements", T("tenant"));
+  check("agreements: tenant → 403", r.status === 403, r.body);
+  r = await call("POST", `/tenancies/${agreement?.id}/signature-request`, T("owner"));
+  check("signature request before an agreement file exists → 409", r.status === 409, r.body);
+  r = await call("POST", "/uploads/sign", T("owner"), { purpose: "AGREEMENT", mime: "application/pdf", size: 1200 });
+  const agKey = r.data?.key;
+  check("agreement upload is signed as a pdf", r.status === 200 && !!agKey && agKey.endsWith(".pdf"), r.body);
+  const agUp = await sb.storage.from(BUCKET).upload(agKey, new Blob([new Uint8Array([0x25, 0x50, 0x44, 0x46])], { type: "application/pdf" }), { contentType: "application/pdf" });
+  uploaded.push(agKey);
+  check("the agreement file is stored", !agUp.error, agUp.error);
+  r = await call("POST", `/tenancies/${agreement?.id}/agreement`, T("owner"), { storageKey: agKey });
+  check("owner attaches the agreement", r.status === 200, r.body);
+  r = await call("GET", "/tenancies/agreements", T("owner"));
+  check("agreements: file is now there and typed as pdf", r.data?.find((x: any) => x.id === agreement?.id)?.docType === "pdf", r.body);
+  r = await call("GET", `/tenancies/${agreement?.id}/agreement`, T("owner"));
+  check("owner gets a viewing link for it", r.status === 200 && /^https?:/.test(r.data?.url ?? ""), r.body);
+  r = await call("POST", `/tenancies/${agreement?.id}/signature-request`, T("tenant"));
+  check("tenant cannot request a signature → 403", r.status === 403, r.body);
+  r = await call("POST", `/tenancies/${agreement?.id}/signature-request`, T("owner"));
+  check("owner requests the tenant's digital signature", r.status === 200 && !!r.data?.signatureRequestedAt, r.body);
+  r = await call("POST", `/tenancies/${agreement?.id}/signature-request`, T("owner"));
+  check("a second request within the hour → 429", r.status === 429, r.body);
+  r = await call("GET", "/notifications?limit=30", T("tenant"));
+  check("the tenant is notified to sign", r.data?.items?.some((n: any) => n.type === "tenancy.signature" && !!n.params?.unit), r.body);
+  r = await call("GET", "/tenancies/agreements", T("owner"));
+  check("agreements: the request time is shown", !!r.data?.find((x: any) => x.id === agreement?.id)?.signatureRequestedAt, r.body);
+  r = await call("GET", "/me/owner-overview", T("owner"));
+  check("documents card: agreement state counts the uploaded files", r.data?.documents?.agreement?.uploaded >= 1 && ["UPLOADED", "PENDING"].includes(r.data.documents.agreement.status), r.data?.documents);
+
   section("tenancy end + cron");
   r = await call("POST", `/tenancies/${agreement?.id}/end`, T("tenant"), {});
   check("tenant cannot end tenancy → 403", r.status === 403, r.body);
-  r = await call("POST", `/tenancies/${agreement?.id}/end`, T("owner"), { settlementAmount: 5000 });
+  r = await call("POST", `/tenancies/${agreement?.id}/end`, T("owner"), { settlementAmount: 5000, leaveReason: "JOB_TRANSFER", behavior: "GOOD", ownerNotes: "Paid on time" });
   check("owner ends tenancy", r.status === 200 && r.data?.status === "ENDED", r.body);
   r = await call("GET", `/units/${unitA?.id}`, T("owner"));
   check("unit back to AVAILABLE", r.data?.availability === "AVAILABLE", r.body);
+
+  section("previous tenants");
+  r = await call("GET", "/tenancies/past", T("owner"));
+  const pastRow = r.data?.items?.find((x: any) => x.id === agreement?.id);
+  check("ended tenancy is listed with tenant, property, unit, reason and rating", r.status === 200 && !!pastRow && pastRow.leaveReason === "JOB_TRANSFER" && pastRow.behavior === "GOOD" && !!pastRow.tenant?.fullName && !!pastRow.property?.name && !!pastRow.unit?.unitNumber && r.data.total >= 1, r.body);
+  r = await call("GET", "/tenancies/past", T("tenant"));
+  check("tenant cannot open the owner's list → 403", r.status === 403, r.body);
+  r = await call("GET", "/tenancies/past", T("general"));
+  check("general user cannot open it → 403", r.status === 403, r.body);
+  r = await call("GET", "/tenancies/past");
+  check("signed out → 401", r.status === 401, r.body);
+  r = await call("GET", "/tenancies/past?behavior=BOGUS", T("owner"));
+  check("unknown rating filter → 422", r.status === 422, r.body);
+  r = await call("GET", `/tenancies/past?behavior=GOOD&propertyId=${prop?.id}&q=Test`, T("owner"));
+  check("filters: rating + property + name find it", r.status === 200 && r.data?.items?.some((x: any) => x.id === agreement?.id), r.body);
+  r = await call("GET", "/tenancies/past?behavior=VERY_BAD", T("owner"));
+  check("filter by another rating excludes it", r.status === 200 && !r.data?.items?.some((x: any) => x.id === agreement?.id), r.body);
+  r = await call("GET", "/tenancies/past?q=zzzznobody", T("owner"));
+  check("name search with no match → empty", r.status === 200 && r.data?.items?.length === 0 && r.data?.total === 0, r.body);
+  r = await call("GET", `/tenancies/${agreement?.id}/history`, T("owner"));
+  const hist = r.data;
+  check("history: profile, residency, ledger, summary, flags", r.status === 200 && hist?.tenant?.fullName === "Test tenant" && Array.isArray(hist?.ledger) && hist.ledger.length >= 1 && typeof hist?.summary?.collected === "number" && typeof hist?.summary?.dues === "number" && hist?.canMessage === false && hist?.hasActiveTenancy === false && hist?.members >= 1, r.body);
+  check("history: the NID is masked or empty, never in full", (hist?.tenant?.nid === null || /^•••• •••• \d{4}$/.test(hist?.tenant?.nid)), hist?.tenant);
+  check("history: every ledger month has one of the three statuses", hist?.ledger?.every((m: any) => ["PAID_ON_TIME", "PAID_LATE", "DEFAULTED"].includes(m.status)), hist?.ledger);
+  r = await call("GET", `/tenancies/${agreement?.id}/history`, T("tenant"));
+  check("tenant cannot read the owner's history → 403 or 404", r.status === 403 || r.status === 404, r.body);
+  r = await call("GET", `/tenancies/${agreement?.id}/history`, T("super"));
+  check("another account cannot read it either", r.status === 403 || r.status === 404, r.body);
+  r = await call("PATCH", `/tenancies/${agreement?.id}/record`, T("owner"), { behavior: "VERY_BAD", leaveReason: "OTHER", ownerNotes: "Left a mess" });
+  check("owner edits rating, reason and notes", r.status === 200 && r.data?.behavior === "VERY_BAD" && r.data?.leaveReason === "OTHER" && r.data?.ownerNotes === "Left a mess", r.body);
+  r = await call("PATCH", `/tenancies/${agreement?.id}/record`, T("owner"), { behavior: "BOGUS" });
+  check("bad rating → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/tenancies/${agreement?.id}/record`, T("owner"), {});
+  check("empty edit → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/tenancies/${agreement?.id}/record`, T("owner"), { startDate: "2030-01-02", endDate: "2030-01-01" });
+  check("end date before start date → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/tenancies/${agreement?.id}/record`, T("owner"), { endDate: "2099-01-01" });
+  check("a past tenancy cannot end in the future → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/tenancies/${agreement?.id}/record`, T("tenant"), { behavior: "GOOD" });
+  check("tenant cannot rate themselves → 403 or 404", r.status === 403 || r.status === 404, r.body);
+  r = await call("PATCH", `/tenancies/${agreement?.id}/record`, T("owner"), { behavior: null, ownerNotes: null });
+  check("rating and notes can be cleared", r.status === 200 && r.data?.behavior === null && r.data?.ownerNotes === null, r.body);
+  r = await call("GET", "/tenancies/past?behavior=UNRATED", T("owner"));
+  check("filter: not rated", r.status === 200 && r.data?.items?.some((x: any) => x.id === agreement?.id), r.body);
+  r = await call("PATCH", `/tenancies/${randomUUID()}/record`, T("owner"), { behavior: "GOOD" });
+  check("unknown record → 404", r.status === 404, r.body);
+  r = await call("DELETE", `/tenancies/${agreement?.id}/record`, T("tenant"));
+  check("tenant cannot remove the record → 403 or 404", r.status === 403 || r.status === 404, r.body);
+  r = await call("DELETE", `/tenancies/${agreement?.id}/record`, T("owner"));
+  check("owner removes the row from the history list", r.status === 200 && r.data?.removed === true, r.body);
+  r = await call("GET", "/tenancies/past", T("owner"));
+  check("…it is gone from the list", !r.data?.items?.some((x: any) => x.id === agreement?.id), r.body);
+  check("…but the agreement and its rent records are still in the database", (await db.rentalAgreement.count({ where: { id: agreement?.id } })) === 1 && (await db.rentRecord.count({ where: { agreementId: agreement?.id } })) >= 1);
+  r = await call("GET", `/tenancies/${agreement?.id}/history`, T("owner"));
+  check("…and cannot be opened any more → 404", r.status === 404, r.body);
   r = await call("POST", `/properties/${prop?.id}/archive`, T("owner"), { reason: "Test cleanup" });
   check("archive property (no active tenancies)", r.status === 200 && r.data?.status === "ARCHIVED", r.body);
   r = await call("POST", "/internal/cron/subscriptions", null, {}, { "x-cron-secret": CRON });

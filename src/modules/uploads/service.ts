@@ -8,6 +8,7 @@ import type { Actor } from "@/lib/auth/require-actor";
 export const BUCKET = "amaderghor-private";
 const IMAGE = ["image/jpeg", "image/png", "image/webp"] as const;
 const DOC = [...IMAGE, "application/pdf"] as const;
+const AUDIO = ["audio/webm", "audio/ogg", "audio/mp4"] as const;
 const MB = 1024 * 1024;
 
 /** What may be uploaded for which purpose (architecture 11.1: images 5 MB, docs 10 MB, messages 10 MB). */
@@ -24,6 +25,7 @@ const PURPOSES = {
   COMPLAINT_EVIDENCE: { mimes: DOC, max: 10 * MB },
   REPORT_EVIDENCE: { mimes: DOC, max: 10 * MB },
   MESSAGE_ATTACHMENT: { mimes: DOC, max: 10 * MB },
+  VOICE_MESSAGE: { mimes: AUDIO, max: 5 * MB },
   AGREEMENT: { mimes: DOC, max: 10 * MB },
 } as const;
 export type UploadPurpose = keyof typeof PURPOSES;
@@ -34,14 +36,17 @@ export const signSchema = z.object({
   size: z.coerce.number().int().positive(),
 });
 
-export const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
+export const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf", "audio/webm": "webm", "audio/ogg": "ogg", "audio/mp4": "m4a" };
 let bucketReady = false;
 
 export async function ensureBucket() {
   if (bucketReady) return;
   const sb = supabaseAdmin();
-  const { error } = await sb.storage.createBucket(BUCKET, { public: false, fileSizeLimit: 10 * MB, allowedMimeTypes: [...DOC] });
+  const allowed = [...DOC, ...AUDIO];
+  const { error } = await sb.storage.createBucket(BUCKET, { public: false, fileSizeLimit: 10 * MB, allowedMimeTypes: allowed });
   if (error && !/already exists|duplicate/i.test(error.message)) throw new AppError("INTERNAL", { reason: "storage_bucket" });
+  // a bucket made before voice messages existed does not list audio yet
+  if (error) await sb.storage.updateBucket(BUCKET, { public: false, fileSizeLimit: 10 * MB, allowedMimeTypes: allowed });
   bucketReady = true;
 }
 
@@ -102,8 +107,10 @@ export async function signStorageKeys(keys: string[], seconds = 300): Promise<Ma
   const out = new Map<string, string>();
   const todo: string[] = [];
   for (const k of new Set(keys)) { const hit = fresh(k, seconds); if (hit) out.set(k, hit); else todo.push(k); }
-  if (todo.length) {
-    const { data } = await supabaseAdmin().storage.from(BUCKET).createSignedUrls(todo, seconds);
+  // one more try for files that could not be signed (a file stored a moment ago, or a storage hiccup)
+  for (let attempt = 0; attempt < 2 && todo.some((k) => !out.has(k)); attempt++) {
+    if (attempt) await new Promise((r) => setTimeout(r, 350));
+    const { data } = await supabaseAdmin().storage.from(BUCKET).createSignedUrls(todo.filter((k) => !out.has(k)), seconds).catch(() => ({ data: null }));
     for (const r of data ?? []) if (r.path && r.signedUrl && !r.error) { out.set(r.path, r.signedUrl); remember(r.path, r.signedUrl, seconds); }
   }
   return out;

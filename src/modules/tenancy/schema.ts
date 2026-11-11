@@ -27,7 +27,13 @@ export const tenancyUpdateSchema = z
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: "empty_update" });
 
+export const LEAVE_REASONS = ["JOB_TRANSFER", "PURCHASED_HOME", "UPGRADED_UNIT", "LEASE_EXPIRED", "OTHER"] as const;
+export const BEHAVIORS = ["EXCELLENT", "GOOD", "AVERAGE", "UGLY", "BAD", "VERY_BAD"] as const;
+
 export const endTenancySchema = z.object({
+  leaveReason: z.enum(LEAVE_REASONS).optional(),
+  behavior: z.enum(BEHAVIORS).optional(),
+  ownerNotes: z.string().trim().max(1000).optional(),
   endDate: dateOnly.optional(),
   settlementAmount: moneyOrZero.optional(),
   terminated: z.boolean().default(false),
@@ -46,3 +52,25 @@ export const tenantDirectoryQuery = z.object({
 export const tenantLookupQuery = z
   .object({ phone: bdPhoneSchema.optional(), email: z.string().trim().toLowerCase().email().max(120).optional() })
   .refine((v) => !!v.phone !== !!v.email, { message: "phone_or_email", path: ["phone"] });
+
+/** Previous Tenants list: search by tenant name or phone, one property, one behaviour rating, page numbers. */
+export const pastTenantsQuery = z.object({
+  q: z.string().trim().max(60).optional(),
+  propertyId: uuid.optional(),
+  behavior: z.enum([...BEHAVIORS, "UNRATED"]).optional(),
+  page: z.coerce.number().int().min(1).max(1000).default(1),
+  pageSize: z.coerce.number().int().min(1).max(50).default(10),
+});
+
+/** Owner edits the record of a past tenancy: reason, rating, lease dates, private notes. */
+export const pastRecordSchema = z
+  .object({
+    leaveReason: z.enum(LEAVE_REASONS).nullable(),
+    behavior: z.enum(BEHAVIORS).nullable(),
+    startDate: dateOnly,
+    endDate: dateOnly,
+    ownerNotes: z.string().trim().max(1000).nullable(),
+  })
+  .partial()
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, { message: "empty_update" });

@@ -6,12 +6,14 @@ import { rateLimit } from "@/lib/rate-limit";
 import { supabaseAdmin, supabaseAnon } from "@/lib/supabase";
 import type { Actor } from "@/lib/auth/require-actor";
 import { getEntitlement } from "@/lib/authz/entitlement";
+import { signStorageKey } from "@/modules/uploads/service";
 import { passwordSchema } from "@/modules/auth/schema";
 import { bdPhoneSchema } from "./schema";
 
 const address = z.object({
   division: z.string().trim().min(2).max(60), district: z.string().trim().min(2).max(60),
   upazila: z.string().trim().max(60).optional(), area: z.string().trim().max(100).optional(),
+  union: z.string().trim().max(80).optional(), postOffice: z.string().trim().max(80).optional(),
   street: z.string().trim().max(200).optional(), postalCode: z.string().regex(/^\d{4}$/).optional(),
 });
 
@@ -44,7 +46,8 @@ export async function getProfile(actor: Actor) {
   const [owner, seller] = await Promise.all([getEntitlement(actor.id, "OWNER"), getEntitlement(actor.id, "SELLER")]);
   const pendingUpgrade = await db.upgradeRequest.findFirst({ where: { userId: actor.id, status: "PENDING" }, select: { id: true, createdAt: true } });
   const { nidLast4, ...rest } = user;
-  return { ...rest, nid: nidLast4 ? `•••••••••${nidLast4}` : null, entitlement: owner, sellerEntitlement: seller, pendingUpgrade };
+  const avatarUrl = user.avatarKey ? await signStorageKey(user.avatarKey, 3600).then((r) => r.url).catch(() => null) : null;
+  return { ...rest, avatarUrl, nid: nidLast4 ? `•••••••••${nidLast4}` : null, entitlement: owner, sellerEntitlement: seller, pendingUpgrade };
 }
 
 export async function updateProfile(actor: Actor, input: z.infer<typeof profileUpdateSchema>, req: Request) {

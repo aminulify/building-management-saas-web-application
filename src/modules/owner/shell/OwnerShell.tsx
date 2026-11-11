@@ -12,8 +12,9 @@ import { LangSwitch } from "@/components/layout/LangSwitch";
 import { Logo } from "@/components/layout/Logo";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api-client";
-import { authApi, clearSession, getSession, homeFor } from "@/lib/auth-client";
+import { AFTER_LOGOUT_PATH, authApi, clearSession, getSession, homeFor } from "@/lib/auth-client";
 import { OwnerProvider, type OwnerMe } from "./OwnerContext";
+import { LogoutModal } from "./LogoutModal";
 import { Sidebar } from "./Sidebar";
 
 type Phase = "checking" | "ready" | "error";
@@ -31,6 +32,8 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [drawer, setDrawer] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [askLogout, setAskLogout] = useState(false);
+  const updateMe = useCallback((patch: Partial<OwnerMe>) => setMe((cur) => (cur ? { ...cur, ...patch } : cur)), []);
 
   const refreshUnread = useCallback(() => {
     authApi<{ unread: number }>("/notifications?limit=1").then((r) => setUnread(r.unread)).catch(() => undefined);
@@ -63,11 +66,11 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
     return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
   }, [drawer]);
 
+  /** after the confirmation: end the session on the server, clear it here, then show the public homepage */
   async function logout() {
     setLoggingOut(true);
     try { await authApi("/auth/logout", { method: "POST" }); } catch { /* the local session is cleared either way */ }
     clearSession();
-    router.replace("/login" as never);
   }
 
   if (phase !== "ready" || !me) {
@@ -91,13 +94,13 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
 
   return (
     <ToastProvider>
-      <OwnerProvider value={{ me, unread, refreshUnread, setUnread }}>
+      <OwnerProvider value={{ me, unread, refreshUnread, setUnread, updateMe }}>
         <AmbientBackground />
         <div className="mx-auto flex min-h-screen max-w-[1500px] gap-4 p-3 sm:p-4 lg:gap-5 lg:p-5">
           {/* desktop sidebar */}
-          <aside className="glass-card sticky top-5 hidden h-[calc(100vh-2.5rem)] w-72 shrink-0 p-4 lg:block"><Sidebar onLogout={logout} loggingOut={loggingOut} /></aside>
+          <aside className="glass-card sticky top-5 hidden h-[calc(100vh-2.5rem)] w-72 shrink-0 p-4 lg:block"><Sidebar onLogout={() => setAskLogout(true)} loggingOut={loggingOut} /></aside>
           {/* tablet icon rail */}
-          <aside className="glass-card sticky top-4 hidden h-[calc(100vh-2rem)] w-[76px] shrink-0 p-2 md:block lg:hidden"><Sidebar compact onLogout={logout} loggingOut={loggingOut} /></aside>
+          <aside className="glass-card sticky top-4 hidden h-[calc(100vh-2rem)] w-[76px] shrink-0 p-2 md:block lg:hidden"><Sidebar compact onLogout={() => setAskLogout(true)} loggingOut={loggingOut} /></aside>
 
           <div className="min-w-0 flex-1">
             <header className="mb-3 flex items-center justify-between gap-3 md:hidden">
@@ -112,6 +115,8 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
+        <LogoutModal open={askLogout} busy={loggingOut} onCancel={() => { if (!loggingOut) setAskLogout(false); }} onConfirm={logout} onDone={() => { setDrawer(false); router.replace(AFTER_LOGOUT_PATH as never); }} />
+
         {/* mobile drawer */}
         <AnimatePresence>
           {drawer && (
@@ -123,7 +128,7 @@ export function OwnerShell({ children }: { children: React.ReactNode }) {
                 initial={{ x: -40, opacity: 0 }} animate={{ x: 0, opacity: 1 }} exit={{ x: -40, opacity: 0 }} transition={{ duration: 0.35 }}
               >
                 <button type="button" onClick={() => setDrawer(false)} aria-label={t("closeMenu")} className="absolute right-3 top-3 rounded-lg p-1.5 text-slate-500 hover:bg-white/70"><X className="size-5" aria-hidden /></button>
-                <Sidebar onNavigate={() => setDrawer(false)} onLogout={logout} loggingOut={loggingOut} />
+                <Sidebar onNavigate={() => setDrawer(false)} onLogout={() => setAskLogout(true)} loggingOut={loggingOut} />
               </motion.aside>
             </motion.div>
           )}

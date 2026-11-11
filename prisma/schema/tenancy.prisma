@@ -14,6 +14,13 @@ model RentalAgreement {
   members          Int             @default(1)
   /** the tenant told the owner they will leave; shown as "Notice Given" */
   noticeGivenAt    DateTime?       @db.Timestamptz
+  /** Previous Tenants: why they left, how the owner rates them, private notes; hidden = removed from the history list (rent records are kept) */
+  leaveReason      LeaveReason?
+  behavior         TenantBehavior?
+  ownerNotes       String?
+  historyHiddenAt  DateTime?       @db.Timestamptz
+  /** the owner asked the tenant to sign the agreement (Owner Profile → Agreements) */
+  signatureRequestedAt DateTime?   @db.Timestamptz
   createdAt        DateTime        @default(now()) @db.Timestamptz
   updatedAt        DateTime        @updatedAt @db.Timestamptz
 
@@ -23,6 +30,7 @@ model RentalAgreement {
 
   @@index([tenantId, status])
   @@index([ownerId, status])
+  @@index([ownerId, status, endDate])
 }
 
 model TenantInvitation {

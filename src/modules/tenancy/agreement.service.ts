@@ -2,8 +2,10 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { AppError } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
-import { authorize } from "@/lib/authz/authorize";
-import { signStorageKey } from "@/modules/uploads/service";
+import { authorize, requireRole } from "@/lib/authz/authorize";
+import { notify } from "@/lib/notify";
+import { rateLimit } from "@/lib/rate-limit";
+import { signStorageKey, signStorageKeys } from "@/modules/uploads/service";
 import type { Actor } from "@/lib/auth/require-actor";
 
 export const agreementSchema = z.object({ storageKey: z.string().min(10).max(300) });
@@ -48,4 +50,41 @@ export async function myRental(actor: Actor) {
     property: { id: unit.property.id, name: unit.property.name, address: unit.property.address, zone: unit.property.zone },
     owner,
   };
+}
+
+const docType = (key: string | null) => (key ? (/\.pdf$/i.test(key) ? ("pdf" as const) : ("image" as const)) : null);
+
+/** Owner Profile → Agreements: every active tenancy with its agreement file state and whether a signature was requested. */
+export async function ownerAgreements(actor: Actor) {
+  requireRole(actor, "OWNER");
+  await authorize(actor, "tenancy:read", { ownerId: actor.id, tenantId: actor.id, readOnly: true });
+  const rows = await db.rentalAgreement.findMany({
+    where: { ownerId: actor.id, status: "ACTIVE" }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 200,
+    include: { unit: { select: { unitNumber: true, property: { select: { id: true, name: true } } } } },
+  });
+  const people = new Map((await db.user.findMany({ where: { id: { in: rows.map((r) => r.tenantId) } }, select: { id: true, fullName: true, phone: true, avatarKey: true } })).map((p) => [p.id, p]));
+  const urls = await signStorageKeys(rows.flatMap((r) => (people.get(r.tenantId)?.avatarKey ? [people.get(r.tenantId)!.avatarKey!] : [])), 3600);
+  return rows.map((r) => {
+    const t = people.get(r.tenantId);
+    return {
+      id: r.id, startDate: r.startDate, endDate: r.endDate, rent: r.rent.toFixed(2), hasDocument: !!r.agreementDocKey, docType: docType(r.agreementDocKey),
+      signatureRequestedAt: r.signatureRequestedAt, property: r.unit.property, unit: { unitNumber: r.unit.unitNumber },
+      tenant: t ? { id: t.id, fullName: t.fullName, phone: t.phone, avatarUrl: t.avatarKey ? urls.get(t.avatarKey) ?? null : null } : null,
+    };
+  });
+}
+
+/** "Request digital signature": the tenant is notified to review and sign. One request per tenancy per hour. */
+export async function requestSignature(actor: Actor, id: string, req: Request) {
+  const a = await load(actor, id, "manage");
+  if (a.status !== "ACTIVE") throw new AppError("INVALID_STATE", { reason: "not_active" });
+  if (!a.agreementDocKey) throw new AppError("INVALID_STATE", { reason: "no_agreement_uploaded" });
+  rateLimit(`sign-request:${id}`, 1, 3600_000);
+  const unit = await db.unit.findUniqueOrThrow({ where: { id: a.unitId }, select: { unitNumber: true } });
+  return db.$transaction(async (tx) => {
+    const out = await tx.rentalAgreement.update({ where: { id }, data: { signatureRequestedAt: new Date() }, select: { id: true, signatureRequestedAt: true } });
+    await notify([a.tenantId], { type: "tenancy.signature", titleKey: "notifications.signatureRequested", params: { unit: unit.unitNumber, owner: actor.fullName }, link: "/tenant/rental", priority: "HIGH" }, tx);
+    await writeAudit({ actor, action: "tenancy.signature_request", resourceType: "RentalAgreement", resourceId: id, req }, tx);
+    return out;
+  });
 }

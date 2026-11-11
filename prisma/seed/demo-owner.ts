@@ -34,7 +34,7 @@ interface TenantSeed { index: number; unit: UnitSeed }
 
 async function wipe() {
   const owner = await db.user.findUnique({ where: { email: DEMO_OWNER.email } });
-  const tenants = await db.user.findMany({ where: { username: { startsWith: "demo_t" } }, select: { id: true } });
+  const tenants = await db.user.findMany({ where: { OR: [{ username: { startsWith: "demo_t" } }, { username: { startsWith: "demo_p" } }] }, select: { id: true } });
   const ids = [...tenants.map((t) => t.id), ...(owner ? [owner.id] : [])];
   if (!ids.length) return;
   const agreements = (await db.rentalAgreement.findMany({ where: { OR: [{ ownerId: { in: ids } }, { tenantId: { in: ids } }] }, select: { id: true } })).map((a) => a.id);

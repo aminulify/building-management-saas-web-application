@@ -17,7 +17,8 @@
     "db:seed:demo": "tsx --env-file=.env prisma/seed/demo-owner.ts",
     "verify:tenants": "tsx --env-file=.env scripts/verify-tenants.ts",
     "verify:rent": "tsx --env-file=.env scripts/verify-rent.ts",
-    "verify:findhome": "tsx --env-file=.env scripts/verify-findhome.ts"
+    "verify:findhome": "tsx --env-file=.env scripts/verify-findhome.ts",
+    "db:seed:past": "tsx --env-file=.env prisma/seed/demo-past-tenants.ts"
   },
   "prisma": {
     "schema": "prisma/schema"

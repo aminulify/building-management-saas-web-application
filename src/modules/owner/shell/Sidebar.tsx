@@ -22,6 +22,7 @@ export function Sidebar({ onNavigate, onLogout, loggingOut, compact = false }: P
   const pathname = usePathname();
   const { me, unread } = useOwner();
   const label = compact ? "sr-only" : "";
+  const onProfile = pathname === "/owner/profile";
   const initials = me.fullName.split(/\s+/).map((p) => p[0]).slice(0, 2).join("").toUpperCase();
 
   return (
@@ -69,13 +70,16 @@ export function Sidebar({ onNavigate, onLogout, loggingOut, compact = false }: P
         </button>
       </div>
 
-      <div className={clsx("mt-4 flex items-center gap-3 rounded-xl border border-white/70 bg-white/50 p-2.5 backdrop-blur-sm", compact && "justify-center p-1.5")}>
-        <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-gradient text-sm font-bold text-white">{initials || "?"}</span>
+      <Link href={"/owner/profile" as never} onClick={onNavigate} title={compact ? me.username : undefined} aria-current={onProfile ? "page" : undefined} aria-label={to("openProfile")}
+        className={clsx("mt-4 flex items-center gap-3 rounded-xl border p-2.5 backdrop-blur-sm transition-all duration-300", compact && "justify-center p-1.5", onProfile ? "border-[#0A84F0] bg-white/90 shadow-[0_6px_18px_-10px_rgba(10,132,240,0.6)]" : "border-white/70 bg-white/50 hover:border-[#48BDFA] hover:bg-white/80")}>
+        {me.avatarUrl
+          ? <img src={me.avatarUrl} alt="" className="size-10 shrink-0 rounded-full object-cover" />
+          : <span aria-hidden className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-gradient text-sm font-bold text-white">{initials || "?"}</span>}
         <div className={clsx("min-w-0", compact && "sr-only")}>
           <p className="truncate font-bold leading-tight text-navy">{me.username}</p>
           <p className="text-xs text-label">{to("roleOwner")}</p>
         </div>
-      </div>
+      </Link>
     </nav>
   );
 }
