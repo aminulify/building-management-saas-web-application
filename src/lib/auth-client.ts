@@ -52,7 +52,7 @@ export const ROLE_HOME: Record<string, string> = {
 };
 
 /** Dashboards built so far; every other role still lands on the account page. */
-export const homeFor = (role: string | undefined): string => (role === "OWNER" ? ROLE_HOME.OWNER! : role === "TENANT" ? ROLE_HOME.TENANT! : role === "GENERAL_USER" ? ROLE_HOME.GENERAL_USER! : POST_LOGIN_PATH);
+export const homeFor = (role: string | undefined): string => (role === "SUPER_ADMIN" ? ROLE_HOME.SUPER_ADMIN! : role === "OWNER" ? ROLE_HOME.OWNER! :role === "TENANT" ? ROLE_HOME.TENANT! : role === "GENERAL_USER" ? ROLE_HOME.GENERAL_USER! : POST_LOGIN_PATH);
 
 interface Refreshed { session: StoredSession }
 

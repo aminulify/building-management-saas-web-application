@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Bath, BedDouble, ChevronLeft, ChevronRight, Eye, Heart, ImageOff, MapPin, MessageCircle, Ruler, Share2, ShieldCheck, UserRound } from "lucide-react";
+import { Bath, BedDouble, ChevronLeft, ChevronRight, Eye, Heart, ImageOff, MapPin, MessageCircle, Ruler, Share2, ShieldCheck, Star, UserRound } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
 import { useLocale, useTranslations } from "next-intl";
@@ -52,6 +52,7 @@ export function MarketCard({ home: h, index, onOpen, onContact, onToggleSave, on
         <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-900/55 to-transparent" />
 
         <div className="absolute left-3 top-3 flex flex-wrap gap-1.5">
+          {h.isFeatured && <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[0.68rem] font-bold text-white shadow-sm"><Star className="size-3 fill-current" aria-hidden />{f("card.featured")}</span>}
           {h.condition && f.has(`details.conditions.${h.condition}`) && <span className={clsx("rounded-full px-2.5 py-1 text-[0.68rem] font-bold text-white shadow-sm", CONDITION_TONE[h.condition] ?? "bg-slate-500")}>{f(`details.conditions.${h.condition}`)}</span>}
           {h.isOwn && <span className="rounded-full bg-navy/80 px-2.5 py-1 text-[0.68rem] font-bold text-white backdrop-blur">{f("card.yours")}</span>}
         </div>

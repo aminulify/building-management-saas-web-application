@@ -1,10 +1,24 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
 import { clsx } from "clsx";
 import { useTranslations } from "next-intl";
+
+/**
+ * Page scroll lock shared by every open modal. One counter instead of "remember and restore": when one modal closes
+ * while the next one opens (Edit → Are you sure?), the second must not remember the first one's lock as the normal state.
+ */
+let locks = 0;
+let savedOverflow = "";
+function lockScroll() {
+  if (locks++ === 0) { savedOverflow = document.body.style.overflow; document.body.style.overflow = "hidden"; }
+}
+function unlockScroll() {
+  if (--locks <= 0) { locks = 0; document.body.style.overflow = savedOverflow; }
+}
 
 interface Props {
   open: boolean;
@@ -22,10 +36,16 @@ interface Props {
  * focus moves in and is trapped, Esc closes, page scroll is locked, focus returns to the opener.
  */
 export function Modal({ open, onClose, labelledBy, busy = false, maxWidth = "max-w-[560px]", children }: Props) {
-  return (
+  // Rendered straight into <body>: inside a glass card (backdrop-filter) a "fixed" box is positioned against the card, not the screen,
+  // so a window opened from the bottom of a long table would sit far below what is visible.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return null;
+  return createPortal(
     <AnimatePresence>
       {open && <Dialog onClose={onClose} labelledBy={labelledBy} busy={busy} maxWidth={maxWidth}>{children}</Dialog>}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body,
   );
 }
 
@@ -38,8 +58,7 @@ function Dialog({ onClose, labelledBy, busy, maxWidth, children }: Omit<Props, "
 
   useEffect(() => {
     const opener = document.activeElement as HTMLElement | null;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    lockScroll();
     const focusable = () => Array.from(panel.current?.querySelectorAll<HTMLElement>('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])') ?? []).filter((el) => !el.hasAttribute("disabled"));
     setTimeout(() => (panel.current?.querySelector<HTMLElement>("[data-autofocus]") ?? focusable()[1] ?? focusable()[0])?.focus(), 80);
     const onKey = (e: KeyboardEvent) => {
@@ -52,7 +71,7 @@ function Dialog({ onClose, labelledBy, busy, maxWidth, children }: Omit<Props, "
       else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
     };
     document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("keydown", onKey); document.body.style.overflow = prevOverflow; opener?.focus?.(); };
+    return () => { document.removeEventListener("keydown", onKey); unlockScroll(); opener?.focus?.(); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

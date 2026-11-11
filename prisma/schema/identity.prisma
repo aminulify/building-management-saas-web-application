@@ -40,6 +40,8 @@ model User {
   notifications       Notification[]
 
   @@index([role, status])
+  /// Super Admin dashboard: the Active Plans list, filtered by role, newest first
+  @@index([role, id(sort: Desc)])
 }
 
 model OwnerProfile {

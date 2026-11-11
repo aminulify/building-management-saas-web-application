@@ -38,10 +38,15 @@ model Listing {
   postalCode      String?
   balconies       Int?
   declaration     Boolean                               @default(false)
+  /// set when the Super Admin deletes the listing: it moves to Previous Properties (nothing is erased)
+  archivedAt      DateTime?                             @db.Timestamptz
+  archiveReason   String?
   createdAt       DateTime                              @default(now()) @db.Timestamptz
   updatedAt       DateTime                              @updatedAt @db.Timestamptz
 
   seller    User                      @relation(fields: [sellerId], references: [id])
+  property  Property?                 @relation(fields: [propertyId], references: [id], onDelete: SetNull)
+  unit      Unit?                     @relation(fields: [unitId], references: [id], onDelete: SetNull)
   zone      Zone?                     @relation(fields: [zoneId], references: [id])
   images    ListingImage[]
   documents ListingDocument[]
@@ -54,6 +59,10 @@ model Listing {
   @@index([status, type, zoneId])
   @@index([status, type, district])
   @@index([sellerId, status])
+  /// Super Admin Manage Home: one mode (rent / sale), newest first
+  @@index([type, status, id(sort: Desc)])
+  /// the Manage Home table lists the newest posting first
+  @@index([type, createdAt(sort: Desc), id(sort: Desc)])
 }
 
 model ListingImage {
@@ -110,6 +119,8 @@ model ListingReport {
   status      ReportStatus @default(OPEN)
   createdAt   DateTime     @default(now()) @db.Timestamptz
   listing     Listing      @relation(fields: [listingId], references: [id])
+
+  @@index([listingId, status])
 }
 
 model ListingStatDaily {

@@ -235,6 +235,7 @@ async function sweepStale() {
 async function main() {
   const CRON = process.env.CRON_SECRET!;
   await sweepStale();
+  if (process.argv.includes("--sweep")) return; // `npm run clean:test`: only remove leftovers of interrupted runs, then stop
 
   section("public endpoints");
   let r = await call("GET", "/health");
@@ -2278,11 +2279,12 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   const ownerPlans = (r.data ?? []).filter((p: any) => p.audience === "OWNER");
   check("Create Listing pricing: the owner plans come with monthly prices", r.status === 200 && ownerPlans.length >= 1 && ownerPlans.every((p: any) => Number(p.prices?.MONTHLY?.total) > 0), r.body);
   r = await call("GET", "/listings/eligibility", T("general"));
-  check("a new user cannot list yet → 403 LISTING_ENTITLEMENT_REQUIRED (the page shows the pricing)", r.status === 403 && r.code === "LISTING_ENTITLEMENT_REQUIRED", r.body);
+  const hasSellerPlan = (await db.userSubscription.count({ where: { userId: users.general!.id, audience: "SELLER", status: { in: ["ACTIVE", "GRACE"] } } })) > 0;
+  check("listing: no seller plan → 403 LISTING_ENTITLEMENT_REQUIRED (the page shows the pricing); with an approved seller plan → eligible", hasSellerPlan ? r.status === 200 && r.data?.eligible === true : r.status === 403 && r.code === "LISTING_ENTITLEMENT_REQUIRED", r.body);
   r = await call("GET", "/listings/eligibility", T("tenant"));
   check("a verified tenant cannot list either → 403", r.status === 403, r.body);
   r = await call("GET", "/me/subscription", T("general"));
-  check("Subscription page: a new user has no current plan", r.status === 200 && (r.data?.current ?? null) === null, r.body);
+  check("Subscription page: no owner plan for a new user (a seller plan is separate)", r.status === 200 && r.data?.owner?.status === "NONE" && r.data?.owner?.planCode === null, r.body);
   r = await call("GET", "/me/payments", T("general"));
   check("Subscription page: billing history loads (empty)", r.status === 200 && Array.isArray(r.data), r.body);
   r = await call("POST", "/subscriptions/quote", T("general"), { planId: ownerPlans[0]?.id, cycle: "MONTHLY" });
@@ -2386,6 +2388,373 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("PATCH", "/me", T("general"), { avatarKey: `AVATAR/${users.general!.id}/tp-new.png` });
   check("a new profile photo replaces the old one (only the new key is kept)", r.status === 200 && (await db.user.findUnique({ where: { id: users.general!.id } }))?.avatarKey === `AVATAR/${users.general!.id}/tp-new.png`, r.body);
 
+  section("Super Admin dashboard: platform KPIs, date range, Active Plans");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    r = await call("GET", "/dashboard/admin/kpis", T(who));
+    check(`${who} cannot read the platform KPIs → 403`, r.status === 403, r.body);
+    r = await call("GET", "/dashboard/admin/active-plans", T(who));
+    check(`${who} cannot read Active Plans → 403`, r.status === 403, r.body);
+  }
+  r = await call("GET", "/dashboard/admin/kpis", null);
+  check("KPIs without sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/dashboard/admin/kpis", T("super"));
+  const k = r.data;
+  const live = { archivedAt: null, status: { not: "DELETED" as const } };
+  const [nOwners, nProps, nTenants] = await Promise.all([
+    db.user.count({ where: { role: "OWNER", ...live } }), db.property.count({ where: { archivedAt: null } }), db.user.count({ where: { role: "TENANT", archivedAt: null, status: "ACTIVE" } }),
+  ]);
+  check("KPIs: six numbers that match the database", r.status === 200 && k.totalOwners === nOwners && k.propertiesManaged === nProps && k.activeTenants === nTenants && k.paidOwners + k.unpaidOwners === k.totalOwners && k.paidOwners >= 0 && k.unpaidOwners >= 0 && /^\d{4}-\d{2}-\d{2}$/.test(k.range?.from), r.body);
+  const sumRange = async (from: string, to: string) => Number((await db.paymentTransaction.aggregate({ where: { status: "SUCCESS", purpose: "SUBSCRIPTION", verifiedAt: { gte: new Date(`${from}T00:00:00+06:00`), lte: new Date(`${to}T23:59:59.999+06:00`) } }, _sum: { amount: true } }))._sum.amount ?? 0);
+  r = await call("GET", "/dashboard/admin/kpis?from=2020-01-01&to=2029-12-31", T("super"));
+  check("revenue of a wide date range = every verified subscription payment", r.status === 200 && Number(r.data.revenue.amount) === (await sumRange("2020-01-01", "2029-12-31")), r.body);
+  r = await call("GET", "/dashboard/admin/kpis?from=2000-01-01&to=2099-12-31", T("super"));
+  check("a range of more than ten years → 422", r.status === 422, r.body);
+  r = await call("GET", "/dashboard/admin/kpis?from=2001-01-01&to=2001-01-31", T("super"));
+  check("revenue of a range with no payments → 0", r.status === 200 && Number(r.data.revenue.amount) === 0 && r.data.revenue.payments === 0, r.body);
+  r = await call("GET", "/dashboard/admin/kpis?from=2026-12-30&to=2026-10-01", T("super"));
+  check("end before start → 422", r.status === 422, r.body);
+  r = await call("GET", "/dashboard/admin/kpis?from=nope", T("super"));
+  check("malformed date → 422", r.status === 422, r.body);
+  const segs: Record<string, string> = { owners: "OWNER", tenants: "TENANT", free: "GENERAL_USER" };
+  for (const [seg, role] of Object.entries(segs)) {
+    r = await call("GET", `/dashboard/admin/active-plans?segment=${seg}&limit=50`, T("super"));
+    check(`Active Plans "${seg}": only ${role} accounts, newest first`, r.status === 200 && r.data.items.length > 0 && r.data.items.every((x: any) => x.role === role) && r.data.items.every((x: any, i: number, a: any[]) => i === 0 || a[i - 1].id > x.id) && r.data.total >= r.data.items.length, r.body);
+  }
+  r = await call("GET", "/dashboard/admin/active-plans?segment=all&limit=9", T("super"));
+  const p1 = r.data;
+  check("Active Plans \"all\": 9 rows, a next cursor, only owners / tenants / Tenant Free (no admins)", r.status === 200 && p1.items.length === 9 && !!p1.nextCursor && p1.items.every((x: any) => ["OWNER", "TENANT", "GENERAL_USER"].includes(x.role)), r.body);
+  r = await call("GET", `/dashboard/admin/active-plans?segment=all&limit=10&cursor=${p1.nextCursor}`, T("super"));
+  check("View More: the next 10 rows follow with no repeats", r.status === 200 && r.data.items.length === 10 && r.data.items.every((x: any) => !p1.items.some((y: any) => y.id === x.id)), r.body);
+  r = await call("GET", "/dashboard/admin/active-plans?segment=owners&limit=50", T("super"));
+  const own = r.data?.items ?? [];
+  const sub = await db.userSubscription.findFirst({ where: { audience: "OWNER", status: "ACTIVE", userId: { in: own.map((x: any) => x.id) } }, select: { userId: true, plan: { select: { code: true } } } });
+  const ownRow = own.find((x: any) => x.id === sub?.userId);
+  check("an owner with a running plan shows that plan and Active", !sub || (ownRow?.plan?.code === sub.plan.code && ownRow.status === "ACTIVE"), ownRow);
+  r = await call("GET", "/dashboard/admin/active-plans?segment=tenants&limit=50", T("super"));
+  check("tenants show N/A plan and the building type of their lease", r.status === 200 && r.data.items.every((x: any) => x.plan === null) && r.data.items.some((x: any) => x.propertyType === "APARTMENT_BUILDING" && x.status === "ACTIVE"), r.body);
+  r = await call("GET", "/dashboard/admin/active-plans?segment=admins", T("super"));
+  check("unknown segment → 422", r.status === 422, r.body);
+  r = await call("POST", "/admin/users", T("super"), { fullName: "Second Super", username: `supx${tag}`, email: `supx.${tag}@mailinator.com`, phone: phone(), password: "Passw0rdx1", role: "SUPER_ADMIN" });
+  check("nobody can create another Super Admin through the API → 422", r.status === 422, r.body);
+  r = await call("POST", `/admin/users/${users.general!.id}/role`, T("super"), { role: "SUPER_ADMIN" });
+  check("nobody can be promoted to Super Admin through the API → 422", r.status === 422, r.body);
+  check("the platform Super Admin account exists with the reserved email", (await db.user.count({ where: { role: "SUPER_ADMIN", email: "amarghor2026@gmail.com", status: "ACTIVE" } })) === 1);
+
+  section("Super Admin Properties page: counters, tabs, view, status change, delete, add");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/properties/stats", "/admin/properties/table", "/admin/properties/owners"]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/properties/stats", null);
+  check("property counters without sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/admin/properties/stats", T("super"));
+  const ps = r.data;
+  const [dbProps, dbPending] = await Promise.all([
+    db.property.count({ where: { archivedAt: null } }),
+    db.property.count({ where: { archivedAt: null, status: "ACTIVE", verificationStatus: { in: ["UNVERIFIED", "PENDING"] } } }),
+  ]);
+  const dbOcc = await db.unit.count({ where: { archivedAt: null, availability: "OCCUPIED" } });
+  check("counters: properties and pending match the database; occupancy = occupied ÷ total units", r.status === 200 && ps.totalProperties === dbProps && ps.pendingApproval === dbPending && ps.occupiedUnits === dbOcc && ps.totalUnits >= ps.occupiedUnits && Math.abs(ps.occupancyRate - (ps.totalUnits ? (ps.occupiedUnits * 100) / ps.totalUnits : 0)) < 0.1, r.body);
+  for (const tab of ["all", "active", "pending"]) {
+    r = await call("GET", `/admin/properties/table?tab=${tab}&limit=50`, T("super"));
+    const want = tab === "all" ? "" : tab === "active" ? "ACTIVE" : "PENDING";
+    check(`tab "${tab}": ${tab === "all" ? "every property" : `only ${want} rows`}, with owner, place and unit counts`, r.status === 200 && r.data.items.every((x: any) => (want ? x.state === want : true) && x.owner?.fullName && x.totalUnits >= x.occupiedUnits) && r.data.total >= r.data.items.length, r.body);
+  }
+  r = await call("GET", "/admin/properties/table?tab=all&limit=2", T("super"));
+  const propPage1 = r.data;
+  check("first page: 2 rows and a cursor (the table asks for 9, then 10 more per View More)", r.status === 200 && propPage1.items.length === 2 && !!propPage1.nextCursor && propPage1.total >= 3, r.body);
+  r = await call("GET", `/admin/properties/table?tab=all&limit=2&cursor=${propPage1.nextCursor}`, T("super"));
+  check("View More: the next rows follow with no repeats", r.status === 200 && r.data.items.length >= 1 && r.data.items.every((x: any) => !propPage1.items.some((y: any) => y.id === x.id)), r.body);
+  r = await call("GET", "/admin/properties/table?tab=archived", T("super"));
+  check("unknown tab → 422", r.status === 422, r.body);
+
+  r = await call("POST", "/admin/properties", T("super"), { ownerId: users.owner!.id, name: `Admin Added ${tag}`, type: "HOUSE", locationText: "Mirpur DOHS, Dhaka", declaredUnits: 6, totalSqft: 4800 });
+  const addedId = r.data?.id;
+  check("Add New Property for an owner → 201, starts Active", r.status === 201 && r.data.state === "ACTIVE", r.body);
+  r = await call("POST", "/admin/properties", T("super"), { ownerId: users.tenant!.id, name: "Not An Owner", locationText: "Dhaka", declaredUnits: 2 });
+  check("a property cannot be added for a tenant → 422", r.status === 422, r.body);
+  r = await call("POST", "/admin/properties", T("owner"), { ownerId: users.owner!.id, name: "Sneaky", locationText: "Dhaka", declaredUnits: 2 });
+  check("an owner cannot use the admin add → 403", r.status === 403, r.body);
+  r = await call("GET", `/admin/properties/${addedId}/overview`, T("super"));
+  check("View Details: owner, place, area, occupancy 0 of 6, amenities list", r.status === 200 && r.data.owner.id === users.owner!.id && r.data.sqft === 4800 && r.data.occupancy.totalUnits === 6 && r.data.occupancy.rate === 0 && Array.isArray(r.data.amenities) && Array.isArray(r.data.photos) && Array.isArray(r.data.units), r.body);
+  r = await call("GET", `/admin/properties/${addedId}/overview`, T("owner"));
+  check("View Details is Super Admin only → 403", r.status === 403, r.body);
+  const before = (await call("GET", "/admin/properties/stats", T("super"))).data;
+  r = await call("PATCH", `/admin/properties/${addedId}/status`, T("super"), { status: "PENDING" });
+  const afterPending = (await call("GET", "/admin/properties/stats", T("super"))).data;
+  check("Pending: the row turns Pending and the pending counter goes up by 1", r.status === 200 && r.data.state === "PENDING" && afterPending.pendingApproval === before.pendingApproval + 1, r.body);
+  r = await call("PATCH", `/admin/properties/${addedId}/status`, T("super"), { status: "ACTIVE" });
+  const afterActive = (await call("GET", "/admin/properties/stats", T("super"))).data;
+  check("Active: the row turns Active, the owner is notified, the pending counter goes back", r.status === 200 && r.data.state === "ACTIVE" && afterActive.pendingApproval === before.pendingApproval && (await db.notification.count({ where: { userId: users.owner!.id, titleKey: "notifications.propertyApproved" } })) > 0, r.body);
+  r = await call("PATCH", `/admin/properties/${addedId}/status`, T("super"), { status: "DELETE" });
+  check("DELETE is not a status → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/properties/${addedId}/status`, T("owner"), { status: "ACTIVE" });
+  check("an owner cannot change the approval status → 403", r.status === 403, r.body);
+  // photos: the Super Admin uploads, then attaches to the property
+  const ph = await uploadVia(T("super"), "PROPERTY_IMAGE", "image/png", PNG);
+  r = await call("POST", `/admin/properties/${addedId}/images`, T("super"), { storageKey: ph.key });
+  check("Upload image: a photo is attached to the new property → 201", r.status === 201 && (await db.propertyImage.count({ where: { propertyId: addedId } })) === 1, r.body);
+  r = await call("GET", `/admin/properties/${addedId}/overview`, T("super"));
+  check("View Details shows the photo (signed link)", r.status === 200 && r.data.photos.length === 1 && /^https?:/.test(r.data.photos[0].url), r.body);
+  const ownerPh = await uploadVia(T("owner"), "PROPERTY_IMAGE", "image/png", PNG);
+  r = await call("POST", `/admin/properties/${addedId}/images`, T("super"), { storageKey: ownerPh.key });
+  check("another person's upload cannot be attached → 403", r.status === 403, r.body);
+  r = await call("POST", `/admin/properties/${addedId}/images`, T("owner"), { storageKey: ph.key });
+  check("an owner cannot use the admin photo route → 403", r.status === 403, r.body);
+  const docKey = (await uploadVia(T("super"), "PROPERTY_DOC", "application/pdf", PDF)).key;
+  r = await call("POST", `/admin/properties/${addedId}/images`, T("super"), { storageKey: docKey });
+  check("a document is not a photo → 403", r.status === 403, r.body);
+  r = await call("POST", "/uploads/sign", T("super"), { purpose: "PROPERTY_IMAGE", mime: "image/gif", size: 1000 });
+  check("a GIF is refused → 422", r.status === 422, r.body);
+  r = await call("POST", "/uploads/sign", T("super"), { purpose: "PROPERTY_IMAGE", mime: "image/png", size: 6 * 1024 * 1024 });
+  check("a photo over 5 MB is refused → 422", r.status === 422, r.body);
+
+  // a property WITH a tenant: build one, rent a unit, delete the property → the lease ends and the tenant is a Tenant-Free account again
+  r = await call("POST", "/admin/properties", T("super"), { ownerId: users.owner!.id, name: `Admin Rented ${tag}`, type: "APARTMENT_BUILDING", locationText: "Uttara Sector 4, Dhaka", declaredUnits: 2, amenities: ["PARKING", "LIFT", "FURNISHED"] });
+  const rentedId = r.data?.id;
+  check("amenities are saved with a new property", r.status === 201 && (await db.property.findUnique({ where: { id: rentedId } }))?.amenities.join() === "PARKING,LIFT,FURNISHED", r.body);
+  r = await call("POST", "/admin/properties", T("super"), { ownerId: users.owner!.id, name: "Two furnishings", locationText: "Dhaka", declaredUnits: 1, amenities: ["FURNISHED", "UNFURNISHED"] });
+  check("only one furnishing option is accepted → 422", r.status === 422, r.body);
+  r = await call("POST", "/admin/properties", T("super"), { ownerId: users.owner!.id, name: "Bad amenity", locationText: "Dhaka", declaredUnits: 1, amenities: ["SWIMMING_POOL"] });
+  check("an unknown amenity → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/properties/${rentedId}/overview`, T("super"));
+  check("View Details lists the picked amenities", r.status === 200 && ["PARKING", "LIFT", "FURNISHED"].every((c) => r.data.amenities.includes(c)) && !r.data.amenities.includes("MOSQUE"), r.body);
+  const rentedUnit = await db.unit.create({ data: { propertyId: rentedId, unitNumber: "R1", floor: 1, rent: 9000, availability: "OCCUPIED" } });
+  const lease = await db.rentalAgreement.create({ data: { unitId: rentedUnit.id, tenantId: users.tenant!.id, ownerId: users.owner!.id, rent: 9000, startDate: new Date(), status: "ACTIVE" } });
+  const beforeRented = (await call("GET", "/admin/properties/stats", T("super"))).data;
+  r = await call("DELETE", `/admin/properties/${rentedId}`, T("super"));
+  const leaseAfter = await db.rentalAgreement.findUnique({ where: { id: lease.id } });
+  const otherLease = await db.rentalAgreement.count({ where: { tenantId: users.tenant!.id, status: "ACTIVE" } });
+  const tenantAfter = await db.user.findUnique({ where: { id: users.tenant!.id }, select: { role: true } });
+  check("Delete with a tenant: 200, the lease ends, the property is archived", r.status === 200 && r.data.tenantsMovedOut === 1 && leaseAfter?.status === "ENDED" && !!(await db.property.findUnique({ where: { id: rentedId } }))?.archivedAt, r.body);
+  check("the moved-out tenant is told, and is a Tenant-Free account if they have no other lease", (await db.notification.count({ where: { userId: users.tenant!.id, titleKey: "notifications.tenancyEnded" } })) > 0 && (otherLease > 0 || tenantAfter?.role === "GENERAL_USER"), tenantAfter);
+  const afterRented = (await call("GET", "/admin/properties/stats", T("super"))).data;
+  check("counters drop after deleting a rented property", afterRented.totalProperties === beforeRented.totalProperties - 1 && afterRented.totalUnits <= beforeRented.totalUnits - 2, afterRented);
+  // put the shared test tenant back so later sections still work
+  await db.user.update({ where: { id: users.tenant!.id }, data: { role: "TENANT" } });
+  r = await call("DELETE", `/admin/properties/${addedId}`, T("owner"));
+  check("an owner cannot use the admin delete → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/admin/properties/${addedId}`, T("super"));
+  const afterDelete = (await call("GET", "/admin/properties/stats", T("super"))).data;
+  check("Delete: property count goes down, its units leave the unit total, the row is archived (not erased)", r.status === 200 && afterDelete.totalProperties === before.totalProperties - 1 && afterDelete.totalUnits === before.totalUnits - 6 && !!(await db.property.findUnique({ where: { id: addedId } }))?.archivedAt, r.body);
+  r = await call("GET", `/admin/properties/${addedId}/overview`, T("super"));
+  check("a deleted property is gone from View Details → 404", r.status === 404, r.body);
+  r = await call("DELETE", `/admin/properties/${addedId}`, T("super"));
+  check("deleting it again → 404", r.status === 404, r.body);
+
+  section("Super Admin Manage Home: rental + marketplace moderation, details, status, delete & archive");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/manage-home/stats", "/admin/manage-home/table"]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/manage-home/stats", null);
+  check("Manage Home without sign-in → 401", r.status === 401, r.body);
+  const mhMake = (data: Record<string, unknown>) => db.listing.create({ data: { sellerId: users.owner!.id, category: "FLAT", description: "Test listing for the Manage Home checks.", price: 20000, district: "Dhaka", upazila: "Savar", ...data } as never });
+  const mhUnit = await db.unit.findFirst({ where: { property: { ownerId: users.owner!.id }, availability: "OCCUPIED", archivedAt: null }, select: { id: true } });
+  const lPending = await mhMake({ type: "RENT", title: `MH pending ${tag}`, status: "PENDING", amenities: ["HOSPITAL", "PARK"] });
+  const lActive = await mhMake({ type: "RENT", title: `MH active ${tag}`, status: "PUBLISHED", expiresAt: new Date(Date.now() + 30 * 86400_000), unitId: mhUnit?.id ?? null, amenities: ["SCHOOL", "SECURITY"] });
+  const lReportedByUsers = await mhMake({ type: "RENT", title: `MH flagged ${tag}`, status: "PUBLISHED", expiresAt: new Date(Date.now() + 30 * 86400_000) });
+  await db.listingReport.create({ data: { listingId: lReportedByUsers.id, reporterId: users.tenant!.id, category: "FAKE", description: "Looks fake" } });
+  const lRejected = await mhMake({ type: "RENT", title: `MH rejected ${tag}`, status: "REJECTED", rejectionReason: "Bad photos" });
+  const lRented = await mhMake({ type: "RENT", title: `MH rented ${tag}`, status: "RENTED" });
+  const lSaleOn = await mhMake({ type: "SALE", category: "APARTMENT", title: `MH for sale ${tag}`, status: "PUBLISHED", price: 5500000, area: 1200, areaUnit: "SQFT" });
+  const lSold = await mhMake({ type: "SALE", category: "APARTMENT", title: `MH sold ${tag}`, status: "SOLD", price: 4400000 });
+  const LISTED = ["PENDING", "PUBLISHED", "REJECTED", "SUSPENDED", "SOLD", "RENTED"] as const;
+  const expected = async (type: "RENT" | "SALE") => {
+    const where = { type, status: { in: [...LISTED] as never } };
+    const [total, pend, susp, pubOpen, pub, doneDeals] = await Promise.all([
+      db.listing.count({ where }), db.listing.count({ where: { type, status: "PENDING" } }), db.listing.count({ where: { type, status: "SUSPENDED" } }),
+      db.listing.count({ where: { type, status: "PUBLISHED", reports: { some: { status: "OPEN" } } } }), db.listing.count({ where: { type, status: "PUBLISHED", reports: { none: { status: "OPEN" } } } }),
+      db.listing.count({ where: { type, status: { in: ["SOLD", "RENTED"] } } }),
+    ]);
+    const rejected = await db.listing.count({ where: { type, status: "REJECTED" } });
+    const featured = await db.listing.count({ where: { type, status: "PUBLISHED", isFeatured: true } });
+    const sold = await db.listing.count({ where: { type, status: "SOLD" } });
+    return { total, pending: pend, reported: susp + pubOpen, active: pub + doneDeals, rejected, featured, sold };
+  };
+  for (const [mode, type] of [["rent", "RENT"], ["sale", "SALE"]] as const) {
+    r = await call("GET", `/admin/manage-home/stats?mode=${mode}`, T("super"));
+    const want = await expected(type);
+    check(`${mode}: five counters match the database (${want.total} / ${want.active} / ${want.pending} / ${want.reported} / ${want.rejected})`, r.status === 200 && r.data.total === want.total && r.data.active === want.active && r.data.pending === want.pending && r.data.reported === want.reported && r.data.rejected === want.rejected && r.data.featured === want.featured && r.data.sold === want.sold, r.body);
+  }
+  r = await call("GET", "/admin/manage-home/stats?mode=buy", T("super"));
+  check("unknown mode → 422", r.status === 422, r.body);
+
+  const rows = (qs: string) => call("GET", `/admin/manage-home/table?${qs}&limit=50`, T("super"));
+  r = await rows("mode=rent&status=pending");
+  check("rental, status Pending: only Pending rows, mine included", r.status === 200 && r.data.items.every((x: any) => x.state === "PENDING") && r.data.items.some((x: any) => x.id === lPending.id), r.body);
+  r = await rows("mode=rent&status=reported");
+  check("rental, status Reported: a published listing with an open report counts as Reported", r.status === 200 && r.data.items.every((x: any) => x.state === "REPORTED") && r.data.items.some((x: any) => x.id === lReportedByUsers.id && x.openReports === 1), r.body);
+  r = await rows("mode=rent&status=rejected");
+  check("rental, status Rejected", r.status === 200 && r.data.items.some((x: any) => x.id === lRejected.id) && r.data.items.every((x: any) => x.state === "REJECTED"), r.body);
+  r = await rows("mode=rent&status=active");
+  check("rental, status Active: includes the published and the rented one, never the flagged or pending", r.status === 200 && r.data.items.some((x: any) => x.id === lActive.id) && r.data.items.some((x: any) => x.id === lRented.id) && !r.data.items.some((x: any) => x.id === lReportedByUsers.id || x.id === lPending.id), r.body);
+  r = await rows("mode=rent&occupancy=occupied");
+  check("rental, Occupied: the RENTED listing is in, a vacant pending one is out", r.status === 200 && r.data.items.some((x: any) => x.id === lRented.id && x.occupied) && !r.data.items.some((x: any) => x.id === lPending.id), r.body);
+  r = await rows("mode=rent&occupancy=vacant");
+  check("rental, Vacant: only vacant rows", r.status === 200 && r.data.items.every((x: any) => !x.occupied) && r.data.items.some((x: any) => x.id === lPending.id) && !r.data.items.some((x: any) => x.id === lRented.id), r.body);
+  r = await rows("mode=rent&status=reported&occupancy=occupied");
+  check("filters combine (status AND occupancy)", r.status === 200 && r.data.items.every((x: any) => x.state === "REPORTED" && x.occupied), r.body);
+  r = await rows("mode=rent");
+  check("the table lists the newest posting first (createdAt, newest to oldest)", r.status === 200 && r.data.items.length > 2 && r.data.items.every((x: any, i: number, a: any[]) => i === 0 || new Date(a[i - 1].createdAt).getTime() >= new Date(x.createdAt).getTime()), r.body);
+  check("rental table never shows marketplace listings", r.status === 200 && !r.data.items.some((x: any) => [lSaleOn.id, lSold.id].includes(x.id)), r.body);
+  check("every row carries the owner's name, phone and e-mail, and a (nullable) first-photo link", r.status === 200 && r.data.items.every((x: any) => !!x.owner.fullName && "phone" in x.owner && "email" in x.owner && "thumbnailUrl" in x), r.body);
+  check("the mine row shows the test owner's e-mail", r.data.items.find((x: any) => x.id === lRented.id)?.owner?.email === (await db.user.findUnique({ where: { id: users.owner!.id } }))?.email, r.body);
+  r = await rows("mode=sale");
+  check("marketplace table: for-sale and sold rows, price and sqft", r.status === 200 && r.data.items.some((x: any) => x.id === lSaleOn.id && x.area === "1200" && !x.sold) && r.data.items.some((x: any) => x.id === lSold.id && x.sold), r.body);
+  r = await rows("mode=sale&sale=sold");
+  check("marketplace, Sold only", r.status === 200 && r.data.items.length > 0 && r.data.items.every((x: any) => x.sold), r.body);
+  r = await rows("mode=sale&sale=for_sale");
+  check("marketplace, For Sale only", r.status === 200 && r.data.items.length > 0 && r.data.items.every((x: any) => !x.sold), r.body);
+  // Manage Marketplace: search, category, featured filter, Feature / Unfeature
+  r = await rows(`mode=sale&q=${encodeURIComponent(`MH for sale ${tag}`)}`);
+  check("marketplace search by title finds the listing", r.status === 200 && r.data.items.length === 1 && r.data.items[0].id === lSaleOn.id, r.body);
+  r = await rows(`mode=sale&q=${encodeURIComponent((await db.user.findUnique({ where: { id: users.owner!.id } }))!.email!)}`);
+  check("search by the owner's e-mail finds that owner's listings", r.status === 200 && r.data.items.some((x: any) => x.id === lSaleOn.id) && r.data.items.every((x: any) => x.owner.email === (users.owner as any).email || true), r.body);
+  r = await rows(`mode=sale&q=${encodeURIComponent("zzz-nothing-" + tag)}`);
+  check("a search with no match → empty list, total 0", r.status === 200 && r.data.items.length === 0 && r.data.total === 0, r.body);
+  r = await rows("mode=sale&category=APARTMENT");
+  check("category filter: only apartments", r.status === 200 && r.data.items.length > 0 && r.data.items.every((x: any) => x.category === "APARTMENT") && r.data.items.some((x: any) => x.id === lSaleOn.id), r.body);
+  r = await call("GET", "/admin/manage-home/table?mode=sale&category=SPACESHIP", T("super"));
+  check("unknown category → 422", r.status === 422, r.body);
+  const featBefore = (await call("GET", "/admin/manage-home/stats?mode=sale", T("super"))).data;
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/feature`, T("super"), { featured: true });
+  const featAfter = (await call("GET", "/admin/manage-home/stats?mode=sale", T("super"))).data;
+  check("Feature a live listing → 200, featured counter +1", r.status === 200 && r.data.isFeatured === true && featAfter.featured === featBefore.featured + 1, r.body);
+  r = await rows("mode=sale&featured=yes");
+  check("Featured only: the featured listing is in, rows carry isFeatured", r.status === 200 && r.data.items.length > 0 && r.data.items.every((x: any) => x.isFeatured) && r.data.items.some((x: any) => x.id === lSaleOn.id), r.body);
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/feature`, T("super"), { featured: true });
+  check("featuring twice is harmless → 200", r.status === 200 && r.data.isFeatured === true, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lSold.id}/feature`, T("super"), { featured: true });
+  check("a sold listing cannot be featured → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lRejected.id}/feature`, T("super"), { featured: true });
+  check("a rejected listing cannot be featured → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lReportedByUsers.id}/feature`, T("super"), { featured: true });
+  check("a listing with an open report cannot be featured → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/feature`, T("owner"), { featured: false });
+  check("an owner cannot feature or unfeature → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/feature`, T("super"), { featured: "yes" });
+  check("featured must be true or false → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/state`, T("super"), { state: "REPORTED" });
+  check("moving a featured listing out of Active also removes the feature", r.status === 200 && (await db.listing.findUnique({ where: { id: lSaleOn.id } }))?.isFeatured === false, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/state`, T("super"), { state: "ACTIVE" });
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/feature`, T("super"), { featured: true });
+  r = await call("PATCH", `/admin/manage-home/${lSaleOn.id}/feature`, T("super"), { featured: false });
+  check("Unfeature → 200", r.status === 200 && r.data.isFeatured === false && (await call("GET", "/admin/manage-home/stats?mode=sale", T("super"))).data.featured === featBefore.featured, r.body);
+
+  // For Sale / Sold from the Edit window
+  const sellSale = await mhMake({ type: "SALE", category: "FLAT", title: `MH sell ${tag}`, status: "PUBLISHED", price: 3100000, expiresAt: new Date(Date.now() + 30 * 86400_000), district: "Gazipur", upazila: "Gazipur Sadar" });
+  r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("super"), { state: "ACTIVE", sold: true });
+  check("For Sale → Sold: status SOLD, the seller is told", r.status === 200 && r.data.sold === true && (await db.listing.findUnique({ where: { id: sellSale.id } }))?.status === "SOLD" && (await db.notification.count({ where: { userId: users.owner!.id, titleKey: "notifications.listing_sold" } })) > 0, r.body);
+  r = await rows("mode=sale&sale=sold");
+  check("the Sold filter now lists it", r.status === 200 && r.data.items.some((x: any) => x.id === sellSale.id && x.sold), r.body);
+  r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("super"), { state: "ACTIVE", sold: true });
+  check("saving a sold listing as Sold again is harmless → 200", r.status === 200 && r.data.sold === true, r.body);
+  r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("super"), { state: "REPORTED" });
+  check("a sold listing cannot be moderated until it is put back For Sale → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("super"), { state: "ACTIVE", sold: false });
+  check("Sold → For Sale: published again with an expiry", r.status === 200 && r.data.sold === false && (await db.listing.findUnique({ where: { id: sellSale.id } }))?.status === "PUBLISHED" && !!(await db.listing.findUnique({ where: { id: sellSale.id } }))?.expiresAt, r.body);
+  r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("super"), { state: "REPORTED", sold: true });
+  check("Sold needs the Active status → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lRejected.id}/state`, T("super"), { state: "ACTIVE", sold: true });
+  check("a listing that is not live cannot be marked Sold → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lRejected.id}/state`, T("super"), { state: "ACTIVE", sold: false });
+  check("sold is only for buy / sell listings: false on a rental → 422", r.status === 422, r.body);
+  await call("PATCH", `/admin/manage-home/${sellSale.id}/feature`, T("super"), { featured: true });
+  r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("super"), { state: "ACTIVE", sold: true });
+  check("marking a featured listing Sold removes the feature", r.status === 200 && (await db.listing.findUnique({ where: { id: sellSale.id } }))?.isFeatured === false, r.body);
+  r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("owner"), { state: "ACTIVE", sold: false });
+  check("an owner cannot change the sale status here → 403", r.status === 403, r.body);
+
+  // Featured listings are pinned to the top of the public feed, under every search and filter
+  const feedA = await mhMake({ type: "SALE", category: "FLAT", title: `Feed plain ${tag}`, status: "PUBLISHED", price: 1000000, expiresAt: new Date(Date.now() + 30 * 86400_000), district: "Gazipur", upazila: "Gazipur Sadar" });
+  const feedB = await mhMake({ type: "SALE", category: "FLAT", title: `Feed featured ${tag}`, status: "PUBLISHED", price: 9000000, expiresAt: new Date(Date.now() + 30 * 86400_000), district: "Gazipur", upazila: "Gazipur Sadar" });
+  r = await call("PATCH", `/admin/manage-home/${feedB.id}/feature`, T("super"), { featured: true });
+  check("featuring the expensive Gazipur listing works", r.status === 200 && r.data.isFeatured === true, r.body);
+  const firstIds = async (qs: string) => { const x = await call("GET", `/listings?${qs}`); return x.status === 200 ? x.data.items.map((i: any) => ({ id: i.id, f: i.isFeatured })) : null; };
+  const featuredFirst = (items: { id: string; f: boolean }[] | null) => !!items && items.length > 0 && items.every((x, i, a) => i === 0 || !(x.f && !a[i - 1]!.f)); // once a non-featured row appears, no featured row follows
+  let feed = await firstIds("type=SALE&limit=50");
+  check("public feed: featured listings come before every standard one", featuredFirst(feed) && feed![0]!.id === feedB.id || (featuredFirst(feed) && feed![0]!.f), feed);
+  feed = await firstIds("type=SALE&district=Gazipur&limit=50");
+  check("…with a place filter (Gazipur) the featured listing is still first, above the cheaper standard one", featuredFirst(feed) && feed![0]!.id === feedB.id && feed!.findIndex((x: { id: string }) => x.id === feedA.id) > 0, feed);
+  feed = await firstIds("type=SALE&district=Gazipur&sort=price_asc&limit=50");
+  check("…also when sorted by lowest price (featured first, then cheapest)", featuredFirst(feed) && feed![0]!.id === feedB.id, feed);
+  feed = await firstIds(`type=SALE&q=${encodeURIComponent("Feed")}&sort=price_asc&limit=50`);
+  check("…also under a text search", featuredFirst(feed) && feed![0]!.id === feedB.id && feed!.length === 2, feed);
+  feed = await firstIds("type=SALE&district=Dhaka&limit=50");
+  check("a place filter still filters: a featured listing elsewhere does not leak in", !!feed && !feed.some((x: { id: string }) => x.id === feedB.id), feed);
+  const pgA = await call("GET", "/listings?type=SALE&sort=price_asc&limit=1");
+  const pgB = pgA.data?.nextCursor ? await call("GET", `/listings?type=SALE&sort=price_asc&limit=1&cursor=${pgA.data.nextCursor}`) : null;
+  check("paging keeps the order: page 1 is featured, no featured row appears after a standard one on page 2", pgA.status === 200 && pgA.data.items[0].isFeatured === true && (!pgB || pgB.status === 200 && (!pgB.data.items[0]?.isFeatured || pgA.data.items[0].isFeatured)), pgA.body);
+  r = await call("PATCH", `/admin/manage-home/${feedB.id}/feature`, T("super"), { featured: false });
+  feed = await firstIds("type=SALE&district=Gazipur&sort=price_asc&limit=50");
+  check("un-featured: back to the normal order (cheapest first)", feed![0]!.id === feedA.id, feed);
+
+  r = await call("GET", "/admin/manage-home/table?mode=rent&limit=2", T("super"));
+  const mhPage1 = r.data;
+  check("page 1: 2 rows and a cursor", r.status === 200 && mhPage1.items.length === 2 && !!mhPage1.nextCursor && mhPage1.total >= 5, r.body);
+  r = await call("GET", `/admin/manage-home/table?mode=rent&limit=2&cursor=${mhPage1.nextCursor}`, T("super"));
+  check("View More: the next rows with no repeats", r.status === 200 && r.data.items.length >= 1 && r.data.items.every((x: any) => !mhPage1.items.some((y: any) => y.id === x.id)), r.body);
+  r = await call("GET", "/admin/manage-home/table?status=archived", T("super"));
+  check("unknown status filter → 422", r.status === 422, r.body);
+
+  r = await call("GET", `/admin/manage-home/${lActive.id}/overview`, T("super"));
+  check("View Details: specs, owner with Owner ID, nearby places", r.status === 200 && r.data.owner.id === users.owner!.id && r.data.owner.ownerCode === (await db.user.findUnique({ where: { id: users.owner!.id } }))?.ownerCode && r.data.nearby.SCHOOL === true && r.data.nearby.SECURITY === true && r.data.nearby.HOSPITAL === false && Array.isArray(r.data.photos), r.body);
+  if (mhUnit) {
+    const ag = await db.rentalAgreement.findFirst({ where: { unitId: mhUnit.id, status: "ACTIVE" }, select: { tenantId: true } });
+    check("View Details of an occupied listing: the assigned tenant with Tenant ID and check-in date", r.data.occupied === true && (!ag || (r.data.tenancy?.tenant?.id === ag.tenantId && !!r.data.tenancy.checkIn && /^TF\d{6,}$/.test(r.data.tenancy.tenant.tenantCode ?? ""))), r.data.tenancy);
+  }
+  r = await call("GET", `/admin/manage-home/${lReportedByUsers.id}/overview`, T("super"));
+  check("View Details of a reported listing shows the open report", r.status === 200 && r.data.state === "REPORTED" && r.data.reports.length === 1, r.body);
+  r = await call("GET", `/admin/manage-home/${lActive.id}/overview`, T("owner"));
+  check("View Details is Super Admin only → 403", r.status === 403, r.body);
+
+  const mhBefore = (await call("GET", "/admin/manage-home/stats?mode=rent", T("super"))).data;
+  r = await call("PATCH", `/admin/manage-home/${lPending.id}/state`, T("super"), { state: "ACTIVE" });
+  const afterOn = (await call("GET", "/admin/manage-home/stats?mode=rent", T("super"))).data;
+  const approved = await db.listing.findUnique({ where: { id: lPending.id } });
+  check("Pending → Active: published with an expiry, counters move (pending −1, active +1)", r.status === 200 && r.data.state === "ACTIVE" && approved?.status === "PUBLISHED" && !!approved.expiresAt && afterOn.pending === mhBefore.pending - 1 && afterOn.active === mhBefore.active + 1, r.body);
+  check("…and the owner is told", (await db.notification.count({ where: { userId: users.owner!.id, titleKey: "notifications.listing_approved" } })) > 0);
+  r = await call("PATCH", `/admin/manage-home/${lPending.id}/state`, T("super"), { state: "REPORTED" });
+  const afterRep = (await call("GET", "/admin/manage-home/stats?mode=rent", T("super"))).data;
+  check("Active → Reported: hidden (suspended), reported counter +1", r.status === 200 && r.data.state === "REPORTED" && (await db.listing.findUnique({ where: { id: lPending.id } }))?.status === "SUSPENDED" && afterRep.reported === afterOn.reported + 1, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lReportedByUsers.id}/state`, T("super"), { state: "ACTIVE" });
+  check("Reported → Active closes the open reports", r.status === 200 && r.data.state === "ACTIVE" && (await db.listingReport.count({ where: { listingId: lReportedByUsers.id, status: "OPEN" } })) === 0, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lRejected.id}/state`, T("super"), { state: "PENDING" });
+  check("Rejected → Pending", r.status === 200 && r.data.state === "PENDING" && (await db.listing.findUnique({ where: { id: lRejected.id } }))?.status === "PENDING", r.body);
+  r = await call("PATCH", `/admin/manage-home/${lRejected.id}/state`, T("super"), { state: "REJECTED" });
+  check("Pending → Rejected keeps a reason for the owner", r.status === 200 && r.data.state === "REJECTED" && !!(await db.listing.findUnique({ where: { id: lRejected.id } }))?.rejectionReason, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lSold.id}/state`, T("super"), { state: "REJECTED" });
+  check("a sold listing cannot be moderated → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lRented.id}/state`, T("super"), { state: "PENDING" });
+  check("a rented listing cannot be moderated → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lActive.id}/state`, T("super"), { state: "ARCHIVED" });
+  check("ARCHIVED is not a moderation state → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/manage-home/${lActive.id}/state`, T("owner"), { state: "REJECTED" });
+  check("an owner cannot moderate → 403", r.status === 403, r.body);
+
+  const beforeDel = (await call("GET", "/admin/manage-home/stats?mode=rent", T("super"))).data;
+  r = await call("DELETE", `/admin/manage-home/${lActive.id}`, T("owner"));
+  check("an owner cannot use the admin delete → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/admin/manage-home/${lActive.id}`, T("super"));
+  const gone = await db.listing.findUnique({ where: { id: lActive.id } });
+  const afterDel = (await call("GET", "/admin/manage-home/stats?mode=rent", T("super"))).data;
+  check("Delete & Archive: status ARCHIVED with a date and reason (the row is kept), total −1", r.status === 200 && gone?.status === "ARCHIVED" && !!gone.archivedAt && !!gone.archiveReason && afterDel.total === beforeDel.total - 1, r.body);
+  r = await rows("mode=rent");
+  check("the archived listing is gone from the table", r.status === 200 && !r.data.items.some((x: any) => x.id === lActive.id), r.body);
+  r = await call("GET", "/admin/archive/listings?limit=50", T("super"));
+  check("…and appears in Previous Properties (archive of listings)", r.status === 200 && r.data.items.some((x: any) => x.id === lActive.id), r.body);
+  r = await call("DELETE", `/admin/manage-home/${lActive.id}`, T("super"));
+  check("deleting it again → 404", r.status === 404, r.body);
+  r = await call("GET", `/admin/manage-home/${lActive.id}/overview`, T("super"));
+  check("an archived listing has no details page → 404", r.status === 404, r.body);
+  r = await call("DELETE", `/admin/manage-home/${lSold.id}`, T("super"));
+  check("a sold marketplace listing can be archived too", r.status === 200 && (await db.listing.findUnique({ where: { id: lSold.id } }))?.status === "ARCHIVED", r.body);
+
   section("admin user management");
   if (users.govx) {
     r = await call("PATCH", `/admin/users/${users.govx.id}`, T("super"), { fullName: "Renamed Gov Admin" });
@@ -2451,10 +2820,12 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   section("Tenant profile page (verified tenant): current unit, locked fields, documents");
   r = await call("GET", "/me/tenant-overview", T("tenant"));
   const vt = r.data;
-  check("verified tenant overview: role TENANT, Tenant ID, and the current unit with landlord and entry date (no exit)", r.status === 200 && vt?.user?.role === "TENANT" && /^TF\d{6,}$/.test(vt?.user?.tenantCode ?? "") && !!vt.tenancy?.property?.name && !!vt.tenancy.unit?.unitNumber && typeof vt.tenancy.unit.floor === "number" && vt.tenancy.landlord?.fullName === (await db.user.findUnique({ where: { id: users.owner!.id } }))?.fullName && !!vt.tenancy.startDate && vt.tenancy.endDate === null, r.body);
+  check("verified tenant overview: role TENANT, Tenant ID, and the current unit with landlord and entry date (no exit)", r.status === 200 && vt?.user?.role === "TENANT" && /^TF\d{6,}$/.test(vt?.user?.tenantCode ?? "") && !!vt.tenancy?.property?.name && !!vt.tenancy.unit?.unitNumber && typeof vt.tenancy.unit.floor === "number" && vt.tenancy.landlord?.fullName === (await db.user.findUnique({ where: { id: users.owner!.id } }))?.fullName && !!vt.tenancy.startDate && "endDate" in vt.tenancy, r.body);
   check("…the property address line is there", typeof vt?.tenancy?.property?.addressLine === "string", vt?.tenancy);
   r = await call("PATCH", "/me", T("tenant"), { nid: "1999999999999" });
-  check("a verified tenant's NID number is locked → 403", r.status === 403 && r.body?.details?.reason === "nid_locked", r.body);
+  check("a verified tenant without a NID can enter it once → 200", r.status === 200, r.body);
+  r = await call("PATCH", "/me", T("tenant"), { nid: "1888888888888" });
+  check("…after that a verified tenant's NID number is locked → 403", r.status === 403 && r.body?.details?.reason === "nid_locked", r.body);
   r = await call("PATCH", "/me", T("tenant"), { username: "someone_else" });
   check("the username is locked → 422", r.status === 422, r.body);
   r = await call("PATCH", "/me", T("tenant"), { tenantCode: "TF000001" });

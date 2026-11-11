@@ -78,12 +78,20 @@ export async function listProperties(actor: Actor, q: z.infer<typeof directoryQu
   return pageResult(rows, page.limit);
 }
 
-export const archiveKind = z.enum(["properties", "owners", "tenants"]);
+export const archiveKind = z.enum(["properties", "owners", "tenants", "listings"]);
 export const archiveQuery = z.object({ reason: z.string().trim().max(100).optional(), status: z.string().regex(/^[A-Z_]{3,20}$/).optional() });
 
 /** "Previous Properties / Owners / Tenants" are queries over soft-deleted rows, not separate tables. */
 export async function listArchive(actor: Actor, kind: z.infer<typeof archiveKind>, q: z.infer<typeof archiveQuery>, page: z.infer<typeof pageQuery>) {
   staff(actor);
+  if (kind === "listings") {
+    // rental and sale listings the Super Admin deleted from Manage Home (Previous Properties)
+    const rows = await db.listing.findMany({
+      where: { status: "ARCHIVED", ...(q.reason ? { archiveReason: { contains: q.reason, mode: "insensitive" } } : {}) },
+      select: { id: true, title: true, type: true, category: true, price: true, archiveReason: true, archivedAt: true, seller: { select: { id: true, fullName: true, ownerCode: true } } }, ...pageArgs(page),
+    });
+    return pageResult(rows, page.limit);
+  }
   if (kind === "properties") {
     const rows = await db.property.findMany({
       where: { OR: [{ archivedAt: { not: null } }, { status: { in: ["SUSPENDED", "INACTIVE", "ARCHIVED"] } }], ...(q.status ? { status: q.status as never } : {}), ...(q.reason ? { archiveReason: { contains: q.reason, mode: "insensitive" } } : {}) },

@@ -56,7 +56,8 @@ export const adminCreateUserSchema = z.object({
   email: z.string().trim().toLowerCase().email(),
   phone: bdPhoneSchema,
   password: passwordSchema,
-  role: z.enum(["GOV_ADMIN", "SUPER_ADMIN"]),
+  /** SUPER_ADMIN is reserved: the platform has exactly one, created by `npm run db:seed:admin`, never through the app */
+  role: z.enum(["GOV_ADMIN"]),
   department: z.string().trim().max(100).optional(),
   designation: z.string().trim().max(100).optional(),
 });
@@ -72,7 +73,7 @@ export const suspendSchema = z.object({
   status: z.enum(["SUSPENDED", "BANNED"]).default("SUSPENDED"),
 });
 
-export const roleChangeSchema = z.object({ role: z.enum(["GOV_ADMIN", "SUPER_ADMIN", "OWNER", "TENANT", "GENERAL_USER"]) });
+export const roleChangeSchema = z.object({ role: z.enum(["GOV_ADMIN", "OWNER", "TENANT", "GENERAL_USER"]) });
 
 export const isEmail = (v: string) => v.includes("@");
 

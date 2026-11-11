@@ -12,7 +12,7 @@ export async function retargetLinks(tx: Prisma.TransactionClient, userId: string
   const base: string = AREA_BASE[role];
   await tx.$executeRaw`UPDATE "Notification" SET "link" = ${base}::text || regexp_replace("link", '^/(home-owner|tenant-free|tenant)', '') WHERE "userId" = ${userId}::uuid AND "link" ~ '^/(home-owner|tenant-free|tenant)(/|$)' AND NOT ("link" ~ ('^' || ${base}::text || '(/|$)'))`;
   // the one tenant page an owner does not have
-  if (role === "OWNER") await tx.$executeRaw`UPDATE "Notification" SET "link" = '/home-owner/dashboard' WHERE "userId" = ${userId}::uuid AND "link" ~ '^/home-owner/history(/|$|\?)'`;
+  if (role === "OWNER") await tx.$executeRaw`UPDATE "Notification" SET "link" = '/home-owner/dashboard' WHERE "userId" = ${userId}::uuid AND "link" ~ '^/home-owner/history(/|$|[?])'`;
 }
 
 /**

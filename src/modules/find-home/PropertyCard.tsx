@@ -1,6 +1,6 @@
 "use client";
 
-import { Bath, BedDouble, Heart, ImageOff, MapPin, Ruler, Share2, Sparkles } from "lucide-react";
+import { Bath, BedDouble, Heart, ImageOff, MapPin, Ruler, Share2, Sparkles, Star } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
 import { useLocale, useTranslations } from "next-intl";
@@ -38,7 +38,10 @@ export function PropertyCard({ home: h, index, onOpen, onToggleSave, onShare, sh
           ? <img src={h.coverUrl} alt={h.title} loading="lazy" decoding="async" className="size-full object-cover transition-transform duration-500 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100" />
           : <div className="grid size-full place-items-center text-slate-300"><ImageOff className="size-10" aria-label={t("noPhoto")} /></div>}
         <div aria-hidden className="pointer-events-none absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-slate-900/35 to-transparent" />
-        <span className="absolute left-3 top-3 rounded-full bg-white/85 px-2.5 py-1 text-[0.7rem] font-bold text-navy backdrop-blur">{timeAgo(locale, h.createdAt)}</span>
+        <div className="absolute left-3 top-3 flex items-center gap-1.5">
+          <span className="rounded-full bg-white/85 px-2.5 py-1 text-[0.7rem] font-bold text-navy backdrop-blur">{timeAgo(locale, h.createdAt)}</span>
+          {h.isFeatured && <span className="inline-flex items-center gap-1 rounded-full bg-amber-400 px-2.5 py-1 text-[0.7rem] font-bold text-white shadow-sm"><Star className="size-3 fill-current" aria-hidden />{t("featured")}</span>}
+        </div>
         {h.isOwn && <span className="absolute left-3 top-11 rounded-full bg-navy/80 px-2.5 py-1 text-[0.7rem] font-bold text-white backdrop-blur">{t("yours")}</span>}
         {h.matchPercent !== undefined && <span className="absolute left-3 top-11 inline-flex items-center gap-1 rounded-full bg-brand-gradient px-2.5 py-1 text-[0.7rem] font-bold text-white"><Sparkles className="size-3" aria-hidden />{t("match", { n: n(h.matchPercent) })}</span>}
         <div className="absolute right-3 top-3 flex gap-2">

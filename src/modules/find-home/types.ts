@@ -47,6 +47,8 @@ export interface HomeCardData {
   photos: number;
   isFavorite: boolean;
   isOwn: boolean;
+  /** the Super Admin featured this listing: it is always listed first */
+  isFeatured?: boolean;
   createdAt: string;
   matchPercent?: number;
   condition?: string | null;

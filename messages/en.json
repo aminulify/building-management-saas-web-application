@@ -69,7 +69,17 @@
     "rentLate": "Final reminder: overdue rent ৳{due} for {month}",
     "sosSent": "Your emergency alert was sent",
     "sosUnsolved": "{reporter} reported the emergency ({alertType}) as UNSOLVED",
-    "tenantFree": "Your tenancy ended, so your account is Tenant-Free again. All your history is kept and the Subscription tab is back."
+    "tenantFree": "Your tenancy ended, so your account is Tenant-Free again. All your history is kept and the Subscription tab is back.",
+    "propertyApproved": "Your property '{name}' was approved and is now active.",
+    "propertyPending": "Your property '{name}' is waiting for approval again.",
+    "propertyRemoved": "Your property '{name}' was removed by the platform team.",
+    "propertyAdded": "A property '{name}' was added to your account by the platform team.",
+    "listing_approved": "Your listing '{title}' was approved and is now live.",
+    "listing_pending": "Your listing '{title}' is back in the review queue.",
+    "listing_reported": "Your listing '{title}' was reported and is hidden until it is reviewed.",
+    "listing_rejected": "Your listing '{title}' was not approved.",
+    "listing_removed": "Your listing '{title}' was removed by the platform team.",
+    "listing_sold": "Your listing '{title}' was marked as sold."
   },
   "common": {
     "language": "Language",
@@ -410,7 +420,8 @@
     "notInFuture": "The move-out date cannot be in the future.",
     "preferredPast": "Pick a time that has not passed yet.",
     "preferredFar": "Pick a date within the next year.",
-    "membersInvalid": "Enter a number from 1 to 30."
+    "membersInvalid": "Enter a number from 1 to 30.",
+    "ownerRequired": "Choose an owner."
   },
   "errorPages": {
     "notFound": {
@@ -1258,7 +1269,8 @@
           "DECIMAL": "decimal",
           "BIGHA": "bigha"
         },
-        "yours": "Your listing"
+        "yours": "Your listing",
+        "featured": "Featured"
       },
       "category": {
         "FLAT": "Flat",
@@ -3419,6 +3431,590 @@
         "entry": "Entry",
         "exit": "Exit",
         "no": "No"
+      }
+    }
+  },
+  "admin": {
+    "navLabel": "Admin navigation",
+    "roleAdmin": "Admin",
+    "loadError": "We could not load the admin area. Please check your connection and try again.",
+    "retry": "Try again",
+    "loading": "Loading…",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "nav": {
+      "dashboard": "Dashboard",
+      "properties": "Properties",
+      "manageHome": "Manage Home",
+      "manageMarketplace": "Manage Marketplace",
+      "report": "Report",
+      "activeMaintenance": "Active Maintenance",
+      "activeOwners": "Active Owners",
+      "activeTenants": "Active Tenants",
+      "subscriptions": "Subscriptions",
+      "messages": "Message",
+      "previousProperties": "Previous Properties",
+      "previousOwners": "Previous Owners",
+      "previousTenants": "Previous Tenants",
+      "findPeople": "Find People",
+      "logout": "Logout",
+      "loggingOut": "Signing out…"
+    },
+    "dashboard": {
+      "metaTitle": "Platform Overview",
+      "title": "Platform <hl>Overview</hl>",
+      "subtitle": "Real-time metrics and system performance.",
+      "range": {
+        "label": "Revenue period",
+        "from": "Start date",
+        "to": "End date",
+        "invalid": "The end date must be on or after the start date."
+      },
+      "kpi": {
+        "loading": "Loading platform numbers…",
+        "error": "We could not load the platform numbers.",
+        "retry": "Try again",
+        "revenue": "Monthly Revenue",
+        "revenueSub": "{n, plural, one {# payment} other {# payments}} · {from} – {to}",
+        "owners": "Total Owner",
+        "ownersSub": "Registered apartment owners",
+        "properties": "Properties Managed",
+        "propertiesSub": "Active buildings on the platform",
+        "tenants": "Active Tenants",
+        "tenantsSub": "Verified tenants with a lease",
+        "paid": "Paid Owner",
+        "paidSub": "Owners with a running plan",
+        "unpaid": "Unpaid Owner",
+        "unpaidSub": "Owners without a paid plan"
+      },
+      "plans": {
+        "title": "Active Plans",
+        "filter": "Show users by role",
+        "scrollArea": "Active plans list, scrollable",
+        "segments": {
+          "all": "All",
+          "owners": "Owners",
+          "tenants": "Tenants",
+          "free": "Tenant Free"
+        },
+        "columns": {
+          "user": "User",
+          "role": "Role",
+          "propertyType": "Property type",
+          "plan": "Plan",
+          "status": "Status"
+        },
+        "roles": {
+          "OWNER": "Owner",
+          "TENANT": "Tenant",
+          "GENERAL_USER": "Tenant Free"
+        },
+        "types": {
+          "APARTMENT_BUILDING": "Apartment",
+          "HOUSE": "Home",
+          "COMMERCIAL": "Commercial",
+          "MIXED": "Mixed"
+        },
+        "na": "N/A",
+        "status": {
+          "ACTIVE": "Active",
+          "PENDING": "Pending",
+          "NONE": "None",
+          "SUSPENDED": "Suspended"
+        },
+        "viewMore": "View More",
+        "loadingMore": "Loading…",
+        "moreError": "Could not load more. Please try again.",
+        "showing": "Showing {shown} of {total}",
+        "error": "We could not load the active plans.",
+        "retry": "Try again",
+        "emptyTitle": "Nobody here yet",
+        "empty": {
+          "all": "Users will appear here once they sign up.",
+          "owners": "No owners have registered yet.",
+          "tenants": "No verified tenants yet.",
+          "free": "No Tenant Free accounts yet."
+        }
+      }
+    },
+    "properties": {
+      "metaTitle": "All Properties",
+      "title": "All <hl>Properties</hl>",
+      "subtitle": "Manage and monitor all real estate assets on the platform.",
+      "addBtn": "Add New Property",
+      "filter": "Filter properties",
+      "tableTitle": "All properties",
+      "scrollArea": "Properties list, scrollable",
+      "tabs": {
+        "all": "All",
+        "active": "Active",
+        "pending": "Pending"
+      },
+      "summary": "Total Properties: {total}",
+      "columns": {
+        "name": "Property name",
+        "owner": "Owner",
+        "location": "Location",
+        "units": "Units",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "types": {
+        "APARTMENT_BUILDING": "Apartment",
+        "HOUSE": "Home",
+        "COMMERCIAL": "Commercial",
+        "MIXED": "Mixed"
+      },
+      "units": "{count, plural, one {# Unit} other {# Units}}",
+      "occupied": "{count} Occupied",
+      "state": {
+        "ACTIVE": "Active",
+        "PENDING": "Pending Verification",
+        "REJECTED": "Rejected",
+        "SUSPENDED": "Suspended"
+      },
+      "editBtn": "Edit",
+      "viewBtn": "View",
+      "editAria": "Edit {name}",
+      "viewAria": "View details of {name}",
+      "viewMore": "View More",
+      "loadingMore": "Loading…",
+      "moreError": "Could not load more. Please try again.",
+      "error": "We could not load the properties.",
+      "retry": "Try again",
+      "emptyTitle": "No properties here",
+      "empty": {
+        "all": "Properties appear here when owners add them.",
+        "active": "No approved properties yet.",
+        "pending": "Nothing is waiting for approval."
+      },
+      "kpi": {
+        "loading": "Loading property numbers…",
+        "error": "We could not load the property numbers.",
+        "retry": "Try again",
+        "properties": "Total Properties",
+        "propertiesSub": "Buildings on the platform",
+        "units": "Total Units",
+        "unitsSub": "{n} occupied",
+        "occupancy": "Occupancy Rate",
+        "occupancySub": "Occupied ÷ total units",
+        "pending": "Pending Approval",
+        "pendingSub": "Require Action"
+      },
+      "view": {
+        "loading": "Loading property details…",
+        "error": "We could not load this property.",
+        "retry": "Try again",
+        "gallery": "Photos",
+        "noPhotos": "No photos uploaded",
+        "photoAlt": "Photo {n} of {name}",
+        "showPhoto": "Show photo {n}",
+        "owner": "Owner",
+        "address": "Address",
+        "sqft": "Total area",
+        "sqftValue": "{n} sqft",
+        "floors": "{count, plural, one {# floor} other {# floors}}",
+        "occupancy": "Unit occupancy",
+        "occupancyText": "{occupied} of {total} units occupied · {rate}%",
+        "units": "Unit breakdown",
+        "noUnits": "No units added yet.",
+        "unitsScroll": "Units, scrollable",
+        "cols": {
+          "unit": "Unit",
+          "floor": "Floor",
+          "beds": "Beds",
+          "area": "Area",
+          "rent": "Rent",
+          "status": "Status"
+        },
+        "availability": {
+          "OCCUPIED": "Occupied",
+          "AVAILABLE": "Vacant",
+          "MAINTENANCE": "Maintenance",
+          "ARCHIVED": "Archived"
+        },
+        "amenities": "Amenities",
+        "yes": "Available",
+        "no": "Not available"
+      },
+      "editModal": {
+        "title": "Edit Property",
+        "legend": "Property status",
+        "cancel": "Cancel",
+        "save": "Save",
+        "choices": {
+          "ACTIVE": "Active",
+          "PENDING": "Default Pending",
+          "DELETE": "Delete"
+        },
+        "hints": {
+          "ACTIVE": "Approved and running",
+          "PENDING": "Back to waiting for approval",
+          "DELETE": "Remove this property from the platform"
+        }
+      },
+      "confirm": {
+        "title": "Are you sure?",
+        "changeText": "Do you want to apply this status change to “{name}”: {status}?",
+        "deleteText": "Do you want to delete “{name}”? It moves to Previous Properties.",
+        "status": {
+          "ACTIVE": "Active",
+          "PENDING": "Pending"
+        },
+        "yes": "Yes",
+        "no": "Cancel",
+        "working": "Working…",
+        "deleteWithTenants": "Do you want to delete “{name}”? {count, plural, one {# tenant still lives} other {# tenants still live}} there: their lease will end and they will be told. The property moves to Previous Properties."
+      },
+      "toast": {
+        "deleted": "“{name}” was deleted.",
+        "changed": "“{name}” is now {status}.",
+        "hasTenants": "“{name}” still has active tenants, so it cannot be deleted.",
+        "gone": "This property no longer exists.",
+        "failed": "Something went wrong. Nothing was changed.",
+        "deletedTenants": "“{name}” was deleted and {count, plural, one {# tenant was} other {# tenants were}} moved out."
+      },
+      "add": {
+        "title": "Add New Property",
+        "subtitle": "Add a building for an owner. It starts as Active.",
+        "owner": "Owner",
+        "ownerSearch": "Search owner by name, phone or code",
+        "noOwners": "No owners found.",
+        "ownersError": "Could not load owners.",
+        "picked": "Selected: {name}",
+        "name": "Property name",
+        "type": "Property type",
+        "location": "Location",
+        "locationHint": "e.g. Mirpur DOHS, Dhaka",
+        "units": "Number of units",
+        "sqft": "Total area (sqft)",
+        "cancel": "Cancel",
+        "save": "Add Property",
+        "saving": "Adding…",
+        "done": "Property added.",
+        "errors": {
+          "ownerRequired": "Choose an owner.",
+          "invalid": "Please check the fields and try again.",
+          "network": "No connection. Please try again.",
+          "generic": "We could not add the property. Please try again."
+        },
+        "amenities": "Amenities",
+        "amenitiesPlaceholder": "Select amenities",
+        "amenitiesCount": "{count, plural, one {# amenity selected} other {# amenities selected}}",
+        "amenitiesHint": "Choose all that apply. Only one furnishing option can be picked.",
+        "amenitiesChosen": "Chosen amenities",
+        "removeAmenity": "Remove {name}",
+        "photos": "Photos",
+        "photosUpload": "Upload images",
+        "photosHint": "JPG, PNG or WebP, up to 5 MB each, at most {max} photos. The first one is the cover.",
+        "photosChosen": "Chosen photos",
+        "photoAlt": "Chosen photo {n}",
+        "cover": "Cover",
+        "removePhoto": "Remove photo {n}",
+        "photosMax": "You can add at most {max} photos.",
+        "donePhotosFailed": "Property added, but {count, plural, one {# photo} other {# photos}} could not be uploaded."
+      },
+      "amenity": {
+        "NEAR_HOSPITAL": "Near Hospital",
+        "NEAR_PARK": "Near Park",
+        "NEAR_SCHOOL": "Near School",
+        "NEAR_BAZAR": "Near Bazar",
+        "MOSQUE": "Mosque",
+        "PARKING": "Parking",
+        "LIFT": "Lift",
+        "GENERATOR": "Generator",
+        "SECURITY": "Security",
+        "CCTV": "CCTV",
+        "GATED_COMMUNITY": "Gated Community",
+        "FURNISHED": "Furnished",
+        "SEMI_FURNISHED": "Semi-Furnished",
+        "UNFURNISHED": "Unfurnished"
+      }
+    },
+    "manageHome": {
+      "metaTitle": "Manage Find Home",
+      "title": "Manage <hl>Find Home</hl>",
+      "subtitle": "Moderate rental listings content.",
+      "rentalTitle": "Rental listings",
+      "marketTitle": "Buy / Sell marketplace listings",
+      "scrollArea": "Listings, scrollable",
+      "filters": {
+        "status": "Status",
+        "occupancy": "Occupancy",
+        "sale": "Sale",
+        "statusOptions": {
+          "all": "All",
+          "active": "Active",
+          "pending": "Pending",
+          "reported": "Reported",
+          "rejected": "Rejected"
+        },
+        "occupancyOptions": {
+          "all": "All",
+          "occupied": "Occupied",
+          "vacant": "Vacant"
+        },
+        "saleOptions": {
+          "all": "All",
+          "for_sale": "For Sale",
+          "sold": "Sold"
+        }
+      },
+      "summary": "Total Listing: {total}",
+      "columns": {
+        "details": "Listing details",
+        "owner": "Owner",
+        "location": "Location",
+        "price": "Price (BDT)",
+        "status": "Status",
+        "occupancy": "Occupancy",
+        "actions": "Actions",
+        "name": "Property name",
+        "preview": "Preview image",
+        "ownerDetails": "Owner details",
+        "sqft": "Flat sqft",
+        "sellingPrice": "Selling price (BDT)",
+        "saleStatus": "Sale status",
+        "moderation": "Moderation status"
+      },
+      "state": {
+        "ACTIVE": "Active",
+        "PENDING": "Pending",
+        "REPORTED": "Reported",
+        "REJECTED": "Rejected"
+      },
+      "occupied": "Occupied",
+      "vacant": "Vacant",
+      "perMonth": "{price}/mo",
+      "sqft": "sqft",
+      "sale": {
+        "forSale": "For Sale",
+        "sold": "Sold"
+      },
+      "justNow": "Just now",
+      "openReports": "{count, plural, one {# open report} other {# open reports}}",
+      "previewAlt": "Preview of {title}",
+      "noPreview": "No preview image",
+      "viewBtn": "View",
+      "editBtn": "Edit",
+      "deleteBtn": "Delete",
+      "viewAria": "View details of {title}",
+      "editAria": "Edit moderation status of {title}",
+      "deleteAria": "Delete {title}",
+      "viewMore": "View More",
+      "loadingMore": "Loading…",
+      "moreError": "Could not load more. Please try again.",
+      "error": "We could not load the listings.",
+      "retry": "Try again",
+      "emptyTitle": "No listings here",
+      "empty": {
+        "rent": "Rental listings appear here when owners post them.",
+        "sale": "Buy / sell listings appear here when sellers post them.",
+        "filtered": "No listing matches these filters."
+      },
+      "kpi": {
+        "loading": "Loading listing numbers…",
+        "error": "We could not load the listing numbers.",
+        "retry": "Try again",
+        "total": "Total Listing",
+        "totalSub": {
+          "rent": "Rental listings",
+          "sale": "Buy / sell listings"
+        },
+        "active": "Active Now",
+        "activeSub": "Approved and live",
+        "pending": "Pending Approval",
+        "pendingSub": "Waiting for review",
+        "reported": "Reported",
+        "reportedSub": "Flagged listings",
+        "rejected": "Rejected",
+        "rejectedSub": "Not approved"
+      },
+      "view": {
+        "loading": "Loading listing details…",
+        "error": "We could not load this listing.",
+        "retry": "Try again",
+        "gallery": "Photos",
+        "noPhotos": "No photos uploaded",
+        "photoAlt": "Photo {n} of {title}",
+        "showPhoto": "Show photo {n}",
+        "prev": "Previous photo",
+        "next": "Next photo",
+        "specs": "Property details",
+        "negotiable": "(negotiable)",
+        "sqft": "Area",
+        "bedrooms": "Bedrooms",
+        "bathrooms": "Bathrooms",
+        "balcony": "Balcony",
+        "floor": "Floor level",
+        "floorOf": "{floor} of {total}",
+        "furnishing": "Furnishing",
+        "furnishings": {
+          "FURNISHED": "Furnished",
+          "SEMI_FURNISHED": "Semi-furnished",
+          "UNFURNISHED": "Unfurnished"
+        },
+        "owner": "Apartment owner",
+        "ownerId": "Owner ID",
+        "tenant": "Assigned tenant",
+        "tenantId": "Tenant ID",
+        "checkIn": "Check-in",
+        "rentStatus": "Rent status",
+        "occupiedNoTenant": "Marked as occupied; no tenant is linked to this listing.",
+        "rent": {
+          "PAID": "Paid",
+          "PARTIAL": "Partial",
+          "DUE": "Due",
+          "OVERDUE": "Overdue",
+          "NONE": "No rent record"
+        },
+        "nearby": "Nearby places",
+        "places": {
+          "SCHOOL": "School",
+          "COLLEGE": "College",
+          "HOSPITAL": "Hospital",
+          "PARK": "Park",
+          "SECURITY": "Security"
+        },
+        "yes": "Available",
+        "no": "Not available",
+        "reports": "Open reports"
+      },
+      "editModal": {
+        "title": "Edit Moderation Status",
+        "legend": "Moderation status",
+        "cancel": "Cancel",
+        "save": "Save",
+        "saving": "Saving…",
+        "choices": {
+          "ACTIVE": "Active",
+          "PENDING": "Pending",
+          "REPORTED": "Reported",
+          "REJECTED": "Rejected"
+        },
+        "hints": {
+          "ACTIVE": "Approved and visible to everyone",
+          "PENDING": "Waiting for review",
+          "REPORTED": "Hidden until the report is reviewed",
+          "REJECTED": "Not approved; the owner is told"
+        },
+        "saleLegend": "Sale status",
+        "saleChoices": {
+          "FOR_SALE": "For Sale",
+          "SOLD": "Sold"
+        },
+        "saleHints": {
+          "FOR_SALE": "Open for buyers",
+          "SOLD": "Sold: closed for buyers"
+        },
+        "saleNeedsLive": "Only an approved, live listing can be marked as Sold.",
+        "soldLocked": "This listing is sold. Choose For Sale first to change its moderation status."
+      },
+      "deleteModal": {
+        "title": "Are you sure?",
+        "text": "Do you want to delete this property listing? Deleted listings will be moved to Previous Properties.",
+        "note": "Nothing is erased: you can find it in Previous Properties.",
+        "cancel": "Cancel",
+        "yes": "Yes, Delete & Archive",
+        "working": "Archiving…"
+      },
+      "toast": {
+        "changed": "“{title}” is now {state}.",
+        "archived": "“{title}” was deleted and moved to Previous Properties.",
+        "gone": "This listing no longer exists.",
+        "closedDeal": "A sold or rented listing cannot be moderated.",
+        "failed": "Something went wrong. Nothing was changed."
+      },
+      "phone": "Phone",
+      "email": "Email"
+    },
+    "manageMarket": {
+      "metaTitle": "Manage Marketplace",
+      "title": "Manage <hl>Marketplace</hl>",
+      "subtitle": "Review, approve, feature and manage every buy / sell listing posted on the platform.",
+      "listTitle": "Marketplace listings",
+      "loading": "Loading listings…",
+      "error": "We could not load the marketplace listings.",
+      "retry": "Try again",
+      "emptyTitle": "No listings here",
+      "empty": {
+        "none": "Buy / sell listings appear here when owners and sellers post them.",
+        "filtered": "No listing matches these filters."
+      },
+      "viewMore": "View More",
+      "loadingMore": "Loading…",
+      "moreError": "Could not load more. Please try again.",
+      "state": {
+        "ACTIVE": "Active",
+        "PENDING": "Pending",
+        "REPORTED": "Reported",
+        "REJECTED": "Rejected"
+      },
+      "categories": {
+        "FLAT": "Flat",
+        "APARTMENT": "Apartment",
+        "BUILDING": "Building",
+        "LAND": "Land",
+        "COMMERCIAL": "Commercial",
+        "DUPLEX": "Duplex",
+        "STUDIO": "Studio"
+      },
+      "kpi": {
+        "loading": "Loading marketplace numbers…",
+        "error": "We could not load the marketplace numbers.",
+        "retry": "Try again",
+        "total": "Total Listings",
+        "totalSub": "{sold} sold",
+        "active": "Active Now",
+        "activeSub": "Approved and live",
+        "pending": "Pending Approval",
+        "pendingSub": "Waiting for review",
+        "reported": "Reported",
+        "reportedSub": "Flagged listings",
+        "rejected": "Rejected",
+        "rejectedSub": "Not approved",
+        "featured": "Featured",
+        "featuredSub": "Shown first to buyers"
+      },
+      "filters": {
+        "aria": "Search and filter listings",
+        "searchLabel": "Search listings",
+        "searchPlaceholder": "Search by title, place, owner name, phone, e-mail or Owner ID",
+        "clearSearch": "Clear search",
+        "category": "Type",
+        "allCategories": "All",
+        "featuredOnly": "Featured only",
+        "clear": "Clear filters",
+        "summary": "Total Listings: {total}"
+      },
+      "card": {
+        "photoAlt": "Photo of {title}",
+        "noPhoto": "No photo",
+        "negotiable": "negotiable",
+        "featuredBadge": "Featured",
+        "feature": "Feature this listing",
+        "unfeature": "Remove from featured",
+        "featureAria": "Feature {title}",
+        "unfeatureAria": "Remove {title} from featured",
+        "notLive": "Only an approved, unreported listing can be featured",
+        "posted": "Posted {when}",
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "soldLocked": "A sold listing cannot be moderated"
+      },
+      "toast": {
+        "changed": "“{title}” is now {state}.",
+        "archived": "“{title}” was deleted and moved to Previous Properties.",
+        "gone": "This listing no longer exists.",
+        "closedDeal": "A sold listing cannot be moderated.",
+        "notLive": "Only an approved, unreported listing can be featured.",
+        "failed": "Something went wrong. Nothing was changed.",
+        "featured": "“{title}” is now featured.",
+        "unfeatured": "“{title}” is no longer featured.",
+        "sold": "“{title}” is marked as Sold.",
+        "forSale": "“{title}” is back For Sale.",
+        "notLiveSold": "Only an approved, live listing can be marked as Sold."
       }
     }
   }

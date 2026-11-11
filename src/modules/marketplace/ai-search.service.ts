@@ -71,7 +71,7 @@ export async function aiSearch(actor: Actor | null, input: z.infer<typeof aiSear
     where: { status: "PUBLISHED", type },
     orderBy: { id: "desc" }, take: 400,
     select: {
-      id: true, title: true, price: true, category: true, bedrooms: true, bathrooms: true, area: true, areaUnit: true, landDetails: true, furnishing: true, amenities: true, createdAt: true,
+      id: true, isFeatured: true, title: true, price: true, category: true, bedrooms: true, bathrooms: true, area: true, areaUnit: true, landDetails: true, furnishing: true, amenities: true, createdAt: true,
       division: true, district: true, upazila: true, unionName: true, postalCode: true,
       distances: { select: { facilityType: true, distanceM: true } },
       images: { take: 1, orderBy: { order: "asc" }, select: { storageKey: true } },
@@ -127,7 +127,7 @@ export async function aiSearch(actor: Actor | null, input: z.infer<typeof aiSear
 
   const ranked = scored
     .filter((s) => s.percent >= 25)
-    .sort((a, b) => b.percent - a.percent || b.profileBonus - a.profileBonus || (p.sort === "price_asc" ? Number(a.l.price) - Number(b.l.price) : p.sort === "price_desc" ? Number(b.l.price) - Number(a.l.price) : +b.l.createdAt - +a.l.createdAt))
+    .sort((a, b) => Number(b.l.isFeatured) - Number(a.l.isFeatured) || b.percent - a.percent || b.profileBonus - a.profileBonus || (p.sort === "price_asc" ? Number(a.l.price) - Number(b.l.price) : p.sort === "price_desc" ? Number(b.l.price) - Number(a.l.price) : +b.l.createdAt - +a.l.createdAt))
     .slice(0, 8);
 
   const covers = await signStorageKeys(ranked.flatMap(({ l }) => (l.images[0] ? [l.images[0].storageKey] : [])), 3600);
@@ -135,7 +135,7 @@ export async function aiSearch(actor: Actor | null, input: z.infer<typeof aiSear
     id: l.id, title: l.title, price: l.price.toFixed(2), category: l.category, bedrooms: l.bedrooms, bathrooms: l.bathrooms, area: l.area ? Number(l.area) : null,
     locationLabel: [l.unionName, l.upazila, l.district].filter(Boolean).join(", ") + (l.postalCode ? ` - ${l.postalCode}` : ""),
     coverUrl: (l.images[0] && covers.get(l.images[0].storageKey)) || null,
-    matchPercent: percent, matched, missing,
+    matchPercent: percent, matched, missing, isFeatured: l.isFeatured,
   }));
 
   const understood = [p.bedrooms !== undefined, p.maxPrice !== undefined || p.minPrice !== undefined, p.nearby.length > 0, p.amenities.length > 0, !!p.categories, !!p.furnishing, !!p.landType, p.area !== undefined, !!(place.division || place.district || place.upazila || place.unionName)].filter(Boolean).length;

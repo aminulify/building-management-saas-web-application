@@ -7,6 +7,7 @@ import type { Actor } from "@/lib/auth/require-actor";
 import { signStorageKey, signStorageKeys } from "@/modules/uploads/service";
 import { pageResult } from "@/lib/api/common";
 import { getSetting } from "@/modules/admin/settings.service";
+import { feedOrder } from "./feed-order";
 import type { searchQuery } from "./schema";
 
 const publicSelect = {
@@ -88,12 +89,7 @@ export async function search(q: z.infer<typeof searchQuery>, actor: Actor | null
     where.id = { in: ids.map((r) => r.id) };
   }
 
-  const orderBy: Prisma.ListingOrderByWithRelationInput[] =
-    q.sort === "price_asc" ? [{ isFeatured: "desc" }, { price: "asc" }, { id: "desc" }]
-    : q.sort === "price_desc" ? [{ isFeatured: "desc" }, { price: "desc" }, { id: "desc" }]
-    : q.sort === "popularity" ? [{ isFeatured: "desc" }, { favorites: { _count: "desc" } }, { id: "desc" }]
-    : q.sort === "area_desc" ? [{ isFeatured: "desc" }, { area: { sort: "desc", nulls: "last" } }, { id: "desc" }]
-    : [{ isFeatured: "desc" }, { id: "desc" }];
+  const orderBy = feedOrder(q.sort); // featured listings first, always
 
   const [rows, total] = await Promise.all([
     db.listing.findMany({ where, orderBy, take: q.limit + 1, select: publicSelect, ...(q.cursor ? { cursor: { id: q.cursor }, skip: 1 } : {}) }),

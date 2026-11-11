@@ -54,6 +54,7 @@ model UserSubscription {
   transactions PaymentTransaction[]
 
   @@index([userId, status])
+  @@index([audience, status])
 }
 
 model UpgradeRequest {
@@ -101,6 +102,9 @@ model PaymentTransaction {
   subscription   UserSubscription? @relation(fields: [subscriptionId], references: [id])
   upgradeRequest UpgradeRequest?   @relation(fields: [upgradeRequestId], references: [id])
   invoice        Invoice?
+
+  /// Super Admin dashboard: revenue of a date range
+  @@index([status, purpose, verifiedAt])
 }
 
 model Invoice {

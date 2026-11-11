@@ -17,6 +17,8 @@ model Property {
   declaredUnits      Int?
   location           Unsupported("geography(Point,4326)")?
   securityFeatures   String[]                              @default([])
+  /// area and building features picked in the Super Admin "Add New Property" form (Near Hospital, Parking, Lift, Furnished…); codes in modules/admin/properties/amenities.ts
+  amenities          String[]                              @default([])
   status             PropertyStatus                        @default(ACTIVE)
   verificationStatus VerificationStatus                    @default(UNVERIFIED)
   archivedAt         DateTime?                             @db.Timestamptz
@@ -24,11 +26,12 @@ model Property {
   createdAt          DateTime                              @default(now()) @db.Timestamptz
   updatedAt          DateTime                              @updatedAt @db.Timestamptz
 
-  owner   User            @relation(fields: [ownerId], references: [id])
-  address Address?        @relation(fields: [addressId], references: [id])
-  zone    Zone?           @relation(fields: [zoneId], references: [id])
-  images  PropertyImage[]
-  units   Unit[]
+  owner    User            @relation(fields: [ownerId], references: [id])
+  address  Address?        @relation(fields: [addressId], references: [id])
+  zone     Zone?           @relation(fields: [zoneId], references: [id])
+  images   PropertyImage[]
+  units    Unit[]
+  listings Listing[]
 
   @@index([ownerId, status])
 }
@@ -65,6 +68,7 @@ model Unit {
   agreements  RentalAgreement[]
   invitations TenantInvitation[]
   maintenance MaintenanceRequest[]
+  listings    Listing[]
 
   @@unique([propertyId, unitNumber])
 }
