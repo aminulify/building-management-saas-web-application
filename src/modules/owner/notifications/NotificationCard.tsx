@@ -1,9 +1,11 @@
 "use client";
 
+import { useState } from "react";
 import { AlarmClock, Bell, Clock, DollarSign, ShieldCheck, TriangleAlert, UserCheck, Wrench, Zap, type LucideIcon } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
 import { useLocale, useTranslations } from "next-intl";
+import { NotificationDetailsModal } from "../../notifications/DetailsModal";
 import { useDescribe } from "./describe";
 import { relativeTime } from "./logic";
 import type { Kind, Notification } from "./types";
@@ -28,6 +30,7 @@ export function NotificationCard({ n, index, now, busy, onView, onRead }: Props)
   const reduce = useReducedMotion();
   const { kind, headline, body } = useDescribe()(n);
   const look = LOOK[kind];
+  const [details, setDetails] = useState(false);
   const unread = !n.readAt;
   const { unit, n: count } = relativeTime(n.createdAt, now);
   const full = new Intl.DateTimeFormat(locale === "bn" ? "bn-BD" : "en-GB", { dateStyle: "full", timeStyle: "short", timeZone: "Asia/Dhaka" }).format(new Date(n.createdAt));
@@ -57,9 +60,10 @@ export function NotificationCard({ n, index, now, busy, onView, onRead }: Props)
         </div>
       </div>
       <div className="flex shrink-0 gap-2.5">
-        <button type="button" onClick={() => onView(n)} className="btn btn-primary h-10 px-4 text-[0.82rem]">{t(look.wide ? "viewShort" : "view")}</button>
+        <button type="button" onClick={() => (kind === "generic" ? setDetails(true) : onView(n))} className="btn btn-primary h-10 px-4 text-[0.82rem]">{t(look.wide ? "viewShort" : "view")}</button>
         {unread && <button type="button" onClick={() => onRead(n)} disabled={busy} className="btn btn-white h-10 px-4 text-[0.82rem]">{t("markRead")}</button>}
       </div>
+      <NotificationDetailsModal item={details ? n : null} headline={headline} body={body} ago={t(`time.${unit}`, { n: count })} onClose={() => setDetails(false)} onRead={(id) => { onRead({ ...n, id }); }} />
     </motion.li>
   );
 }

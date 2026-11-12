@@ -16,19 +16,20 @@
     "TRXID_ALREADY_USED": "This Transaction ID has already been used.",
     "UPGRADE_ALREADY_PENDING": "You already have a request waiting for verification.",
     "INVALID_STATE": "This action is not allowed in the current state.",
-    "EMAIL_NOT_CONFIRMED": "Please confirm your email address first. Check your inbox for the confirmation link."
+    "EMAIL_NOT_CONFIRMED": "Please confirm your email address first. Check your inbox for the confirmation link.",
+    "OWNER_NOT_READY": "Complete your profile, get your NID verified and wait for your payment to be approved before you do this. See your notifications."
   },
   "notifications": {
     "callRequested": "{from} asked for a call back",
     "callUpdated": "Your call request was {status}",
     "complaintNew": "New complaint: {subject}",
-    "complaintUpdate": "Complaint '{subject}' updated ({action})",
-    "listingInquiry": "{from} asked about '{title}'",
-    "listingModerated": "Your listing '{title}': {action}",
+    "complaintUpdate": "Complaint “{subject}” updated ({action})",
+    "listingInquiry": "{from} asked about “{title}”",
+    "listingModerated": "Your listing “{title}”: {action}",
     "listingPending": "Listing awaiting review: {title}",
-    "maintenanceComment": "New comment on '{title}'",
+    "maintenanceComment": "New comment on “{title}”",
     "maintenanceNew": "New maintenance request: {title}",
-    "maintenanceStatus": "'{title}' is now {status, select, PENDING {Pending} APPROVED {Approved} IN_PROGRESS {In progress} COMPLETED {Completed} REJECTED {Rejected} CANCELLED {Cancelled} other {{status}}}",
+    "maintenanceStatus": "“{title}” is now {status, select, PENDING {Pending} APPROVED {Approved} IN_PROGRESS {In progress} COMPLETED {Completed} REJECTED {Rejected} CANCELLED {Cancelled} other {{status}}}",
     "messageNew": "New message from {from}",
     "rentPaymentRecorded": "Rent payment of ৳{amount} recorded",
     "rentReminder": "Rent reminder: ৳{due} due for {month}",
@@ -46,8 +47,8 @@
     "verification": "Your identity verification: {status}. {notes}",
     "verificationPending": "Identity documents waiting for review: {user}",
     "propertyVerification": "Property documents waiting for review: {name}",
-    "propertyReview": "Your property '{name}': {action}. {notes}",
-    "propertyGovIssue": "Government issue reported on '{name}': {notes}",
+    "propertyReview": "Your property “{name}”: {action}. {notes}",
+    "propertyGovIssue": "Government issue reported on “{name}”: {notes}",
     "broadcast": "{title}: {body}",
     "paymentRefund": "A refund of ৳{amount} was recorded",
     "subscriptionCancelled": "Subscription cancelled. Access continues until {endsAt}",
@@ -58,28 +59,51 @@
     "visitConfirmed": "Your visit to “{title}” was confirmed",
     "visitDeclined": "Your visit request for “{title}” was declined",
     "visitCancelled": "{from} cancelled the visit to “{title}”",
-    "maintenanceDeleted": "Your maintenance request '{title}' was removed by the owner",
+    "maintenanceDeleted": "Your maintenance request “{title}” was removed by the owner",
     "rentReceived": "{tenantName} (Unit {unit}, {property}) paid ৳{amount}. Receipt {receipt}",
     "rentOverdue": "Rent overdue: {tenantName} (Unit {unit}, {property}) owes ৳{due}",
     "callMissed": "Missed call from {from}",
     "signatureRequested": "{owner} asked you to sign the agreement for Unit {unit}",
-    "maintenanceUpdated": "{tenantName} updated the request '{title}' (Unit {unit}, {property})",
-    "maintenanceRemoved": "{tenantName} removed the request '{title}' (Unit {unit}, {property})",
+    "maintenanceUpdated": "{tenantName} updated the request “{title}” (Unit {unit}, {property})",
+    "maintenanceRemoved": "{tenantName} removed the request “{title}” (Unit {unit}, {property})",
     "rentInvoice": "Your rent invoice for {month} (৳{total}) has been generated",
     "rentLate": "Final reminder: overdue rent ৳{due} for {month}",
     "sosSent": "Your emergency alert was sent",
     "sosUnsolved": "{reporter} reported the emergency ({alertType}) as UNSOLVED",
     "tenantFree": "Your tenancy ended, so your account is Tenant-Free again. All your history is kept and the Subscription tab is back.",
-    "propertyApproved": "Your property '{name}' was approved and is now active.",
-    "propertyPending": "Your property '{name}' is waiting for approval again.",
-    "propertyRemoved": "Your property '{name}' was removed by the platform team.",
-    "propertyAdded": "A property '{name}' was added to your account by the platform team.",
-    "listing_approved": "Your listing '{title}' was approved and is now live.",
-    "listing_pending": "Your listing '{title}' is back in the review queue.",
-    "listing_reported": "Your listing '{title}' was reported and is hidden until it is reviewed.",
-    "listing_rejected": "Your listing '{title}' was not approved.",
-    "listing_removed": "Your listing '{title}' was removed by the platform team.",
-    "listing_sold": "Your listing '{title}' was marked as sold."
+    "propertyApproved": "Your property “{name}” was approved and is now active.",
+    "propertyPending": "Your property “{name}” is waiting for approval again.",
+    "propertyRemoved": "Your property “{name}” was removed by the platform team.",
+    "propertyRemovedReason": "Your property “{name}” was removed by the platform team. Reason: {reason}",
+    "propertyReactivated": "Your property “{name}” is active again.",
+    "propertySuspended": "Your property “{name}” was suspended by the platform team.",
+    "propertyInactive": "Your property “{name}” was marked inactive.",
+    "propertyArchivedByAdmin": "Your property “{name}” was archived by the platform team.",
+    "propertyAdded": "A property “{name}” was added to your account by the platform team.",
+    "listing_approved": "Your listing “{title}” was approved and is now live.",
+    "listing_pending": "Your listing “{title}” is back in the review queue.",
+    "listing_reported": "Your listing “{title}” was reported and is hidden until it is reviewed.",
+    "listing_rejected": "Your listing “{title}” was not approved.",
+    "listing_removed": "Your listing “{title}” was removed by the platform team.",
+    "listing_sold": "Your listing “{title}” was marked as sold.",
+    "boost_new": "New boost payment from {user} for “{title}”.",
+    "boost_approved": "Your listing “{title}” is boosted for {days} days.",
+    "boost_rejected": "Your boost payment for “{title}” was not accepted: {reason}",
+    "maintenancePriority": "Priority of “{title}” ({property}, {unit}) was changed to {priority, select, LOW {Low} MEDIUM {Medium} HIGH {High} CRITICAL {Critical} other {{priority}}} by the admin.",
+    "maintenanceRemovedByAdmin": "The maintenance request {ticket} “{title}” ({property}, {unit}) was removed by the admin.",
+    "accountWarning": "Warning from the AmaderGhor admin: {reason}",
+    "accountSuspended": "Your account was suspended by the admin. Reason: {reason}",
+    "accountRestored": "Your account is Active again.",
+    "tenancyAdminNotice": "The admin marked the tenancy at {property}, unit {unit} as Notice Given.",
+    "tenancyAdminActive": "The admin marked the tenancy at {property}, unit {unit} as Active.",
+    "tenancyAdminMoved": "The admin moved the tenancy to {property}, unit {unit}.",
+    "tenancyAdminEndDate": "The admin changed the lease end date at {property}, unit {unit} to {date}.",
+    "documentVerified": "Your {document, select, NID_FRONT {NID front} NID_BACK {NID back} AGREEMENT {agreement} other {{document}}} was verified by the admin. It is now locked and cannot be replaced.",
+    "documentRejected": "Your {document, select, NID_FRONT {NID front} NID_BACK {NID back} AGREEMENT {agreement} other {{document}}} was rejected: {reason}. Please upload it again.",
+    "accessProfile": "Complete your profile (NID number, date of birth, occupation and address) to add properties, units or flats for sale.",
+    "accessNid": "Your NID is not verified yet. Upload the NID front and back; the Super Admin must verify them before you can add properties, units or flats for sale.",
+    "accessPlan": "You need an active plan to add properties, units or flats for sale. Choose a plan.",
+    "accessPayment": "Your plan payment is not approved yet. The Super Admin must approve it before you can add properties, units or flats for sale."
   },
   "common": {
     "language": "Language",
@@ -679,7 +703,8 @@
           "RATE_LIMITED": "Too many requests. Please wait a moment and try again.",
           "network": "Could not reach the server. Check your connection and try again.",
           "forbidden": "Your account cannot do this right now.",
-          "generic": "Something went wrong. Please try again."
+          "generic": "Something went wrong. Please try again.",
+          "OWNER_NOT_READY": "Complete your profile, get your NID verified and wait for your payment to be approved before you do this. See your notifications."
         }
       },
       "delete": {
@@ -693,8 +718,24 @@
         "errors": {
           "activeTenants": "This property still has {count} active tenant(s). End their tenancy first, then delete it.",
           "network": "Could not reach the server. Please try again.",
-          "generic": "The property could not be deleted. Please try again."
-        }
+          "generic": "The property could not be deleted. Please try again.",
+          "reasonPick": "Please choose a reason.",
+          "reasonNote": "Please write the reason (at least 3 letters)."
+        },
+        "reasonLabel": "Why are you deleting it?",
+        "reasonPlaceholder": "Choose a reason",
+        "reasons": {
+          "SOLD_PROPERTY": "I sold the property",
+          "NOT_INTERESTED": "Not interested anymore",
+          "BUILDING_DEMOLISHED": "The building was demolished",
+          "RENOVATION": "Under renovation / remodeling",
+          "DUPLICATE_ENTRY": "Added by mistake or duplicate",
+          "MOVED_PLATFORM": "Moved to another platform",
+          "OTHER": "Other reason"
+        },
+        "noteOptional": "Note (optional)",
+        "noteRequired": "Tell us the reason",
+        "notePlaceholder": "Anything the platform team should know"
       }
     },
     "units": {
@@ -827,7 +868,8 @@
           "propertyInactive": "This property is not active, so units cannot be added.",
           "rateLimited": "Too many requests. Please wait a moment.",
           "network": "Could not reach the server. Check your connection and try again.",
-          "forbidden": "Your account cannot do this right now."
+          "forbidden": "Your account cannot do this right now.",
+          "OWNER_NOT_READY": "Complete your profile, get your NID verified and wait for your payment to be approved before you do this. See your notifications."
         }
       },
       "delete": {
@@ -891,7 +933,8 @@
           "unitTaken": "This unit is no longer vacant. The list was refreshed.",
           "rateLimited": "Too many requests. Please wait a moment.",
           "network": "Could not reach the server. Check your connection and try again.",
-          "forbidden": "Your account cannot do this right now."
+          "forbidden": "Your account cannot do this right now.",
+          "OWNER_NOT_READY": "Complete your profile, get your NID verified and wait for your payment to be approved before you do this. See your notifications."
         },
         "propertiesError": "Could not load your properties.",
         "noProperties": "No properties yet",
@@ -1662,6 +1705,11 @@
           "renewed": "Listing renewed",
           "deactivated": "Listing taken down (saved as draft)",
           "error": "That did not work. Try again."
+        },
+        "boost": {
+          "button": "Boost",
+          "boosted": "Boosted till {date}",
+          "inReview": "Boost in review"
         }
       },
       "createListing": "Create Listing",
@@ -1746,6 +1794,105 @@
         "plansError": "We could not load the plans. Please try again later.",
         "tenantNote": "Becoming an owner is only for users who are not verified tenants. You are a verified tenant, so a listing plan is not available to you.",
         "userNote": "Becoming an owner is only for users who are not verified tenants. Choose a plan to start listing."
+      },
+      "boost": {
+        "metaTitle": "Boost your listing",
+        "pageTitle": "Boost your <hl>listing</hl>",
+        "pageSubtitle": "Pay once and your listing is shown first to every buyer.",
+        "title": "Boost this listing",
+        "forListing": "Listing: {title}",
+        "back": "Back to my listings",
+        "cancel": "Cancel",
+        "confirm": "Confirm Boost",
+        "fee": "Boost fee",
+        "feeNote": "One payment, {days} days of top placement for this listing (price {price}).",
+        "disabled": "Boost is switched off for now. Please try again later.",
+        "error": "We could not load the boost details.",
+        "retry": "Try again",
+        "benefits": {
+          "highlight": {
+            "title": "Highlighted listing",
+            "text": "A gold “Featured” tag makes your listing stand out from the others."
+          },
+          "priority": {
+            "title": "Priority placement",
+            "text": "Your listing is pinned above all standard results, even when buyers search or filter by place."
+          },
+          "faster": {
+            "title": "Sell faster",
+            "text": "More views and more visit requests, so your property finds a buyer sooner."
+          }
+        },
+        "pay": {
+          "loading": "Loading payment details…",
+          "error": "We could not load this page.",
+          "retry": "Try again",
+          "backToListings": "Back to my listings",
+          "summary": "Boost summary",
+          "willBeFeatured": "Will be featured",
+          "boostFee": "Boost fee",
+          "duration": "Boost period",
+          "days": "{count, plural, one {# day} other {# days}}",
+          "total": "Total to pay",
+          "methods": "Payment method",
+          "methodNames": {
+            "nagad": "Nagad",
+            "rocket": "Rocket"
+          },
+          "soon": "Soon",
+          "personal": "bKash personal number",
+          "noNumber": "Not set yet",
+          "payExactly": "Send exactly {amount}",
+          "copy": "Copy",
+          "copied": "Copied",
+          "copyFailed": "Could not copy the number.",
+          "steps": {
+            "open": "Open the bKash app or dial *247#.",
+            "send": "Choose “Send Money”.",
+            "number": "Enter the number {number}.",
+            "amount": "Enter the amount {amount}.",
+            "reference": "Enter the reference {ref}.",
+            "pin": "Enter your PIN to confirm.",
+            "trx": "Copy the TrxID from the bKash message and enter it below."
+          },
+          "sender": "Your bKash number",
+          "trx": "TrxID",
+          "trxPlaceholder": "10 letters / digits, e.g. 9AB3C4D5E6",
+          "note": "The Super Admin checks your payment first. Your listing is boosted as soon as it is approved.",
+          "submit": "Submit payment ({amount})",
+          "sent": "Payment sent. We will verify it shortly.",
+          "activeTitle": "This listing is boosted",
+          "activeText": "It stays on top until {date}.",
+          "pendingTitle": "Payment under review",
+          "pendingText": "We received your payment details. The Super Admin is checking them, and your listing is boosted once they are approved.",
+          "pendingRef": "TrxID {trx} · {amount} · sent {date}",
+          "cancelRequest": "Cancel this request",
+          "cancelled": "Boost request cancelled.",
+          "rejectedTitle": "Your last boost payment was not accepted:",
+          "errors": {
+            "sender": "Enter a valid bKash number (01XXXXXXXXX).",
+            "trx": "The TrxID is 10 letters or digits.",
+            "trxUsed": "This TrxID was already used.",
+            "disabled": "Boost is switched off for now.",
+            "already": "This listing is already boosted.",
+            "pending": "A boost payment for this listing is already waiting for review.",
+            "notLive": "Only a live, approved listing can be boosted.",
+            "notYours": "This is not your listing.",
+            "rate": "Too many tries. Please wait a while.",
+            "generic": "Something went wrong. Please try again."
+          }
+        }
+      },
+      "notReady": {
+        "title": "Finish these steps first",
+        "text": "You cannot add this yet. Your account unlocks adding properties, units and flats for sale when all three steps are done.",
+        "steps": {
+          "profile": "Complete your profile: NID number, date of birth, occupation and address.",
+          "nid": "Upload your NID front and back and wait for the Super Admin to verify them.",
+          "payment": "Make sure your plan is active and the Super Admin has approved your payment."
+        },
+        "profile": "Open my profile",
+        "notifications": "See my notifications"
       }
     },
     "subscription": {
@@ -2248,7 +2395,10 @@
         "PURCHASED_HOME": "Purchased Home",
         "UPGRADED_UNIT": "Upgraded Unit",
         "LEASE_EXPIRED": "Lease Expired",
-        "OTHER": "Other Reason"
+        "OTHER": "Other Reason",
+        "POLICY_VIOLATION": "Policy Violation",
+        "BUSINESS_CLOSED": "Business Closed",
+        "EVICTED": "Evicted"
       },
       "edit": {
         "title": "Edit Tenant Record",
@@ -2449,7 +2599,8 @@
           "REJECTED": "Rejected"
         },
         "agreementCount": "{done}/{total} uploaded",
-        "hint": "Tap a document to upload or open it."
+        "hint": "Tap a document to upload or open it.",
+        "lockedHint": "A verified document is locked: it cannot be replaced or deleted."
       },
       "avatar": {
         "title": "Profile photo",
@@ -2711,7 +2862,7 @@
       "search": "Search by name, unit or property",
       "ownerHint": "Tenants of your properties.",
       "tenantHint": "Your landlord.",
-      "adminHint": "Search any apartment owner or tenant by name or username.",
+      "adminHint": "Pick a kind of person above, or search any owner, tenant or Tenant Free account by name, username, e-mail, phone or ID.",
       "typeMore": "Type at least 2 letters to search.",
       "none": "There is nobody to message yet.",
       "noMatch": "No one matches your search.",
@@ -2722,6 +2873,20 @@
     },
     "live": {
       "offline": "Live updates paused. Reconnecting…"
+    },
+    "filter": {
+      "aria": "Filter by kind of person",
+      "all": "All",
+      "GENERAL_USER": "Tenant Free",
+      "TENANT": "Tenants",
+      "OWNER": "Owners",
+      "GOV_ADMIN": "Government"
+    },
+    "alert": {
+      "label": "{count, plural, one {# new message} other {# new messages}}"
+    },
+    "profile": {
+      "open": "Open the profile of {name}"
     }
   },
   "tenant": {
@@ -2883,6 +3048,7 @@
         "categories": {
           "PLUMBING": "Plumbing",
           "ELECTRICAL": "Electrical",
+          "WATER": "Water",
           "GAS": "Gas",
           "LIFT": "Lift",
           "PAINT": "Paint",
@@ -3328,7 +3494,8 @@
         "close": "Close",
         "all": "All requests",
         "technician": "Technician: {name}"
-      }
+      },
+      "details": "View Details"
     },
     "roleUser": "Tenant-Free",
     "freePlan": {
@@ -3388,7 +3555,8 @@
           "NONE": "Not uploaded",
           "AVAILABLE": "Available"
         },
-        "hint": "Tap a document to add or replace it. The team checks it and the status changes."
+        "hint": "Tap a document to add or replace it. The team checks it and the status changes.",
+        "lockedHint": "A verified document is locked: it cannot be replaced or deleted."
       },
       "edit": {
         "title": "Update Profile",
@@ -3458,7 +3626,9 @@
       "previousTenants": "Previous Tenants",
       "findPeople": "Find People",
       "logout": "Logout",
-      "loggingOut": "Signing out…"
+      "loggingOut": "Signing out…",
+      "paidBoost": "Paid Boost",
+      "tenantFree": "Tenant Free"
     },
     "dashboard": {
       "metaTitle": "Platform Overview",
@@ -3729,7 +3899,25 @@
         "FURNISHED": "Furnished",
         "SEMI_FURNISHED": "Semi-Furnished",
         "UNFURNISHED": "Unfurnished"
-      }
+      },
+      "deleteModal": {
+        "title": "Delete Property",
+        "text": "Are you sure to delete {name}?",
+        "note": "The property moves to Previous Properties and the owner is told the reason.",
+        "withTenants": "{count} occupied unit(s): the tenants are moved out, their lease ends and they are told. The owner is told the reason.",
+        "reason": "Reason",
+        "choose": "Choose a reason",
+        "noteOptional": "Note (optional)",
+        "noteRequired": "Note (required for Other)",
+        "notePlaceholder": "Add anything the owner or the team should know",
+        "pick": "Please choose a reason.",
+        "needNote": "Please write a note (at least 3 letters) when the reason is Other.",
+        "cancel": "Cancel",
+        "yes": "Yes, delete",
+        "working": "Deleting…"
+      },
+      "deleteAria": "Delete {name}",
+      "deleteBtn": "Delete"
     },
     "manageHome": {
       "metaTitle": "Manage Find Home",
@@ -4016,6 +4204,2122 @@
         "forSale": "“{title}” is back For Sale.",
         "notLiveSold": "Only an approved, live listing can be marked as Sold."
       }
+    },
+    "paidBoost": {
+      "metaTitle": "Paid Boost",
+      "title": "Paid <hl>Boost</hl>",
+      "subtitle": "Follow every boost, its payment and its dates, and edit or delete any of them.",
+      "filter": "Filter boosts",
+      "tableTitle": "Boost requests",
+      "scrollArea": "Boost requests, scrollable",
+      "tabs": {
+        "all": "All",
+        "active": "Active",
+        "expired": "Expired",
+        "failed": "Payment Failed"
+      },
+      "searchLabel": "Search boosts",
+      "searchPlaceholder": "Search listing, owner, phone, TrxID",
+      "summary": "Total Boosts: {total}",
+      "columns": {
+        "listing": "Listing",
+        "owner": "Owner",
+        "payment": "Payment",
+        "period": "Period",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "state": {
+        "PENDING": "Pending",
+        "ACTIVE": "Active",
+        "EXPIRED": "Expired",
+        "REJECTED": "Rejected",
+        "CANCELLED": "Cancelled"
+      },
+      "payment": {
+        "PENDING_REVIEW": "Awaiting check",
+        "SUCCESS": "Paid",
+        "FAILED": "Not paid",
+        "REFUNDED": "Refunded",
+        "INITIATED": "Started"
+      },
+      "days": "{count, plural, one {# day} other {# days}}",
+      "view": "View details",
+      "viewAria": "View the boost of {title}",
+      "approve": "Approve",
+      "reject": "Reject",
+      "cancel": "Cancel",
+      "working": "Working…",
+      "error": "We could not load the boost requests.",
+      "retry": "Try again",
+      "emptyTitle": "No boosts here",
+      "empty": {
+        "none": "Boost requests appear here when sellers pay for a boost.",
+        "filtered": "No boost matches this filter."
+      },
+      "viewMore": "View More",
+      "loadingMore": "Loading…",
+      "moreError": "Could not load more. Please try again.",
+      "kpi": {
+        "loading": "Loading boost numbers…",
+        "error": "We could not load the boost numbers.",
+        "retry": "Try again",
+        "total": "Total Boost",
+        "totalSub": "All boost requests",
+        "totalSubPending": "{n} waiting for review",
+        "paid": "Total Paid",
+        "paidSub": "{n} verified payments",
+        "failed": "Pay Failed",
+        "failedSub": "Refused or cancelled",
+        "active": "Active Boost",
+        "activeSub": "Pinned to the top now",
+        "expired": "Expired Boost",
+        "expiredSub": "Finished boosts"
+      },
+      "settings": {
+        "title": "Boost settings",
+        "subtitle": "Applies to every new boost request.",
+        "enabled": "Paid Boost",
+        "on": "Switched on",
+        "off": "Switched off",
+        "fee": "Boost fee (BDT)",
+        "feeHint": "Between ৳10 and ৳100,000.",
+        "days": "Boost length (days)",
+        "daysHint": "1 to 90 days.",
+        "save": "Save settings",
+        "saving": "Saving…",
+        "saved": "Boost settings saved.",
+        "error": "We could not load the boost settings.",
+        "retry": "Try again",
+        "errors": {
+          "fee": "Enter a fee from 10 to 100000.",
+          "days": "Enter 1 to 90 days.",
+          "invalid": "These values are not allowed.",
+          "generic": "Could not save. Please try again."
+        }
+      },
+      "approveModal": {
+        "title": "Approve this boost?",
+        "text": "“{title}” will be featured for {days} days, starting now.",
+        "amount": "Amount",
+        "trx": "TrxID",
+        "sender": "Sender",
+        "note": "Check that the payment arrived in the bKash account before you approve.",
+        "yes": "Yes, Approve"
+      },
+      "rejectModal": {
+        "title": "Reject this boost",
+        "text": "Tell the seller why the payment for “{title}” was not accepted.",
+        "reason": "Reason",
+        "placeholder": "e.g. The TrxID was not found in our bKash account.",
+        "required": "Write a reason of at least 3 letters.",
+        "yes": "Reject boost"
+      },
+      "toast": {
+        "approved": "“{title}” is now boosted.",
+        "rejected": "Boost for “{title}” was rejected.",
+        "gone": "This boost request no longer exists.",
+        "notLive": "The listing is no longer live. Reject this request instead.",
+        "alreadyDecided": "This request was already decided.",
+        "failed": "Something went wrong. Nothing was changed.",
+        "saved": "Boost of “{title}” updated.",
+        "deleted": "Boost of “{title}” deleted.",
+        "alreadyPaid": "This boost was already paid, so it cannot become payment failed.",
+        "neverStarted": "This boost never started, so it cannot be marked as expired.",
+        "endsInPast": "With this length the boost would already be over. Choose more days."
+      },
+      "edit": "Edit",
+      "editAria": "Edit the boost of {title}",
+      "delete": "Delete",
+      "deleteAria": "Delete the boost of {title}",
+      "close": "Close",
+      "details": {
+        "type": {
+          "RENT": "For rent",
+          "SALE": "For sale"
+        },
+        "status": "Boost status",
+        "payment": "Payment",
+        "owner": "Owner",
+        "amount": "Amount",
+        "trx": "TrxID",
+        "sender": "Sender number",
+        "requested": "Requested on",
+        "length": "Boost length",
+        "starts": "Starts",
+        "ends": "Ends",
+        "reviewed": "Checked on",
+        "reason": "Reason"
+      },
+      "viewModal": {
+        "title": "Boost details"
+      },
+      "editModal": {
+        "title": "Edit boost",
+        "subtitle": "Change the status or the length of this boost.",
+        "statusTitle": "Boost status",
+        "option": {
+          "ACTIVE": "Active",
+          "EXPIRED": "Expired",
+          "FAILED": "Payment Failed"
+        },
+        "paidNote": "This boost was paid, so it cannot be marked as payment failed.",
+        "days": "Boost length (days)",
+        "daysError": "Enter 1 to 90 days.",
+        "save": "Save changes"
+      },
+      "deleteModal": {
+        "title": "Delete this boost?",
+        "text": "The boost of “{title}” will be removed from this table.",
+        "activeNote": "It is running now. The listing will stop being pinned to the top.",
+        "note": "The payment record is kept for the accounts.",
+        "yes": "Yes, Delete"
+      }
+    },
+    "report": {
+      "metaTitle": "Business Analysis Report",
+      "title": "Business Analysis <hl>Report</hl>",
+      "subtitle": "Platform performance, revenue metrics, and growth trends.",
+      "kpi": {
+        "loading": "Loading the report numbers…",
+        "error": "We could not load the report numbers.",
+        "retry": "Try again",
+        "subscribers": "Paid Subscribers",
+        "total": "Total Paid",
+        "subscriptions": "Subscription Earnings",
+        "boost": "Boost Earnings",
+        "period": "Selected Days Report",
+        "payments": "{n} verified payments"
+      },
+      "chart": {
+        "title": "Revenue Growth",
+        "subtitle": "Money received each month, plans and boosts.",
+        "year": "Year",
+        "legend": "Colours of the chart",
+        "subscriptions": "Subscriptions",
+        "boost": "Boost",
+        "yearTotal": "Total in {year}:",
+        "chartLabel": "Monthly revenue of {year}",
+        "barLabel": "{month}: subscriptions {subscriptions}, boost {boost}",
+        "loading": "Loading the chart…",
+        "error": "We could not load the revenue chart.",
+        "retry": "Try again",
+        "emptyTitle": "No revenue yet",
+        "empty": "No verified payment was received in {year}."
+      },
+      "plans": {
+        "title": "Subscription Plans",
+        "subtitle": "Owners on each plan right now.",
+        "subscribers": "Subscribers",
+        "loading": "Loading the plans…",
+        "error": "We could not load the plan numbers.",
+        "retry": "Try again",
+        "empty": "There are no plans yet.",
+        "boost": "Boost",
+        "boostsBought": "Boosts bought"
+      },
+      "transactions": {
+        "title": "Recent Transactions",
+        "statusLabel": "Status",
+        "filter": {
+          "all": "All",
+          "active": "Active",
+          "failed": "Failed"
+        },
+        "columns": {
+          "id": "Transaction ID",
+          "owner": "Owner",
+          "plan": "Plan type",
+          "date": "Date",
+          "status": "Status"
+        },
+        "roles": {
+          "OWNER": "Owner",
+          "TENANT": "Tenant",
+          "GENERAL_USER": "Tenant-Free"
+        },
+        "boost": "Boost",
+        "noPlan": "—",
+        "status": {
+          "active": "Active",
+          "failed": "Failed",
+          "pending": "Pending",
+          "refunded": "Refunded"
+        },
+        "viewAll": "View All Transactions",
+        "loadingMore": "Loading…",
+        "moreError": "Could not load more. Please try again.",
+        "scrollArea": "Transactions, scrollable",
+        "error": "We could not load the transactions.",
+        "retry": "Try again",
+        "emptyTitle": "No transactions",
+        "empty": {
+          "none": "Payments appear here when owners pay for a plan or a boost.",
+          "filtered": "No transaction matches this status."
+        },
+        "planLabel": "Plan Type",
+        "planAll": "All"
+      },
+      "export": {
+        "button": "Export Invoice",
+        "working": "Preparing…",
+        "done": "Invoice {file} downloaded.",
+        "failed": "Could not create the invoice. Please try again."
+      }
+    },
+    "maintenance": {
+      "metaTitle": "Maintenance Report",
+      "title": "Maintenance <hl>Report</hl>",
+      "subtitle": "Global maintenance tracking and tenant request analysis.",
+      "kpi": {
+        "loading": "Loading the maintenance numbers…",
+        "error": "We could not load the maintenance numbers.",
+        "retry": "Try again",
+        "total": "Total Requests",
+        "totalSub": "Entire Requests",
+        "open": "Open Requests",
+        "openSub": "Active Requests",
+        "critical": "Critical Issues",
+        "criticalSub": "Quickly Action Needed",
+        "avg": "Avg Resolution",
+        "avgSub": "{n} resolved in this period",
+        "avgNone": "No resolved request yet",
+        "days": "{n} Days"
+      },
+      "category": {
+        "title": "Maintenance Report",
+        "subtitle": "Share of each group in the chosen dates; the five add up to 100%. Click a bar to filter the table.",
+        "loading": "Loading the categories…",
+        "error": "We could not load the categories.",
+        "retry": "Try again",
+        "emptyTitle": "No requests in these dates",
+        "empty": "Choose other dates to see the categories.",
+        "requests": "{n} requests",
+        "clear": "Show all categories",
+        "filtering": "Showing {name} only",
+        "names": {
+          "PLUMBING": "Plumbing",
+          "ELECTRICAL": "Electrical",
+          "WATER": "Water",
+          "GAS": "Gas",
+          "LIFT": "Lift",
+          "PAINT": "Paint",
+          "SECURITY": "Security",
+          "CLEANING": "Cleaning",
+          "OTHER": "Other"
+        }
+      },
+      "table": {
+        "title": "Recent Requests",
+        "searchLabel": "Search requests",
+        "searchPlaceholder": "Search by REQ, property, person…",
+        "statusLabel": "Status",
+        "priorityLabel": "Priority",
+        "summary": "Total Requests: {total}",
+        "columns": {
+          "issue": "Issue details",
+          "property": "Property / Unit",
+          "category": "Category",
+          "owner": "Owner",
+          "priority": "Priority",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "status": {
+          "all": "All",
+          "PENDING": "Pending",
+          "APPROVED": "Approved",
+          "IN_PROGRESS": "In Progress",
+          "COMPLETED": "Resolved",
+          "REJECTED": "Rejected",
+          "CANCELLED": "Cancelled"
+        },
+        "priority": {
+          "all": "All",
+          "LOW": "Low",
+          "MEDIUM": "Medium",
+          "HIGH": "High",
+          "CRITICAL": "Critical"
+        },
+        "ownerId": "Owner ID: {code}",
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "viewAria": "View request {ticket}",
+        "editAria": "Edit request {ticket}",
+        "deleteAria": "Delete request {ticket}",
+        "viewMore": "View More Records",
+        "loadingMore": "Loading…",
+        "moreError": "Could not load more. Please try again.",
+        "scrollArea": "Requests, scrollable",
+        "error": "We could not load the requests.",
+        "retry": "Try again",
+        "emptyTitle": "No requests found",
+        "empty": {
+          "none": "Maintenance requests from tenants appear here.",
+          "filtered": "No request matches these filters."
+        }
+      },
+      "details": {
+        "title": "Request details",
+        "ticket": "Ticket",
+        "created": "Reported",
+        "resolved": "Resolved",
+        "category": "Category",
+        "priority": "Priority",
+        "status": "Status",
+        "preferred": "Preferred time",
+        "technician": "Technician",
+        "description": "Complaint",
+        "photos": "Photos",
+        "noPhotos": "No photo was added.",
+        "tenant": "Tenant",
+        "owner": "Owner",
+        "tenantId": "Tenant ID: {code}",
+        "ownerId": "Owner ID: {code}",
+        "unit": "Unit {unit}",
+        "floor": "Floor {n}",
+        "comments": "Conversation",
+        "noComments": "No comments yet.",
+        "close": "Close",
+        "photoOf": "Photo {n}",
+        "none": "—",
+        "openProfile": "Open the profile of {name}",
+        "apartment": "Apartment",
+        "floors": "Floors",
+        "flats": "Flats",
+        "occupied": "Occupied",
+        "vacant": "Vacant",
+        "thisFlat": "This request is from flat {unit}, floor {floor} · {beds} bed · {baths} bath",
+        "sqft": "sqft",
+        "issuesHere": "Maintenance report of this apartment",
+        "issues": {
+          "total": "All issues",
+          "open": "Open",
+          "resolved": "Resolved",
+          "other": "Rejected / cancelled"
+        },
+        "recent": "Recent issues in this apartment",
+        "flatFloor": "flat {unit}, floor {floor}"
+      },
+      "edit": {
+        "title": "Edit request",
+        "subtitle": "Change the priority or the status. The tenant and the owner are told.",
+        "priority": "Priority",
+        "status": "Status",
+        "technician": "Technician (optional)",
+        "technicianPlaceholder": "Name of the person who will fix it",
+        "technicianError": "Write at least 2 letters, or leave it empty.",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "cancel": "Cancel",
+        "notify": "Everyone involved gets a notification.",
+        "noChange": "Nothing changed.",
+        "sectionTitle": "Edit this request"
+      },
+      "delete": {
+        "title": "Delete request?",
+        "text": "Are you sure to delete {ticket} Request?",
+        "note": "The photos and comments are removed too. The tenant and the owner are told. This cannot be undone.",
+        "yes": "Yes, Delete",
+        "no": "Cancel",
+        "working": "Deleting…"
+      },
+      "toast": {
+        "saved": "{ticket} updated.",
+        "same": "Nothing to change on {ticket}.",
+        "deleted": "{ticket} deleted.",
+        "gone": "This request no longer exists.",
+        "failed": "Something went wrong. Nothing was changed."
+      },
+      "person": {
+        "tenant": "Tenant",
+        "owner": "Owner",
+        "tenantId": "Tenant ID: {code}",
+        "ownerId": "Owner ID: {code}",
+        "unit": "Flat",
+        "movedIn": "Moved in",
+        "rent": "Monthly rent",
+        "memberSince": "Member since",
+        "properties": "Properties",
+        "tenants": "Active tenants",
+        "close": "Close",
+        "none": "—"
+      }
+    },
+    "owners": {
+      "metaTitle": "Active Property Owners",
+      "title": "Active Property <hl>Owners</hl>",
+      "subtitle": "Manage and monitor verified landlords on the platform.",
+      "toggle": {
+        "market": "Marketplace",
+        "rental": "Rental Property"
+      },
+      "kpi": {
+        "loading": "Loading the owner numbers…",
+        "error": "We could not load the owner numbers.",
+        "retry": "Try again",
+        "owners": "Total Owners",
+        "period": "{from} to {to}",
+        "rental": {
+          "ownersSub": "Active owners",
+          "total": "Total Properties Managed",
+          "avg": "Avg {n} properties per owner",
+          "fresh": "Selected Date New Properties"
+        },
+        "market": {
+          "ownersSub": "Owners selling flats",
+          "total": "Total Marketplace Listings",
+          "avg": "Avg {n} listings per owner",
+          "fresh": "Selected Date New Listings"
+        }
+      },
+      "table": {
+        "title": {
+          "rental": "Rental property owners",
+          "market": "Buy / sell marketplace owners"
+        },
+        "filter": "Filter by plan",
+        "tabs": {
+          "all": "All",
+          "PRIMARY": "Primary",
+          "MILLIONAIRE": "Millionaire",
+          "BILLIONAIRE": "Billionaire"
+        },
+        "searchLabel": "Search owners",
+        "searchPlaceholder": "Search name, ID, email, phone",
+        "columns": {
+          "owner": "Owner details",
+          "contact": "Contact info",
+          "portfolio": "Portfolio",
+          "listings": "Marketplace listings",
+          "revenue": "Sold value",
+          "subscription": "Subscription",
+          "status": "Status",
+          "joined": "Joined",
+          "actions": "Actions"
+        },
+        "ownerId": "ID: {code}",
+        "email": "Email",
+        "phone": "Phone",
+        "properties": "{count, plural, one {# Property} other {# Properties}}",
+        "units": "({count} Units Total)",
+        "listings": "{count, plural, one {# Listing} other {# Listings}}",
+        "forSaleSold": "{sale} for sale · {sold} sold",
+        "noPlan": "No plan",
+        "state": {
+          "ACTIVE": "Active",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended"
+        },
+        "view": "View",
+        "edit": "Edit status",
+        "delete": "Delete",
+        "openProfile": "Open the profile of {name}",
+        "viewAria": "View {name}",
+        "editAria": "Edit the status of {name}",
+        "deleteAria": "Delete {name}",
+        "showing": "Showing {from} to {to} of {total} entries",
+        "previous": "Previous",
+        "next": "Next",
+        "error": "We could not load the owners.",
+        "retry": "Try again",
+        "emptyTitle": "No owners found",
+        "empty": {
+          "rental": "Owners with a plan appear here.",
+          "market": "Owners who list flats for sale appear here.",
+          "filtered": "No owner matches these filters."
+        },
+        "statusLabel": "Status",
+        "verifyLabel": "NID",
+        "verify": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "UNVERIFIED": "Not Verified"
+        }
+      },
+      "details": {
+        "title": "Owner details",
+        "message": "Message",
+        "verified": "Verified",
+        "address": "Address",
+        "occupation": "Occupation",
+        "nid": "NID",
+        "joined": "Joined",
+        "lastSeen": "Last seen",
+        "paid": "Paid to AmaderGhor",
+        "payments": "{n} payments",
+        "subscription": "Subscription",
+        "subscriptionLine": "{cycle}, until {until}",
+        "cycle": {
+          "MONTHLY": "Monthly",
+          "QUARTERLY": "Quarterly",
+          "YEARLY": "Yearly"
+        },
+        "portfolio": "Properties and units",
+        "totals": {
+          "properties": "Properties",
+          "units": "Units",
+          "occupied": "Occupied",
+          "vacant": "Vacant"
+        },
+        "noProperties": "This owner has no property yet.",
+        "floors": "{n} floors",
+        "unitsLine": "{n} units",
+        "occupiedN": "{n} occupied",
+        "vacantN": "{n} vacant",
+        "marketplace": "Marketplace",
+        "forSale": "For sale",
+        "sold": "Sold",
+        "soldValue": "Sold value",
+        "log": "Warning and suspension log",
+        "noLog": "No warning or suspension yet.",
+        "logAction": {
+          "ACTIVE": "Active",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended",
+          "ARCHIVED": "Archived"
+        },
+        "close": "Close",
+        "none": "—",
+        "forSaleList": "Flats for sale",
+        "soldList": "Sold flats",
+        "noForSale": "No flat is listed for sale.",
+        "noSold": "No flat has been sold yet.",
+        "openProperty": "Open the short information of {name}",
+        "openListing": "Open the short information of {title}",
+        "recordsHint": "Click a record for short information.",
+        "dob": "Date of birth",
+        "gender": "Gender",
+        "genders": {
+          "MALE": "Male",
+          "FEMALE": "Female",
+          "OTHER": "Other"
+        },
+        "documents": "Documents",
+        "docs": {
+          "NID_FRONT": "NID front",
+          "NID_BACK": "NID back",
+          "AGREEMENT": "Agreement"
+        },
+        "docState": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "UNVERIFIED": "Not Verified"
+        },
+        "docNone": "Not uploaded",
+        "nidState": {
+          "VERIFIED": "NID verified",
+          "PENDING": "NID pending",
+          "REJECTED": "NID rejected",
+          "UNVERIFIED": "NID not verified"
+        }
+      },
+      "edit": {
+        "title": "Edit status and comment log",
+        "sectionTitle": "Change the account status",
+        "subtitle": "The reason is saved in the owner's permanent log with your name and the time.",
+        "statusLabel": "Account status",
+        "option": {
+          "ACTIVE": "Active",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended"
+        },
+        "reason": "Warning / Suspended reason comment",
+        "reasonPlaceholder": "Tell the owner why. They will see this.",
+        "noteOptional": "Note (optional)",
+        "notePlaceholder": "Optional note for the log",
+        "required": "Write a reason of at least 3 letters.",
+        "notify": "The owner gets a notification. A suspended owner cannot sign in.",
+        "cancel": "Cancel",
+        "save": "Save status",
+        "saving": "Saving…",
+        "statusTab": "Account status"
+      },
+      "delete": {
+        "title": "Delete owner",
+        "text": "Are you sure you want to delete this owner?",
+        "note": "The owner moves to Previous Owners and can no longer sign in. Their properties are archived and their listings are taken down.",
+        "impact": "{properties} properties ({occupied} occupied units) and {listings} listings are affected.",
+        "yes": "Yes, Delete",
+        "no": "Cancel",
+        "working": "Deleting…"
+      },
+      "message": {
+        "title": "Message {name}",
+        "subtitle": "Sent to their Messages inbox.",
+        "label": "Message",
+        "placeholder": "Write your message…",
+        "required": "Write a message first.",
+        "cancel": "Cancel",
+        "send": "Send",
+        "sending": "Sending…",
+        "sent": "Message sent to {name}.",
+        "failed": "The message could not be sent."
+      },
+      "toast": {
+        "status": {
+          "ACTIVE": "{name} is Active.",
+          "WARNING": "Warning sent to {name}.",
+          "SUSPENDED": "{name} was suspended."
+        },
+        "same": "Nothing to change for {name}.",
+        "archived": "{name} was moved to Previous Owners.",
+        "gone": "This owner no longer exists.",
+        "failed": "Something went wrong. Nothing was changed."
+      },
+      "short": {
+        "close": "Close",
+        "error": "We could not load this record.",
+        "retry": "Try again",
+        "property": "Property",
+        "listing": "Listing",
+        "floors": "Floors",
+        "units": "Units",
+        "occupied": "Occupied",
+        "vacant": "Vacant",
+        "added": "Added on {date}",
+        "noUnits": "No unit has been added yet.",
+        "unit": "Unit {n}",
+        "floorN": "floor {n}",
+        "bedBath": "{bed} bed · {bath} bath",
+        "sqft": "sqft",
+        "occupiedShort": "Occupied",
+        "vacantShort": "Vacant",
+        "forSale": "For sale",
+        "sold": "Sold",
+        "featured": "Featured",
+        "negotiable": "Negotiable",
+        "category": "Category",
+        "rooms": "Bed / Bath",
+        "area": "Area",
+        "floorOf": "Floor",
+        "posted": "Posted",
+        "updated": "Updated"
+      }
+    },
+    "tenants": {
+      "metaTitle": "Active Tenants",
+      "title": "Active <hl>Tenants</hl>",
+      "subtitle": "Monitor tenant base and lease activities across all properties.",
+      "kpi": {
+        "loading": "Loading the tenant numbers…",
+        "error": "We could not load the tenant numbers.",
+        "retry": "Try again",
+        "total": "Total Tenants",
+        "totalSub": "{n} new last 30 days",
+        "leases": "Active Leases",
+        "leasesSub": "{n}% active status",
+        "expiring": "Expiring Soon",
+        "expiringSub": "Leases ending in 30 days"
+      },
+      "table": {
+        "title": "Active tenants",
+        "filter": "Filter tenants",
+        "tabs": {
+          "all": "All",
+          "active": "Active",
+          "notice": "Notice Given"
+        },
+        "searchLabel": "Search tenants",
+        "searchPlaceholder": "Search name, ID, email, phone, property",
+        "columns": {
+          "tenant": "Tenant",
+          "contact": "Contact info",
+          "residence": "Residence",
+          "owner": "Property owner",
+          "leaseEnd": "Lease end",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "tenantId": "ID: {code}",
+        "ownerId": "ID: {code}",
+        "email": "Email",
+        "phone": "Phone",
+        "unit": "Unit {n}",
+        "endingSoon": "Soon",
+        "noEnd": "Open-ended",
+        "state": {
+          "ACTIVE": "Active",
+          "NOTICE_GIVEN": "Notice Given"
+        },
+        "view": "View",
+        "edit": "Edit",
+        "openProfile": "Open the profile of {name}",
+        "viewAria": "View {name}",
+        "editAria": "Edit {name}",
+        "showing": "Showing {shown} of {total} tenants",
+        "previous": "Previous",
+        "next": "Next",
+        "error": "We could not load the tenants.",
+        "retry": "Try again",
+        "emptyTitle": "No tenants found",
+        "empty": {
+          "none": "Tenants with a running lease appear here.",
+          "filtered": "No tenant matches these filters."
+        },
+        "verifyLabel": "NID",
+        "verify": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "UNVERIFIED": "Not Verified"
+        }
+      },
+      "details": {
+        "title": "Tenant details",
+        "message": "Message",
+        "messageOwner": "Message owner",
+        "nidVerified": "NID verified",
+        "nidNotVerified": "NID not verified",
+        "nid": "NID",
+        "occupation": "Occupation",
+        "memberSince": "Member since",
+        "lastSeen": "Last seen",
+        "residence": "Residence",
+        "floor": "Floor",
+        "bedBath": "Bed / Bath",
+        "area": "Area",
+        "sqft": "sqft",
+        "members": "Members",
+        "rent": "Monthly rent",
+        "deposit": "Deposit",
+        "dues": "Rent due",
+        "overdue": "{n} overdue",
+        "leaseStart": "Lease start",
+        "leaseEnd": "Lease end",
+        "noEnd": "Open-ended",
+        "notice": "Notice given on",
+        "owner": "Apartment owner",
+        "close": "Close",
+        "none": "—",
+        "dob": "Date of birth",
+        "gender": "Gender",
+        "genders": {
+          "MALE": "Male",
+          "FEMALE": "Female",
+          "OTHER": "Other"
+        },
+        "address": "Address",
+        "documents": "Documents",
+        "docs": {
+          "NID_FRONT": "NID front",
+          "NID_BACK": "NID back",
+          "AGREEMENT": "Agreement"
+        },
+        "docState": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "UNVERIFIED": "Not Verified"
+        },
+        "docNone": "Not uploaded",
+        "nidState": {
+          "VERIFIED": "NID verified",
+          "PENDING": "NID pending",
+          "REJECTED": "NID rejected",
+          "UNVERIFIED": "NID not verified"
+        }
+      },
+      "edit": {
+        "title": "Edit tenant status",
+        "sectionTitle": "Edit this tenancy",
+        "subtitle": "Change the unit, the lease end date or the status.",
+        "unit": "Residence unit",
+        "current": "current",
+        "freeUnits": "{n} free units of this owner",
+        "noFreeUnits": "This owner has no other free unit.",
+        "endDate": "Lease end date",
+        "endError": "The end date must be after the lease start.",
+        "status": "Status",
+        "option": {
+          "ACTIVE": "Active",
+          "NOTICE_GIVEN": "Notice Given"
+        },
+        "notify": "The tenant and the owner get a notification.",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "tenancyTab": "Tenancy"
+      },
+      "toast": {
+        "saved": "{name}’s tenancy was updated.",
+        "same": "Nothing to change for {name}.",
+        "gone": "This tenancy no longer exists.",
+        "unitTaken": "That unit is no longer free. Pick another one.",
+        "failed": "Something went wrong. Nothing was changed."
+      },
+      "docs": {
+        "kind": {
+          "NID_FRONT": "NID front",
+          "NID_BACK": "NID back",
+          "AGREEMENT": "Agreement"
+        },
+        "state": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending review",
+          "REJECTED": "Rejected",
+          "UNVERIFIED": "Not verified"
+        },
+        "notUploaded": "The {doc} has not been uploaded yet.",
+        "open": "Open the {doc} in a new tab",
+        "openShort": "Open",
+        "pdf": "This file is a PDF. Open it to read it.",
+        "noPreview": "The file could not be loaded for preview.",
+        "uploaded": "Uploaded on {date}",
+        "landlordCopy": "The landlord’s copy of the lease, saved on {date}.",
+        "viewOnly": "This is the landlord’s copy. There is nothing to review here.",
+        "rejectedReason": "Reason:",
+        "locked": "Verified. It can no longer be replaced or deleted by the person who uploaded it.",
+        "reasonLabel": "Why is it rejected?",
+        "reasonPlaceholder": "e.g. The photo is blurry. Please upload a clear one.",
+        "reasonRequired": "Write a reason of at least 3 letters.",
+        "cancel": "Cancel",
+        "reject": "Reject",
+        "confirmReject": "Confirm reject",
+        "verify": "Verify",
+        "notifyNote": "They get a separate notification for this document.",
+        "toast": {
+          "verified": "{doc} verified and locked.",
+          "rejected": "{doc} rejected. The tenant was told why.",
+          "gone": "This document no longer exists.",
+          "failed": "Something went wrong. Nothing was changed."
+        }
+      }
+    },
+    "tenantFree": {
+      "metaTitle": "Tenant Free",
+      "title": "Tenant <hl>Free</hl>",
+      "subtitle": "New sign-ups who are not an owner or a tenant yet: check their profile and NID, and manage their account.",
+      "kpi": {
+        "loading": "Loading the numbers…",
+        "error": "We could not load the numbers.",
+        "retry": "Try again",
+        "total": "Total Tenant Free",
+        "totalSub": "{n} new last 30 days",
+        "verified": "NID Verified",
+        "verifiedSub": "{n}% of Tenant Free",
+        "pending": "Waiting for Review",
+        "pendingSub": "NID sent, not checked yet"
+      },
+      "table": {
+        "title": "Tenant Free accounts",
+        "filter": "Filter by NID",
+        "tabAll": "All",
+        "searchLabel": "Search Tenant Free",
+        "searchPlaceholder": "Search name, ID, email, phone",
+        "columns": {
+          "person": "Person",
+          "contact": "Contact info",
+          "place": "Location",
+          "nid": "NID",
+          "joined": "Joined",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "freeId": "ID: {code}",
+        "email": "Email",
+        "phone": "Phone",
+        "noLocation": "No address yet",
+        "visible": "Owners can find",
+        "hidden": "Hidden from owners",
+        "verify": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "UNVERIFIED": "Not Verified"
+        },
+        "state": {
+          "ACTIVE": "Active",
+          "SUSPENDED": "Suspended"
+        },
+        "view": "View",
+        "edit": "Edit",
+        "openProfile": "Open the profile of {name}",
+        "viewAria": "View {name}",
+        "editAria": "Edit {name}",
+        "showing": "Showing {shown} of {total} accounts",
+        "previous": "Previous",
+        "next": "Next",
+        "error": "We could not load the accounts.",
+        "retry": "Try again",
+        "emptyTitle": "No Tenant Free accounts",
+        "empty": {
+          "none": "New sign-ups appear here until they become a tenant or an owner.",
+          "filtered": "No account matches these filters."
+        }
+      },
+      "details": {
+        "title": "Tenant Free details",
+        "message": "Message",
+        "nid": "NID",
+        "occupation": "Occupation",
+        "dob": "Date of birth",
+        "gender": "Gender",
+        "genders": {
+          "MALE": "Male",
+          "FEMALE": "Female",
+          "OTHER": "Other"
+        },
+        "address": "Address",
+        "joined": "Joined",
+        "lastSeen": "Last seen",
+        "nidState": {
+          "VERIFIED": "NID verified",
+          "PENDING": "NID pending",
+          "REJECTED": "NID rejected",
+          "UNVERIFIED": "NID not verified"
+        },
+        "visibleTitle": "Owners can find this person",
+        "visibleText": "The profile is complete and the NID is verified.",
+        "hiddenTitle": "Hidden from owners",
+        "hiddenText": "Owners cannot find this person until this is done: {gaps}.",
+        "gap": {
+          "fullName": "name",
+          "phone": "phone",
+          "email": "e-mail",
+          "nid": "NID number",
+          "dateOfBirth": "date of birth",
+          "occupation": "occupation",
+          "address": "address",
+          "verification": "NID verified by the Super Admin"
+        },
+        "documents": "NID photos",
+        "docs": {
+          "NID_FRONT": "NID front",
+          "NID_BACK": "NID back"
+        },
+        "docState": {
+          "VERIFIED": "Verified",
+          "PENDING": "Pending",
+          "REJECTED": "Rejected",
+          "UNVERIFIED": "Not Verified"
+        },
+        "docNone": "Not uploaded",
+        "log": "Account log",
+        "noLog": "Nothing in the log yet.",
+        "logAction": {
+          "ACTIVE": "Active",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended",
+          "ARCHIVED": "Archived"
+        },
+        "close": "Close",
+        "none": "—"
+      },
+      "edit": {
+        "title": "Edit Tenant Free",
+        "statusTab": "Account status",
+        "sectionTitle": "Change the account status",
+        "subtitle": "A suspended person cannot sign in. The reason is saved in the account log.",
+        "statusLabel": "Account status",
+        "option": {
+          "ACTIVE": "Active",
+          "SUSPENDED": "Suspended"
+        },
+        "reason": "Suspension reason",
+        "reasonPlaceholder": "Tell the person why. They will see this.",
+        "noteOptional": "Note (optional)",
+        "notePlaceholder": "Optional note for the log",
+        "required": "Write a reason of at least 3 letters.",
+        "notify": "The person gets a notification.",
+        "cancel": "Cancel",
+        "save": "Save status",
+        "saving": "Saving…"
+      },
+      "toast": {
+        "status": {
+          "ACTIVE": "{name} is Active.",
+          "SUSPENDED": "{name} was suspended."
+        },
+        "same": "Nothing to change for {name}.",
+        "gone": "This account no longer exists.",
+        "failed": "Something went wrong. Nothing was changed."
+      }
+    },
+    "subs": {
+      "metaTitle": "Subscriptions & Packages",
+      "title": "Subscriptions & <hl>Packages</hl>",
+      "subtitle": "Manage owner subscription plans, renewals, and payments.",
+      "kpi": {
+        "loading": "Loading the numbers…",
+        "error": "We could not load the numbers.",
+        "retry": "Try again",
+        "active": "Total Active",
+        "activeSub": "{n} this week",
+        "billionaire": "Billionaire Plan",
+        "billionaireSub": "High value clients",
+        "millionaire": "Millionaire Plan",
+        "millionaireSub": "Growth segment",
+        "primary": "Primary Plan",
+        "primarySub": "Entry segment",
+        "expired": "Subscriptions Expired",
+        "attention": "Needs attention",
+        "expiring": "Expiring Soon",
+        "expiringSub": "Ends within {n} days",
+        "boost": "Boost",
+        "boostSub": "{n} paid · {amount} earned",
+        "buyers": "New Buyers (7 days)",
+        "buyersSub": "New or renewed plans this week",
+        "revenue": "Plan Revenue (this month)",
+        "revenueSub": "{n} verified payments"
+      },
+      "banner": {
+        "cta": "Send Reminder",
+        "error": "Could not load",
+        "nobody": "No owner in this group",
+        "everyone": "Message reaches {n} owners",
+        "expiring": {
+          "title": "Send Reminder: Expiring Soon",
+          "sub": "Plans ending within {days} days"
+        },
+        "expired": {
+          "title": "Send Reminder: Expired",
+          "sub": "Needs attention"
+        },
+        "all": {
+          "title": "Send Message to Everyone",
+          "sub": "Every owner on the platform"
+        },
+        "due": "{n} owners · Amount Due {amount}"
+      },
+      "broadcast": {
+        "expiring": {
+          "heading": "Reminder: Expiring Soon",
+          "title": "Your plan is about to end",
+          "body": "Dear [name], your [plan] plan ends on [date]. Please renew it to keep adding properties, units and flats for sale. Amount due: ৳[amount]."
+        },
+        "expired": {
+          "heading": "Reminder: Expired",
+          "title": "Your plan has expired",
+          "body": "Dear [name], your [plan] plan ended on [date]. Renew it now to continue. Amount due: ৳[amount]."
+        },
+        "all": {
+          "heading": "Message to every owner",
+          "title": "A message from AmaderGhor",
+          "body": "Dear [name], "
+        },
+        "recipients": "{n} owners will get this",
+        "totalDue": "Total due [amount]",
+        "titleLabel": "Title",
+        "bodyLabel": "Message",
+        "tokens": "Each owner gets their own name, plan, amount and date in place of [name], [plan], [amount] and [date].",
+        "required": "Write a title and a message first.",
+        "cancel": "Cancel",
+        "send": "Send Broadcast Message",
+        "sending": "Sending…",
+        "sent": "Sent to {n} owners.",
+        "failed": "The message could not be sent.",
+        "tooMany": "Too many reminders for this group. Try again later.",
+        "nobody": "No owner is in this group."
+      },
+      "table": {
+        "title": "Owner plans",
+        "packageLabel": "Package",
+        "statusLabel": "Status",
+        "allPackages": "All Packages",
+        "allStatuses": "All Statuses",
+        "plans": {
+          "PRIMARY": "Primary",
+          "MILLIONAIRE": "Millionaire",
+          "BILLIONAIRE": "Billionaire"
+        },
+        "searchLabel": "Search by owner ID",
+        "searchPlaceholder": "Search by owner ID (e.g. OW10032)",
+        "columns": {
+          "owner": "Owner",
+          "package": "Current package",
+          "usage": "Usage stats",
+          "subscription": "Subscription",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "ownerId": "ID: {code}",
+        "properties": "{count, plural, one {# Property} other {# Properties}}",
+        "units": "(Unit: {n})",
+        "months": "{count, plural, one {# Month} other {# Months}}",
+        "paid": "Paid",
+        "unpaid": "Not paid",
+        "state": {
+          "ACTIVE": "Active",
+          "EXPIRING": "Expiring Soon",
+          "EXPIRED": "Expired"
+        },
+        "daysLeft": "{n} days left",
+        "message": "Message",
+        "view": "View",
+        "openProfile": "Open the plan of {name}",
+        "messageAria": "Message {name}",
+        "viewAria": "View the plan of {name}",
+        "showing": "Showing {shown} of {total} entries",
+        "previous": "Previous",
+        "next": "Next",
+        "error": "We could not load the plans.",
+        "retry": "Try again",
+        "emptyTitle": "No owner plans found",
+        "empty": {
+          "none": "Owners with a plan appear here.",
+          "filtered": "No owner matches these filters."
+        }
+      },
+      "details": {
+        "title": "Subscription details",
+        "message": "Message",
+        "package": "Package",
+        "status": "Status",
+        "cycle": "Length",
+        "starts": "Starts",
+        "ends": "Ends",
+        "daysLeft": "{n} days left",
+        "grace": "Grace period ends",
+        "amount": "Paid for this plan",
+        "monthly": "Monthly price",
+        "boosts": "Active boosts",
+        "usage": "Usage against the plan",
+        "properties": "Properties",
+        "units": "Units",
+        "listings": "Flats for sale",
+        "payments": "Plan payments",
+        "noPayments": "No plan payment yet.",
+        "pay": {
+          "SUCCESS": "Paid",
+          "PENDING_REVIEW": "Awaiting check",
+          "FAILED": "Not paid",
+          "REFUNDED": "Refunded",
+          "INITIATED": "Started"
+        },
+        "close": "Close",
+        "none": "—"
+      }
+    },
+    "previousProperties": {
+      "metaTitle": "Previous Properties",
+      "title": "Previous <hl>Properties</hl>",
+      "subtitle": "Archive of deactivated, suspended, and deleted property records.",
+      "kpi": {
+        "loading": "Loading the archive numbers",
+        "error": "We could not load the archive numbers.",
+        "retry": "Try again",
+        "archived": "Archived total",
+        "archivedSub": "Voluntary deactivations",
+        "suspended": "Suspended",
+        "suspendedSub": "Policy violations",
+        "inactive": "Inactive",
+        "inactiveSub": "Unpaid subscriptions",
+        "deleted": "Deleted",
+        "deletedSub": "Permanently removed",
+        "total": "All records",
+        "totalSub": "Everything in the archive",
+        "reactivated": "Reactivated",
+        "reactivatedSub": "Brought back in the last 30 days"
+      },
+      "status": {
+        "ARCHIVED": "Archived",
+        "SUSPENDED": "Suspended",
+        "INACTIVE": "Inactive",
+        "DELETED": "Deleted"
+      },
+      "reason": {
+        "OWNER_REQUEST": "Owner Request",
+        "POLICY_VIOLATION": "Policy Violation",
+        "NON_PAYMENT": "Non-payment",
+        "BUILDING_DEMOLISHED": "Building Demolished",
+        "SOLD_PROPERTY": "Sold Property",
+        "RENOVATION": "Renovation / Remodeling",
+        "OTHER": "Other",
+        "NOT_INTERESTED": "Not Interested Anymore",
+        "DUPLICATE_ENTRY": "Added by Mistake / Duplicate",
+        "MOVED_PLATFORM": "Moved to Another Platform"
+      },
+      "table": {
+        "title": "Previous properties",
+        "reasonLabel": "Reason",
+        "allReasons": "All Reasons",
+        "statusLabel": "Status",
+        "allStatuses": "All Statuses",
+        "searchLabel": "Search by property name",
+        "searchPlaceholder": "Search by property name",
+        "columns": {
+          "property": "Property",
+          "owner": "Owner",
+          "location": "Location",
+          "deactivatedOn": "Deactivated on",
+          "reason": "Reason",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "units": "{count} Units",
+        "email": "E-mail",
+        "phone": "Phone",
+        "none": "Not given",
+        "ownerId": "ID {code}",
+        "openAria": "Open details of {name}",
+        "viewAria": "View {name}",
+        "editAria": "Edit status of {name}",
+        "deleteAria": "Delete {name}",
+        "view": "View",
+        "edit": "Edit status",
+        "delete": "Delete",
+        "error": "We could not load the properties.",
+        "retry": "Try again",
+        "emptyTitle": "No properties found",
+        "empty": {
+          "none": "No property has been archived, suspended or deleted yet.",
+          "filtered": "No property matches these filters. Change the reason, the status or the search."
+        },
+        "showing": "Showing {shown} of {total} entries",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "details": {
+        "title": "Archived Property Details",
+        "close": "Close",
+        "unitsLine": "{units} units · {floors} floors",
+        "address": "Address",
+        "type": "Type",
+        "deactivatedOn": "Deactivation date",
+        "reason": "Deactivation reason",
+        "created": "Listed on the platform",
+        "note": "Note",
+        "owner": "Owner contact",
+        "message": "Message owner",
+        "matrix": "Unit matrix",
+        "matrixCount": "{n} units",
+        "noUnits": "No units were recorded for this property.",
+        "floor": "Floor {n}",
+        "floorNone": "No floor",
+        "unit": {
+          "AVAILABLE": "Vacant",
+          "OCCUPIED": "Occupied",
+          "MAINTENANCE": "Repair",
+          "ARCHIVED": "Archived"
+        },
+        "beds": "{n} bed",
+        "sqft": "{n} sqft",
+        "history": "What happened",
+        "noHistory": "No changes are recorded yet.",
+        "by": "by {name}",
+        "none": "Not given",
+        "event": {
+          "property.archive": "Archived",
+          "property.status_change": "Status changed",
+          "property.reactivate": "Reactivated",
+          "property.delete": "Deleted",
+          "property.purge": "Erased",
+          "property.verify": "Approved",
+          "property.set_pending": "Sent back to pending",
+          "property.update": "Details edited",
+          "property.create": "Created"
+        },
+        "state": {
+          "ACTIVE": "Active",
+          "ARCHIVED": "Archived",
+          "SUSPENDED": "Suspended",
+          "INACTIVE": "Inactive",
+          "DELETED": "Deleted"
+        }
+      },
+      "edit": {
+        "title": "Edit Status & Reactivate Property",
+        "status": "Status",
+        "reactivate": "Active (Reactivate)",
+        "reason": "Reason",
+        "note": "Note for the record (optional)",
+        "notePlaceholder": "Why is the status changing?",
+        "cancel": "Cancel",
+        "save": "Save status",
+        "saving": "Saving…",
+        "reactivateNow": "Reactivate property",
+        "ownerNotReady": "The owner account is not active, so this property cannot go live. Reactivate the owner first.",
+        "hint": {
+          "ACTIVE": "The property goes back to the live lists and its units return as vacant. The owner is notified. Tenants who were moved out are not restored.",
+          "ARCHIVED": "The property leaves the live lists, its units are archived and any tenants still living there are moved out. The owner is notified.",
+          "SUSPENDED": "The property is switched off because of a policy problem. The owner is notified.",
+          "INACTIVE": "The property is switched off, usually because the subscription is unpaid. The owner is notified.",
+          "DELETED": "The property is marked as removed for good and hidden from everyone. The owner is notified."
+        }
+      },
+      "delete": {
+        "title": "Delete Property",
+        "text": "Are you sure to delete {name}?",
+        "no": "Cancel",
+        "yes": "Yes, delete",
+        "working": "Deleting…",
+        "note": "A property nothing depends on is erased for good. One with rent, agreement or ticket history stays as a hidden Deleted record so the money trail is never broken."
+      },
+      "toast": {
+        "gone": "That property is no longer in the archive.",
+        "failed": "That did not work. Please try again.",
+        "ownerNotActive": "The owner account is not active, so the property cannot be reactivated.",
+        "same": "Nothing changed for {name}.",
+        "purged": "{name} was deleted permanently.",
+        "kept": "{name} was marked as deleted. Its history is kept for the records.",
+        "status": {
+          "ACTIVE": "{name} is active again. The owner was notified.",
+          "ARCHIVED": "{name} was archived.",
+          "SUSPENDED": "{name} was suspended.",
+          "INACTIVE": "{name} was marked inactive.",
+          "DELETED": "{name} was marked as deleted."
+        }
+      }
+    },
+    "personProfile": {
+      "title": "Person profile",
+      "loading": "Loading the profile",
+      "error": "We could not load this profile.",
+      "retry": "Try again",
+      "close": "Close",
+      "none": "Not given",
+      "role": {
+        "OWNER": "Apartment Owner",
+        "TENANT": "Tenant",
+        "GENERAL_USER": "Tenant Free",
+        "GOV_ADMIN": "Government"
+      },
+      "state": {
+        "ACTIVE": "Active",
+        "WARNING": "Warning",
+        "SUSPENDED": "Suspended"
+      },
+      "nid": {
+        "VERIFIED": "NID verified",
+        "PENDING": "NID under review",
+        "REJECTED": "NID rejected",
+        "UNVERIFIED": "NID not verified"
+      },
+      "phone": "Phone",
+      "email": "E-mail",
+      "address": "Address",
+      "occupation": "Occupation",
+      "nidNumber": "NID number",
+      "dob": "Date of birth",
+      "gender": "Gender",
+      "username": "Username",
+      "joined": "Joined",
+      "lastSeen": "Last seen",
+      "genders": {
+        "MALE": "Male",
+        "FEMALE": "Female",
+        "OTHER": "Other"
+      },
+      "owner": {
+        "properties": "Properties",
+        "units": "Units",
+        "listings": "Live listings",
+        "plan": "Plan",
+        "until": "until {date}",
+        "noPlan": "No active plan"
+      },
+      "tenancy": {
+        "home": "Current home",
+        "landlord": "Landlord",
+        "rent": "Monthly rent",
+        "since": "Living there since"
+      },
+      "status": {
+        "title": "Account status",
+        "label": "Account status",
+        "comment": "Reason",
+        "reasonPlaceholder": "Write the reason (the person will see it)",
+        "notePlaceholder": "Optional note for the log",
+        "needReason": "Please write a reason (at least 3 letters).",
+        "save": "Save status",
+        "saving": "Saving…",
+        "hint": {
+          "ACTIVE": "The account works normally. Any warning is cleared and the person is told.",
+          "WARNING": "The account keeps working, but the person gets a warning with your reason.",
+          "SUSPENDED": "The person cannot sign in until you make the account Active again."
+        }
+      },
+      "toast": {
+        "ACTIVE": "{name} is Active.",
+        "WARNING": "{name} was warned.",
+        "SUSPENDED": "{name} was suspended.",
+        "same": "Nothing changed for {name}.",
+        "gone": "This account is no longer available.",
+        "failed": "That did not work. Please try again."
+      },
+      "log": {
+        "title": "Status log",
+        "none": "No status changes yet.",
+        "action": {
+          "ACTIVE": "Active",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended",
+          "ARCHIVED": "Archived"
+        }
+      }
+    },
+    "previousOwners": {
+      "metaTitle": "Previous Owners",
+      "title": "Previous <hl>Owners</hl>",
+      "subtitle": "Archive of deactivated, banned, and former property owners.",
+      "kpi": {
+        "loading": "Loading the archive numbers",
+        "error": "We could not load the archive numbers.",
+        "retry": "Try again",
+        "archived": "Total archived",
+        "archivedSub": "Unpaid or voluntary exits",
+        "banned": "Banned users",
+        "bannedSub": "Due to violations",
+        "inactive": "Inactive",
+        "inactiveSub": "Dormant accounts",
+        "deleted": "Deleted",
+        "deletedSub": "Permanently removed data",
+        "total": "All records",
+        "totalSub": "Everything in the archive",
+        "reactivated": "Reactivated",
+        "reactivatedSub": "Brought back in the last 30 days"
+      },
+      "status": {
+        "ARCHIVED": "Archived",
+        "BANNED": "Banned",
+        "INACTIVE": "Inactive",
+        "DELETED": "Deleted"
+      },
+      "reason": {
+        "SUBSCRIPTION_CANCELLED": "Subscription Cancelled",
+        "POLICY_VIOLATION_FRAUD": "Policy Violation (Fraud)",
+        "BUSINESS_CLOSED": "Business Closed",
+        "SOLD_ALL_PROPERTIES": "Sold All Properties",
+        "ACCOUNT_DELETED_BY_USER": "Account Deleted by User",
+        "NON_PAYMENT": "Non-payment",
+        "DORMANT": "Dormant Account",
+        "OWNER_REQUEST": "Owner Request",
+        "OTHER": "Other"
+      },
+      "table": {
+        "title": "Previous owners",
+        "reasonLabel": "Reason",
+        "allReasons": "All Reasons",
+        "statusLabel": "Status",
+        "allStatuses": "All Statuses",
+        "searchLabel": "Search by name or ID",
+        "searchPlaceholder": "Search by name or ID",
+        "columns": {
+          "owner": "Owner",
+          "contact": "Contact",
+          "history": "History",
+          "leftDate": "Left date",
+          "reason": "Reason",
+          "status": "Status",
+          "actions": "Actions"
+        },
+        "history": "{count, plural, one {# Property Managed} other {# Properties Managed}}",
+        "email": "E-mail",
+        "phone": "Phone",
+        "ownerId": "ID: {code}",
+        "openAria": "Open details of {name}",
+        "viewAria": "View {name}",
+        "editAria": "Edit status of {name}",
+        "deleteAria": "Delete {name}",
+        "view": "View",
+        "edit": "Edit status",
+        "delete": "Delete",
+        "error": "We could not load the owners.",
+        "retry": "Try again",
+        "emptyTitle": "No owners found",
+        "empty": {
+          "none": "No owner has been archived, banned, made inactive or deleted yet.",
+          "filtered": "No owner matches these filters. Change the reason, the status or the search."
+        },
+        "showing": "Showing {from} to {to} of {total} entries",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "details": {
+        "title": "Archived Owner Details",
+        "close": "Close",
+        "message": "Message owner",
+        "none": "Not given",
+        "address": "Address",
+        "occupation": "Occupation",
+        "nidNumber": "NID number",
+        "dob": "Date of birth",
+        "joined": "Joined",
+        "lastSeen": "Last seen",
+        "paid": "Paid to the platform",
+        "payments": "{n} payments",
+        "lastPlan": "Last plan",
+        "until": "until {date}",
+        "leftDate": "Departure date",
+        "reason": "Reason",
+        "note": "Note",
+        "portfolio": "Managed property archive",
+        "portfolioCount": "{n} properties",
+        "listings": "{n} listings",
+        "noProperties": "This owner never added a property.",
+        "units": "{n} units",
+        "propArchived": "Archived",
+        "propLive": "Live",
+        "log": "Ban and status log",
+        "noLog": "No status changes are recorded.",
+        "logAction": {
+          "ACTIVE": "Reactivated",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended",
+          "ARCHIVED": "Archived",
+          "BANNED": "Banned",
+          "INACTIVE": "Inactive",
+          "DELETED": "Deleted"
+        },
+        "nid": {
+          "VERIFIED": "NID verified",
+          "PENDING": "NID under review",
+          "REJECTED": "NID rejected",
+          "UNVERIFIED": "NID not verified"
+        }
+      },
+      "edit": {
+        "title": "Edit Status & Reactivate Owner",
+        "status": "Status",
+        "reactivate": "Active (Unban & Reactivate)",
+        "reason": "Reason",
+        "note": "Note for the log (optional)",
+        "notePlaceholder": "Why is the status changing?",
+        "cancel": "Cancel",
+        "save": "Save status",
+        "saving": "Saving…",
+        "reactivateNow": "Unban & reactivate",
+        "hint": {
+          "ACTIVE": "The owner can sign in again and moves back to Active Property Owners. They are notified. Properties that were archived stay in Previous Properties until you reactivate them.",
+          "ARCHIVED": "The owner leaves the active list and cannot sign in. Their live properties and listings are taken down and tenants are moved out.",
+          "BANNED": "The owner is banned and cannot sign in. Their live properties and listings are taken down and tenants are moved out.",
+          "INACTIVE": "A dormant account: the owner cannot sign in. Their live properties and listings are taken down.",
+          "DELETED": "The owner is marked as removed for good. Their live properties and listings are taken down."
+        }
+      },
+      "delete": {
+        "title": "Delete Owner",
+        "text": "Are you sure to delete {name}?",
+        "no": "Cancel",
+        "yes": "Yes, delete",
+        "working": "Deleting…",
+        "note": "An owner nothing depends on is erased for good, with the sign-in account. One with properties, plans, payments or chats stays as a hidden Deleted record so the money trail is never broken."
+      },
+      "toast": {
+        "gone": "That owner is no longer in the archive.",
+        "failed": "That did not work. Please try again.",
+        "same": "Nothing changed for {name}.",
+        "purged": "{name} was deleted permanently.",
+        "kept": "{name} was marked as deleted. Their history is kept for the records.",
+        "status": {
+          "ACTIVE": "{name} is active again. The owner was notified.",
+          "ARCHIVED": "{name} was archived.",
+          "BANNED": "{name} was banned.",
+          "INACTIVE": "{name} was marked inactive.",
+          "DELETED": "{name} was marked as deleted."
+        }
+      }
+    },
+    "previousTenants": {
+      "metaTitle": "Previous Tenants",
+      "title": "Previous <hl>Tenants</hl>",
+      "subtitle": "Archive of moved-out, removed, and deactivated tenants.",
+      "kpi": {
+        "loading": "Loading the archive numbers",
+        "error": "We could not load the archive numbers.",
+        "retry": "Try again",
+        "total": "Archived total",
+        "totalSub": "Historical records",
+        "unpaid": "Rent unpaid",
+        "unpaidSub": "Left with rent still owed",
+        "avg": "Avg. tenancy",
+        "avgSub": "Before moving out",
+        "years": "{n} Yrs",
+        "amount": "Unpaid balance",
+        "amountSub": "Owed by former tenants",
+        "cleared": "Rent cleared",
+        "clearedSub": "Left with nothing owed",
+        "recent": "Moved out recently",
+        "recentSub": "In the last 30 days"
+      },
+      "rent": {
+        "CLEARED": "Cleared",
+        "DUE_1": "1 Month Due",
+        "DUE_2": "2 Months Due",
+        "DUE_3_PLUS": "3+ Months Due"
+      },
+      "reason": {
+        "LEASE_EXPIRED": "Lease Expired",
+        "POLICY_VIOLATION": "Policy Violation",
+        "PURCHASED_HOME": "Purchased Home",
+        "JOB_TRANSFER": "Job Transfer",
+        "BUSINESS_CLOSED": "Business Closed",
+        "EVICTED": "Evicted",
+        "UPGRADED_UNIT": "Upgraded Unit",
+        "OTHER": "Other"
+      },
+      "table": {
+        "title": "Previous tenants",
+        "reasonLabel": "Reason",
+        "allReasons": "All Reasons",
+        "rentLabel": "Rent Status",
+        "allRent": "All Rent Statuses",
+        "searchLabel": "Search by name or ID",
+        "searchPlaceholder": "Search by name or ID",
+        "columns": {
+          "tenant": "Tenant",
+          "contact": "Contact",
+          "residence": "Last residence",
+          "rentStatus": "Rent status",
+          "moveOut": "Move out",
+          "reason": "Reason",
+          "actions": "Actions"
+        },
+        "tenantId": "ID: {code}",
+        "noId": "No Tenant ID",
+        "ownerId": "ID: {code}",
+        "email": "E-mail",
+        "phone": "Phone",
+        "residence": "Unit {unit} • {landlord}",
+        "openAria": "Open details of {name}",
+        "viewAria": "View {name}",
+        "editAria": "Edit rent status of {name}",
+        "deleteAria": "Delete {name}",
+        "view": "View",
+        "edit": "Edit rent status",
+        "delete": "Delete",
+        "error": "We could not load the tenants.",
+        "retry": "Try again",
+        "emptyTitle": "No tenants found",
+        "empty": {
+          "none": "No tenant has moved out yet.",
+          "filtered": "No tenant matches these filters. Change the reason, the rent status or the search."
+        },
+        "showing": "Showing {from} to {to} of {total} entries",
+        "previous": "Previous",
+        "next": "Next"
+      },
+      "details": {
+        "title": "Archived Tenant Details",
+        "close": "Close",
+        "none": "Not given",
+        "messageTenant": "Message tenant",
+        "messageLandlord": "Message landlord",
+        "occupation": "Occupation",
+        "nidNumber": "NID number",
+        "moveIn": "Move-in date",
+        "moveOut": "Move-out date",
+        "stay": "Length of stay",
+        "stayValue": "{years} years ({days} days)",
+        "members": "People living there",
+        "reason": "Reason for leaving",
+        "clearance": "Clearance status",
+        "ruled": "(set by the Super Admin)",
+        "unpaid": "Unpaid balance",
+        "openMonths": "{n} months open",
+        "deposit": "Deposit",
+        "settlement": "settled {amount}",
+        "note": "Note",
+        "residence": "Last residence",
+        "property": "Property",
+        "unit": "Unit",
+        "unitValue": "{unit} (floor {floor})",
+        "location": "Location",
+        "rent": "Monthly rent",
+        "ledger": "Rent ledger",
+        "months": "{n} months",
+        "noLedger": "No rent was billed for this tenancy.",
+        "col": {
+          "month": "Month",
+          "total": "Billed",
+          "paid": "Paid",
+          "status": "Status"
+        },
+        "ledgerStatus": {
+          "PAID": "Paid",
+          "PARTIAL": "Part paid",
+          "DUE": "Due",
+          "OVERDUE": "Overdue"
+        },
+        "history": "Edits by the team",
+        "noHistory": "No edits yet.",
+        "edited": "Record edited",
+        "rentWas": "rent: {status}",
+        "by": "by {name}",
+        "nid": {
+          "VERIFIED": "NID verified",
+          "PENDING": "NID under review",
+          "REJECTED": "NID rejected",
+          "UNVERIFIED": "NID not verified"
+        }
+      },
+      "edit": {
+        "title": "Edit Rent Status & Reason",
+        "rent": "Rent status",
+        "reason": "Move-out reason",
+        "note": "Note for the record (optional)",
+        "notePlaceholder": "Add anything the team should remember",
+        "hint": "The status you pick is the team’s ruling on the unpaid rent. If it matches what the rent ledger shows, the ruling is dropped and the ledger decides again.",
+        "cancel": "Cancel",
+        "save": "Save changes",
+        "saving": "Saving…"
+      },
+      "delete": {
+        "title": "Delete Tenant Record",
+        "text": "Are you sure to delete {name}?",
+        "no": "Cancel",
+        "yes": "Yes, delete",
+        "working": "Deleting…",
+        "note": "A record nothing depends on is erased for good. One with rent history stays hidden in the database so the money trail is never broken. The tenant’s account is not touched."
+      },
+      "toast": {
+        "gone": "That record is no longer in the archive.",
+        "failed": "That did not work. Please try again.",
+        "same": "Nothing changed for {name}.",
+        "saved": "{name}’s record was updated.",
+        "purged": "{name}’s record was deleted permanently.",
+        "kept": "{name}’s record was removed from the lists. The rent history is kept for the records."
+      }
+    },
+    "findPeople": {
+      "metaTitle": "Find People",
+      "title": "Find Tenant & Property Owner",
+      "subtitle": "Locate any tenant & property owner in the system using their unique identity details.",
+      "searchLabel": "Search by NID number, e-mail address, phone number or account ID",
+      "placeholder": "Search by NID Number, Email Address, Phone Number",
+      "search": "Search",
+      "searching": "Searching…",
+      "tips": "Search Tips: Exact NID (13 digits) • Full Email • Phone (e.g., 017...) • Account ID (OW10032, TN10032, TF8812)",
+      "tooShort": "Type at least 3 characters: a full NID, e-mail, phone number or account ID.",
+      "found": "{count, plural, one {1 person found} other {# people found}}",
+      "noneTitle": "No one matches",
+      "noneText": "Only exact matches are shown. Check the NID, e-mail, phone number or account ID and try again.",
+      "limited": "Too many searches in a short time. Please wait a minute and try again.",
+      "error": "The search did not work. Please try again.",
+      "idleTitle": "Who are you looking for?",
+      "idleText": "Type one identity detail above and press Search. The matching person appears here.",
+      "role": {
+        "OWNER": "Apartment Owner",
+        "TENANT": "Tenant",
+        "GENERAL_USER": "Tenant Free"
+      },
+      "nid": {
+        "VERIFIED": "NID verified",
+        "PENDING": "NID under review",
+        "REJECTED": "NID rejected",
+        "UNVERIFIED": "NID not verified"
+      },
+      "id": "ID: {code}",
+      "archived": "Archived",
+      "account": {
+        "SUSPENDED": "Suspended",
+        "BANNED": "Banned",
+        "INACTIVE": "Inactive",
+        "DELETED": "Deleted"
+      },
+      "email": "E-mail",
+      "phone": "Phone",
+      "openAria": "View the full profile of {name}",
+      "viewProfile": "View Full Profile",
+      "owner": {
+        "unitsTotal": "Units",
+        "unitsOccupied": "Occupied",
+        "unitsVacant": "Vacant",
+        "unitsRepair": "Repair",
+        "plan": "Subscription plan",
+        "planStatus": {
+          "ACTIVE": "Active",
+          "GRACE": "Grace period",
+          "EXPIRED": "Expired",
+          "PENDING": "Pending",
+          "CANCELLED": "Cancelled"
+        },
+        "until": "until {date}",
+        "noPlan": "No plan yet",
+        "listings": "{n} live marketplace listings",
+        "units": "Unit breakdown",
+        "properties": "Managed properties",
+        "noProperties": "No properties yet.",
+        "unitCount": "{n} units",
+        "tenants": "Active tenants",
+        "noTenants": "No active tenants.",
+        "since": "since {date}",
+        "forSale": "Properties for sale",
+        "noForSale": "Nothing for sale right now.",
+        "sold": "Sold properties",
+        "noSold": "Nothing sold yet.",
+        "allUnits": "All units",
+        "noUnits": "No units yet.",
+        "openProperty": "Open property {name}",
+        "openUnit": "Open unit {unit}",
+        "openListing": "Open listing {title}",
+        "openPerson": "Open the profile of {name}",
+        "unitName": "Unit {unit}",
+        "vacantUnit": "Vacant",
+        "floorN": "Floor {n}",
+        "unitState": {
+          "AVAILABLE": "Vacant",
+          "OCCUPIED": "Occupied",
+          "MAINTENANCE": "Repair"
+        }
+      },
+      "tenant": {
+        "none": "This tenant does not live in a rented home right now.",
+        "previous": "{n} previous tenancies",
+        "residence": "Current residence",
+        "property": "Property",
+        "unit": "Unit",
+        "unitValue": "{unit} (floor {floor})",
+        "location": "Location",
+        "noneShort": "Not given",
+        "rent": "Monthly rent",
+        "leaseStart": "Lease start",
+        "leaseEnd": "Lease end",
+        "open": "Open-ended",
+        "notice": "Notice given",
+        "deposit": "Deposit",
+        "previousLabel": "Earlier homes",
+        "landlord": "Landlord",
+        "ledger": "Payment ledger",
+        "noLedger": "No rent has been billed yet.",
+        "col": {
+          "month": "Month",
+          "total": "Billed",
+          "paid": "Paid",
+          "status": "Status"
+        },
+        "ledgerStatus": {
+          "PAID": "Paid",
+          "PARTIAL": "Part paid",
+          "DUE": "Due",
+          "OVERDUE": "Overdue"
+        },
+        "openProperty": "Open property {name}",
+        "openUnit": "Open unit {unit}",
+        "openPerson": "Open the profile of {name}"
+      },
+      "free": {
+        "upgrade": "Upgrade to owner",
+        "upgradeStatus": {
+          "PENDING": "Payment under review",
+          "APPROVED": "Approved",
+          "REJECTED": "Rejected",
+          "CANCELLED": "Cancelled"
+        },
+        "noUpgrade": "No upgrade requested yet. The person can upgrade to an owner plan any time.",
+        "saved": "Saved marketplace listings",
+        "noSaved": "No saved listings.",
+        "searches": "Search activity",
+        "noSearches": "No saved searches.",
+        "anySearch": "any listing",
+        "openListing": "Open listing {title}"
+      },
+      "profile": {
+        "title": "Full Profile",
+        "loading": "Loading the profile",
+        "error": "We could not load this profile.",
+        "gone": "This person is no longer available.",
+        "retry": "Try again",
+        "close": "Close",
+        "message": "Message",
+        "none": "Not given",
+        "state": {
+          "ACTIVE": "Active",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended"
+        },
+        "nid": "NID number",
+        "online": "Online status",
+        "onlineNow": "Online now",
+        "lastSeen": "Last seen {time}",
+        "offline": "Offline",
+        "email": "E-mail",
+        "phone": "Phone",
+        "joined": "Joined",
+        "username": "Username",
+        "address": "Address",
+        "occupation": "Occupation",
+        "dob": "Date of birth",
+        "gender": "Gender",
+        "genders": {
+          "MALE": "Male",
+          "FEMALE": "Female",
+          "OTHER": "Other"
+        },
+        "log": "Warning and status log",
+        "noLog": "No warnings or status changes.",
+        "logAction": {
+          "ACTIVE": "Active",
+          "WARNING": "Warning",
+          "SUSPENDED": "Suspended",
+          "ARCHIVED": "Archived",
+          "BANNED": "Banned",
+          "INACTIVE": "Inactive",
+          "DELETED": "Deleted"
+        },
+        "back": "Back"
+      },
+      "detail": {
+        "loading": "Loading the details",
+        "gone": "This record is no longer available.",
+        "error": "We could not load the details.",
+        "retry": "Try again",
+        "back": "Back",
+        "close": "Close",
+        "id": "ID: {code}",
+        "openPerson": "Open the profile of {name}",
+        "viewProfile": "View Profile",
+        "noPhotos": "No photos were added.",
+        "photo": "Photo {n}",
+        "type": "Type",
+        "state": "Status",
+        "archived": "Archived",
+        "verify": {
+          "UNVERIFIED": "not verified",
+          "PENDING": "waiting for approval",
+          "VERIFIED": "approved",
+          "REJECTED": "rejected"
+        },
+        "address": "Address",
+        "floors": "Floors",
+        "sqft": "{n} sqft",
+        "added": "Added on",
+        "archiveReason": "Archive reason",
+        "description": "Description",
+        "owner": "Owner",
+        "occupancy": "Occupancy",
+        "units": "Units",
+        "occupied": "Occupied",
+        "vacant": "Vacant",
+        "repair": "Repair",
+        "unitList": "Units",
+        "noUnits": "No units were added.",
+        "openUnit": "Open unit {unit}",
+        "unitName": "Unit {unit}",
+        "floorN": "Floor {n}",
+        "beds": "{n} bed",
+        "noTenant": "No tenant",
+        "avail": {
+          "AVAILABLE": "Vacant",
+          "OCCUPIED": "Occupied",
+          "MAINTENANCE": "Repair"
+        },
+        "amenities": "Amenities",
+        "property": "Property",
+        "listing": "Listing",
+        "forSale": "For sale",
+        "forRent": "For rent",
+        "featured": "Featured",
+        "negotiable": "negotiable",
+        "category": "Category",
+        "rooms": "Rooms",
+        "area": "Area",
+        "floorOf": "Floor",
+        "posted": "Posted",
+        "updated": "Updated",
+        "none": "Not given",
+        "openProperty": "Open property {name}",
+        "seller": "Seller",
+        "unit": "Unit",
+        "unitTitle": "Unit {unit} · {property}",
+        "floor": "Floor",
+        "furnishing": "Furnishing",
+        "baths": "{n} bath",
+        "dining": "{n} dining",
+        "kitchens": "{n} kitchen",
+        "rent": "Listed rent",
+        "deposit": "Deposit",
+        "utility": "Utility charge",
+        "tickets": "Repair tickets",
+        "ticketsValue": "{open} open of {total}",
+        "tenant": "Tenant",
+        "leaseStart": "Lease start",
+        "leaseEnd": "Lease end",
+        "open": "Open-ended",
+        "notice": "Notice given",
+        "leaseRent": "Lease rent",
+        "members": "People living there",
+        "vacantNow": "Nobody lives here right now.",
+        "previous": "{n} earlier tenancies",
+        "ledger": "Latest rent months",
+        "col": {
+          "month": "Month",
+          "total": "Billed",
+          "paid": "Paid",
+          "status": "Status"
+        },
+        "ledgerStatus": {
+          "PAID": "Paid",
+          "PARTIAL": "Part paid",
+          "DUE": "Due",
+          "OVERDUE": "Overdue"
+        }
+      }
+    },
+    "logout": {
+      "title": "Are you sure you want to log out?",
+      "text": "You will be signed out of your AmaderGhor Super-Admin session and redirected to the home page.",
+      "cancel": "Cancel",
+      "confirm": "Yes, Logout",
+      "loggingOut": "Logging out…",
+      "done": "You have been logged out."
+    }
+  },
+  "notificationDetails": {
+    "untitled": "Notification",
+    "close": "Close",
+    "markRead": "Mark as read",
+    "open": "Open related page",
+    "received": "Received",
+    "reference": "Reference",
+    "readAt": "Read on {when}",
+    "unread": "Unread",
+    "read": "Read",
+    "facts": "Details",
+    "noFacts": "This notification has no extra details.",
+    "priority": {
+      "LOW": "Low priority",
+      "NORMAL": "Normal",
+      "HIGH": "High priority",
+      "CRITICAL": "Critical"
+    },
+    "groups": {
+      "rent": "Rent",
+      "payment": "Payment",
+      "maintenance": "Maintenance",
+      "sos": "Emergency",
+      "tenancy": "Tenancy",
+      "listing": "Listing",
+      "boost": "Boost",
+      "property": "Property",
+      "upgrade": "Plan upgrade",
+      "complaint": "Complaint",
+      "account": "Account",
+      "message": "Message",
+      "billing": "Billing",
+      "other": "General"
+    },
+    "fields": {
+      "title": "Title",
+      "subject": "Subject",
+      "name": "Name",
+      "tenantName": "Tenant",
+      "tenant": "Tenant",
+      "reporter": "Reported by",
+      "user": "User",
+      "from": "From",
+      "property": "Property",
+      "unit": "Unit",
+      "alertType": "Emergency type",
+      "type": "Type",
+      "plan": "Plan",
+      "days": "Days",
+      "month": "Month",
+      "amount": "Amount",
+      "total": "Total",
+      "paid": "Paid",
+      "due": "Due",
+      "balance": "Balance",
+      "fee": "Fee",
+      "receipt": "Receipt",
+      "status": "Status",
+      "action": "Action",
+      "reason": "Reason",
+      "notes": "Notes"
     }
   }
 }

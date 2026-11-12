@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlertTriangle, Building2, ChevronDown, Eye, Loader2, Pencil, RefreshCw } from "lucide-react";
+import { AlertTriangle, Building2, ChevronDown, Eye, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
 import { useLocale, useTranslations } from "next-intl";
@@ -18,7 +18,7 @@ export function StateBadge({ state }: { state: AdminPropertyState }) {
   return <span className={clsx("inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-0.5 text-xs font-bold", STATE_STYLE[state])}><i aria-hidden className="size-1.5 rounded-full bg-current" />{t(state)}</span>;
 }
 
-function Row({ r, index, onView, onEdit }: { r: PropertyRow; index: number; onView: (r: PropertyRow) => void; onEdit: (r: PropertyRow) => void }) {
+function Row({ r, index, onView, onEdit, onDelete }: { r: PropertyRow; index: number; onView: (r: PropertyRow) => void; onEdit: (r: PropertyRow) => void; onDelete: (r: PropertyRow) => void }) {
   const t = useTranslations("admin.properties");
   const reduce = useReducedMotion();
   const btn = "grid size-9 place-items-center rounded-lg border border-slate-200 bg-white/80 text-slate-600 transition-all duration-300 hover:-translate-y-0.5 hover:border-[#48BDFA] hover:text-[#0A84F0] hover:shadow-md focus-visible:outline-2 focus-visible:outline-[#48BDFA] motion-reduce:hover:translate-y-0";
@@ -36,16 +36,17 @@ function Row({ r, index, onView, onEdit }: { r: PropertyRow; index: number; onVi
         <div className="flex gap-2">
           <button type="button" onClick={() => onEdit(r)} aria-label={t("editAria", { name: r.name })} title={t("editBtn")} className={btn}><Pencil className="size-4" aria-hidden /></button>
           <button type="button" onClick={() => onView(r)} aria-label={t("viewAria", { name: r.name })} title={t("viewBtn")} className={btn}><Eye className="size-4" aria-hidden /></button>
+          <button type="button" onClick={() => onDelete(r)} aria-label={t("deleteAria", { name: r.name })} title={t("deleteBtn")} className={`${btn} hover:!border-red-300 hover:!text-red-600`}><Trash2 className="size-4" aria-hidden /></button>
         </div>
       </td>
     </motion.tr>
   );
 }
 
-interface Props { tab: Tab; onTab: (t: Tab) => void; pages: ReturnType<typeof usePropertyPages>; onView: (r: PropertyRow) => void; onEdit: (r: PropertyRow) => void }
+interface Props { tab: Tab; onTab: (t: Tab) => void; pages: ReturnType<typeof usePropertyPages>; onView: (r: PropertyRow) => void; onEdit: (r: PropertyRow) => void; onDelete: (r: PropertyRow) => void }
 
 /** The All Properties card: tabs, summary, table (9 rows first, 10 more per "View More", scrolling inside the card). */
-export function PropertyTable({ tab, onTab, pages, onView, onEdit }: Props) {
+export function PropertyTable({ tab, onTab, pages, onView, onEdit, onDelete }: Props) {
   const t = useTranslations("admin.properties");
   const locale = useLocale();
   const reduce = useReducedMotion();
@@ -90,7 +91,7 @@ export function PropertyTable({ tab, onTab, pages, onView, onEdit }: Props) {
           </thead>
           <tbody>
             {state === "loading" && Array.from({ length: 5 }, (_, i) => <tr key={i} className="border-t border-slate-200/70"><td colSpan={6} className="px-4 py-3"><div className="skeleton h-10 w-full" /></td></tr>)}
-            {state === "ready" && items.map((r, i) => <Row key={r.id} r={r} index={i >= FIRST_PAGE ? (i - FIRST_PAGE) % NEXT_PAGE : i} onView={onView} onEdit={onEdit} />)}
+            {state === "ready" && items.map((r, i) => <Row key={r.id} r={r} index={i >= FIRST_PAGE ? (i - FIRST_PAGE) % NEXT_PAGE : i} onView={onView} onEdit={onEdit} onDelete={onDelete} />)}
           </tbody>
         </table>
 

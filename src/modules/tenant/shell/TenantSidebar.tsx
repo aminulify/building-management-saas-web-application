@@ -1,5 +1,7 @@
 "use client";
 
+import { MessageNavBadge, useAcknowledge } from "@/modules/messaging/ui/MessageNavBadge";
+
 import { LogOut } from "lucide-react";
 import { clsx } from "clsx";
 import { useTranslations } from "next-intl";
@@ -16,6 +18,7 @@ export function TenantSidebar({ onNavigate, onLogout, loggingOut, compact = fals
   const t = useTranslations("tenant.nav");
   const to = useTranslations("tenant");
   const pathname = usePathname();
+  const acknowledge = useAcknowledge();
   const { me, unread } = useTenant();
   const label = compact ? "sr-only" : "";
   const base = baseOf(me.role) ?? "/tenant";
@@ -34,11 +37,12 @@ export function TenantSidebar({ onNavigate, onLogout, loggingOut, compact = fals
             {group.map(({ key, href, icon: Icon, badge }) => {
               const active = pathname === href || pathname.startsWith(`${href}/`);
               return (
-                <Link key={key} href={href as never} onClick={onNavigate} title={compact ? t(key) : undefined} aria-current={active ? "page" : undefined}
+                <Link key={key} href={href as never} onClick={() => { if (key === "messages") acknowledge(); onNavigate?.(); }} title={compact ? t(key) : undefined} aria-current={active ? "page" : undefined}
                   className={clsx("group relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-[0.95rem] font-medium transition-all duration-300", compact && "justify-center px-0",
                     active ? "border-[#0A84F0] bg-white/90 text-[#0A84F0] shadow-[0_6px_18px_-10px_rgba(10,132,240,0.6)]" : "border-transparent text-navy hover:bg-white/60 hover:text-[#0A84F0]")}>
                   <Icon className="size-5 shrink-0" aria-hidden />
                   <span className={label}>{t(key)}</span>
+                  {key === "messages" && <MessageNavBadge compact={compact} />}
                   {badge === "notifications" && unread > 0 && (
                     <span className={clsx("size-2 shrink-0 rounded-full bg-red-500", compact ? "absolute right-3 top-2.5" : "ml-0.5")}><span className="sr-only">{to("unread", { count: unread })}</span></span>
                   )}

@@ -73,7 +73,7 @@ export async function tenantFeed(actor: Actor, q: z.infer<typeof tenantFeedQuery
         : m ? { kind: "request" as const, id: m.id, status: m.status }
         : a ? { kind: "alert" as const, id: a.id, type: a.type, status: a.status, accepted: !!a.acceptedAt }
         : null;
-      return { id: n.id, type: n.type, titleKey: n.titleKey, params: n.params, priority: n.priority, readAt: n.readAt, createdAt: n.createdAt, tab: tabOf(n.type), live };
+      return { id: n.id, type: n.type, titleKey: n.titleKey, params: n.params, link: n.link, priority: n.priority, readAt: n.readAt, createdAt: n.createdAt, tab: tabOf(n.type), live };
     }),
   };
 }

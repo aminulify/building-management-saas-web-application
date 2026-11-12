@@ -41,6 +41,8 @@ model Listing {
   /// set when the Super Admin deletes the listing: it moves to Previous Properties (nothing is erased)
   archivedAt      DateTime?                             @db.Timestamptz
   archiveReason   String?
+  /// a paid Boost is running until this moment (the listing is featured until then); null = no running boost
+  boostEndsAt     DateTime?                             @db.Timestamptz
   createdAt       DateTime                              @default(now()) @db.Timestamptz
   updatedAt       DateTime                              @updatedAt @db.Timestamptz
 
@@ -55,6 +57,7 @@ model Listing {
   reports   ListingReport[]
   stats     ListingStatDaily[]
   visits    VisitRequest[]
+  boosts    ListingBoost[]
 
   @@index([status, type, zoneId])
   @@index([status, type, district])
@@ -150,4 +153,34 @@ model VisitRequest {
   @@index([requesterId, status])
   @@index([sellerId, status])
   @@index([listingId])
+}
+
+/// "Boost" of a listing: the seller pays a fixed fee by bKash, the Super Admin verifies it, and the listing is featured (pinned to the top of the feed) for `durationDays`.
+model ListingBoost {
+  id              String      @id @default(uuid(7)) @db.Uuid
+  listingId       String      @db.Uuid
+  userId          String      @db.Uuid
+  /// the fee at the time of the request (platform setting boost.fee)
+  amount          Decimal     @db.Decimal(12, 2)
+  durationDays    Int
+  senderNumber    String
+  trxId           String      @unique
+  status          BoostStatus @default(PENDING)
+  reviewerId      String?     @db.Uuid
+  reviewedAt      DateTime?   @db.Timestamptz
+  rejectionReason String?
+  startsAt        DateTime?   @db.Timestamptz
+  endsAt          DateTime?   @db.Timestamptz
+  /// the Super Admin removed it from the Paid Boost table (the payment record stays for the books)
+  deletedAt       DateTime?   @db.Timestamptz
+  createdAt       DateTime    @default(now()) @db.Timestamptz
+
+  listing      Listing              @relation(fields: [listingId], references: [id])
+  user         User                 @relation(fields: [userId], references: [id])
+  transactions PaymentTransaction[]
+
+  @@index([status, createdAt(sort: Desc)])
+  @@index([listingId, status])
+  @@index([userId, createdAt(sort: Desc)])
+  @@index([status, endsAt])
 }

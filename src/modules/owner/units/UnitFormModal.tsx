@@ -33,7 +33,7 @@ export function UnitFormModal({ target, properties, defaultPropertyId, onClose, 
   );
 }
 
-const PLAN_CODES = ["PLAN_LIMIT_REACHED", "SUBSCRIPTION_REQUIRED", "SUBSCRIPTION_GRACE_RESTRICTED"];
+const PLAN_CODES = ["PLAN_LIMIT_REACHED", "SUBSCRIPTION_REQUIRED", "SUBSCRIPTION_GRACE_RESTRICTED", "OWNER_NOT_READY"];
 
 function Form({ target, properties, defaultPropertyId, onClose, onSaved, setBusy }: Props & { target: "add" | UnitRow; setBusy: (b: boolean) => void }) {
   const t = useTranslations("owner.units.form");
@@ -109,7 +109,7 @@ function Form({ target, properties, defaultPropertyId, onClose, onSaved, setBusy
       if (e.code === "CONFLICT" && e.field === "unitNumber") { setError("unitNumber", { message: "unitDuplicate" }); setFocus("unitNumber"); }
       else if (e.code === "VALIDATION_ERROR" && issue?.code === "exceeds_total_floors") { setMore(true); setError("floor", { message: "floorTooHigh" }); }
       else if (e.code === "VALIDATION_ERROR" && issue?.code === "not_a_tenant") setBanner({ text: t("errors.notATenant") });
-      else if (PLAN_CODES.includes(e.code)) setBanner({ text: t(`errors.${e.code}` as never), upgrade: true });
+      else if (PLAN_CODES.includes(e.code)) setBanner({ text: t(`errors.${e.code}` as never), upgrade: e.code !== "OWNER_NOT_READY" });
       else if (e.code === "INVALID_STATE" && e.reason === "tenant_has_active_tenancy") setBanner({ text: t("errors.tenantBusy") });
       else if (e.code === "INVALID_STATE" && (e.reason === "unit_not_available" || e.reason === "occupied")) setBanner({ text: t("errors.unitTaken") });
       else if (e.code === "INVALID_STATE" && e.reason === "property_not_active") setBanner({ text: t("errors.propertyInactive") });

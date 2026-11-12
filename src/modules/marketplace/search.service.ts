@@ -7,6 +7,7 @@ import type { Actor } from "@/lib/auth/require-actor";
 import { signStorageKey, signStorageKeys } from "@/modules/uploads/service";
 import { pageResult } from "@/lib/api/common";
 import { getSetting } from "@/modules/admin/settings.service";
+import { expireBoosts } from "@/modules/boost/service";
 import { feedOrder } from "./feed-order";
 import type { searchQuery } from "./schema";
 
@@ -51,6 +52,7 @@ async function validateFilters(q: z.infer<typeof searchQuery>) {
 
 export async function search(q: z.infer<typeof searchQuery>, actor: Actor | null = null) {
   await validateFilters(q);
+  await expireBoosts(); // a boost that has ended must not keep its listing at the top
   const nearbyM = q.nearbyM ?? (await getSetting("marketplace.nearbyRangeM", 1000));
   // every nearby facility and every ticked amenity must hold (an amenity also accepts its sibling, see AMENITY_ALIASES)
   const and: Prisma.ListingWhereInput[] = [

@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { ConversationRow } from "./ConversationRow";
 import { PersonAvatar } from "./PersonAvatar";
 import { matchesQuery } from "./logic";
+import { RoleChips, type RoleFilter } from "./RoleChips";
 import type { Contact, Conversation } from "./types";
 
 interface Props {
@@ -13,13 +14,16 @@ interface Props {
   activeId: string | null; meId: string; now: number; onSelect: (id: string) => void; onRetry: () => void; onNew: () => void;
   /** matches among people who have no chat yet */
   people: Contact[]; onPerson: (c: Contact) => void; className?: string;
+  /** admins only: filter by kind of person (Tenant Free, Tenants, Owners, Government) */
+  roleFilter?: RoleFilter; onRoleFilter?: (v: RoleFilter) => void;
 }
 
 /** Left column: search box, "new chat", the chats (filtered as you type) and people you can start a chat with. */
-export function ConversationList({ items, state, query, onQuery, activeId, meId, now, onSelect, onRetry, onNew, people, onPerson, className }: Props) {
+export function ConversationList({ items, state, query, onQuery, activeId, meId, now, onSelect, onRetry, onNew, people, onPerson, className, roleFilter, onRoleFilter }: Props) {
   const t = useTranslations("chat");
   const shown = items.filter((c) => matchesQuery(c, query));
-  const searching = query.trim().length > 0;
+  const filtered = !!roleFilter && roleFilter !== "all";
+  const searching = query.trim().length > 0 || filtered;
 
   return (
     <section aria-label={t("list.aria")} className={clsx("flex min-h-0 flex-col border-white/60 md:border-r", className)}>
@@ -33,6 +37,8 @@ export function ConversationList({ items, state, query, onQuery, activeId, meId,
         </label>
         <button type="button" onClick={onNew} aria-label={t("new.open")} title={t("new.open")} className="btn btn-primary size-11 shrink-0 !rounded-xl !px-0"><Plus className="size-5" aria-hidden /></button>
       </div>
+
+      {roleFilter !== undefined && onRoleFilter && <RoleChips value={roleFilter} onChange={onRoleFilter} className="px-4 pb-3" />}
 
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         {state === "loading" && (

@@ -52,7 +52,7 @@ export function MarketView() {
   const [visitsOpen, setVisitsOpen] = useState(false);
   const [mineOpen, setMineOpen] = useState(false);
   const [sell, setSell] = useState<{ editId: string | null } | null>(null);
-  const [upgrade, setUpgrade] = useState<"plan" | "limit" | null>(null);
+  const [upgrade, setUpgrade] = useState<"plan" | "limit" | "notReady" | null>(null);
   const [checking, setChecking] = useState(false);
   const homes = useHomes(filters, PAGE);
   const stats = useAuthQuery<Stats>("/listings/stats");
@@ -91,12 +91,13 @@ export function MarketView() {
   /** Subscription guard: only a person whose plan allows listings gets the form; everyone else sees the plans and a toast. */
   async function createListing() {
     if (checking) return;
-    const blocked = (reason: "plan" | "limit") => { toast("error", t("guard.toast")); setUpgrade(reason); };
+    const blocked = (reason: "plan" | "limit" | "notReady") => { toast("error", t("guard.toast")); setUpgrade(reason); };
     if (!["OWNER", "SUPER_ADMIN", "TENANT", "GENERAL_USER"].includes(role)) { blocked("plan"); return; } // the server decides whether the plan allows it
     setChecking(true);
     try { await authApi("/listings/eligibility"); setSell({ editId: null }); }
     catch (e) {
-      if (e instanceof ApiError && e.code === "PLAN_LIMIT_REACHED") blocked("limit");
+      if (e instanceof ApiError && e.code === "OWNER_NOT_READY") blocked("notReady");
+      else if (e instanceof ApiError && e.code === "PLAN_LIMIT_REACHED") blocked("limit");
       else if (e instanceof ApiError && (e.code === "LISTING_ENTITLEMENT_REQUIRED" || e.status === 403)) blocked("plan");
       else toast("error", t("guard.error"));
     } finally { setChecking(false); }

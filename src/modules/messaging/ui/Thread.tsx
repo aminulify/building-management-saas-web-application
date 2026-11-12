@@ -11,10 +11,12 @@ import { dividerKind, groupByDay, otherOf } from "./logic";
 import type { Conversation } from "./types";
 import type { useThread } from "./use-thread";
 
-interface Props { conversation: Conversation | null; thread: ReturnType<typeof useThread>; meId: string; now: number; canCall: boolean; onCall: () => void; onBack: () => void; className?: string }
+interface Props { conversation: Conversation | null; thread: ReturnType<typeof useThread>; meId: string; now: number; canCall: boolean; onCall: () => void; onBack: () => void; className?: string;
+  /** Super Admin: open the other person's profile card */
+  onProfile?: () => void }
 
 /** Right column: who you are talking to, the messages with date pills, and the message box. */
-export function Thread({ conversation, thread, meId, now, canCall, onCall, onBack, className }: Props) {
+export function Thread({ conversation, thread, meId, now, canCall, onCall, onBack, className, onProfile }: Props) {
   const t = useTranslations("chat");
   const locale = useLocale();
   const scroller = useRef<HTMLDivElement>(null);
@@ -55,13 +57,22 @@ export function Thread({ conversation, thread, meId, now, canCall, onCall, onBac
     <section aria-label={t("thread.aria")} className={clsx("min-h-0 flex-col", className)}>
       <header className="flex items-center gap-3 border-b border-white/60 bg-white/70 px-3 py-3 backdrop-blur-xl sm:px-5">
         <button type="button" onClick={onBack} aria-label={t("thread.back")} className="grid size-9 shrink-0 place-items-center rounded-full text-navy hover:bg-slate-100 md:hidden"><ArrowLeft className="size-5 rtl:rotate-180" aria-hidden /></button>
-        <PersonAvatar name={name} url={p?.avatarUrl} size="size-11" />
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate font-bold text-navy">{name}</h2>
-          <p className={clsx("flex items-center gap-1.5 text-xs", p?.online ? "font-semibold text-emerald-600" : "text-slate-500")}>
-            {p && <span aria-hidden className={clsx("size-2 rounded-full", p.online ? "bg-emerald-500" : "bg-slate-300")} />}{status}
-          </p>
-        </div>
+        {(() => {
+          const who = (
+            <>
+              <PersonAvatar name={name} url={p?.avatarUrl} size="size-11" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-bold text-navy">{name}</span>
+                <span className={clsx("flex items-center gap-1.5 text-xs", p?.online ? "font-semibold text-emerald-600" : "text-slate-500")}>
+                  {p && <span aria-hidden className={clsx("size-2 rounded-full", p.online ? "bg-emerald-500" : "bg-slate-300")} />}{status}
+                </span>
+              </span>
+            </>
+          );
+          return onProfile && p
+            ? <button type="button" onClick={onProfile} aria-label={t("profile.open", { name })} title={t("profile.open", { name })} className="flex min-w-0 flex-1 items-center gap-3 rounded-xl text-left transition-colors duration-300 hover:bg-sky-50/70 focus-visible:outline-2 focus-visible:outline-[#48BDFA]">{who}</button>
+            : <div className="flex min-w-0 flex-1 items-center gap-3">{who}</div>;
+        })()}
         {canCall && p && (
           <button type="button" onClick={onCall} aria-label={t("call.start", { name })} title={t("call.start", { name })} className="grid size-11 place-items-center rounded-full text-[#0A84F0] transition-all duration-300 hover:scale-105 hover:bg-sky-50 focus-visible:outline-2 focus-visible:outline-[#48BDFA]"><Phone className="size-[1.35rem]" aria-hidden /></button>
         )}

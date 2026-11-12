@@ -8,6 +8,7 @@ import type { Actor } from "@/lib/auth/require-actor";
 import { keyBelongsTo, keyPurpose, signStorageKeys } from "@/modules/uploads/service";
 import { checkCommunicate, isOnline, loadConversation } from "./access";
 import { publish } from "./hub";
+import { isStaffSender, shownAvatar, shownName } from "./identity";
 import { serializeMessages } from "./serialize";
 import { baseOf } from "@/shared/areas";
 import type { openConversationSchema, sendMessageSchema } from "./schema";
@@ -96,7 +97,7 @@ export async function listConversations(actor: Actor) {
         lastMessage: last ? { id: last.id, body: last.body, senderId: last.senderId, createdAt: last.createdAt, kind: previewKind(last.attachments) } : null,
         participants: c.participants.filter((p) => p.userId !== actor.id).map((p) => {
           const u = users.get(p.userId);
-          return u ? { id: u.id, fullName: u.fullName, username: u.username, role: u.role, avatarUrl: avatar(u.avatarKey), online: isOnline(u.lastSeenAt), lastSeenAt: u.lastSeenAt, unit: ctx.get(u.id)?.unit ?? null, property: ctx.get(u.id)?.property ?? null } : null;
+          return u ? { id: u.id, fullName: shownName(u), username: isStaffSender(u.role) ? "support" : u.username, role: u.role, avatarUrl: shownAvatar(u, avatar(u.avatarKey)), online: isOnline(u.lastSeenAt), lastSeenAt: u.lastSeenAt, unit: ctx.get(u.id)?.unit ?? null, property: ctx.get(u.id)?.property ?? null } : null;
         }).filter(Boolean),
       };
     }),
@@ -148,7 +149,7 @@ export async function sendMessage(actor: Actor, conversationId: string, input: z
       const roles = await tx.user.findMany({ where: { id: { in: recipients } }, select: { id: true, role: true } });
       for (const group of ["TENANT", "OTHER"] as const) {
         const ids = roles.filter((r) => (group === "TENANT") === (r.role === "TENANT")).map((r) => r.id);
-        await notify(ids, { type: "message.new", titleKey: "notifications.messageNew", params: { from: actor.fullName, conversationId }, link: messagesLink(group === "TENANT" ? "TENANT" : "OWNER", conversationId) }, tx);
+        await notify(ids, { type: "message.new", titleKey: "notifications.messageNew", params: { from: shownName(actor), conversationId }, link: messagesLink(group === "TENANT" ? "TENANT" : "OWNER", conversationId) }, tx);
       }
       return m;
     });

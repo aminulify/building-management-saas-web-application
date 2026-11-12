@@ -1,4 +1,4 @@
-import { BarChart3, Building2, DollarSign, Home, LayoutDashboard, MessageCircle, Search, Store, UserCheck, UserMinus, UsersRound, UserX, Wrench, Archive, type LucideIcon } from "lucide-react";
+import { BarChart3, Building2, DollarSign, Home, LayoutDashboard, MessageCircle, Search, Store, UserCheck, Zap, UserMinus, UsersRound, UserX, Wrench, Archive, UserPlus, type LucideIcon } from "lucide-react";
 
 export interface AdminNavItem { key: string; href: string; icon: LucideIcon }
 
@@ -9,10 +9,12 @@ export const ADMIN_NAV: AdminNavItem[][] = [
     { key: "properties", href: "/admin/properties", icon: Building2 },
     { key: "manageHome", href: "/admin/manage-home", icon: Home },
     { key: "manageMarketplace", href: "/admin/manage-marketplace", icon: Store },
+    { key: "paidBoost", href: "/admin/paid-boost", icon: Zap },
     { key: "report", href: "/admin/report", icon: BarChart3 },
     { key: "activeMaintenance", href: "/admin/active-maintenance", icon: Wrench },
     { key: "activeOwners", href: "/admin/active-owners", icon: UsersRound },
     { key: "activeTenants", href: "/admin/active-tenants", icon: UserCheck },
+    { key: "tenantFree", href: "/admin/tenant-free", icon: UserPlus },
     { key: "subscriptions", href: "/admin/subscriptions", icon: DollarSign },
   ],
   [

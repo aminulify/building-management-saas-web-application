@@ -50,8 +50,12 @@ export const tenantDirectoryQuery = z.object({
 
 /** Find a registered tenant by full phone number OR e-mail address (exact match only). */
 export const tenantLookupQuery = z
-  .object({ phone: bdPhoneSchema.optional(), email: z.string().trim().toLowerCase().email().max(120).optional() })
-  .refine((v) => !!v.phone !== !!v.email, { message: "phone_or_email", path: ["phone"] });
+  .object({
+    phone: bdPhoneSchema.optional(), email: z.string().trim().toLowerCase().email().max(120).optional(),
+    /** the permanent Tenant ID, e.g. TF100015 */
+    tenantCode: z.string().trim().toUpperCase().regex(/^[A-Z]{2}\d{4,10}$/, "tenant_code_format").optional(),
+  })
+  .refine((v) => [v.phone, v.email, v.tenantCode].filter(Boolean).length === 1, { message: "phone_or_email", path: ["phone"] });
 
 /** Previous Tenants list: search by tenant name or phone, one property, one behaviour rating, page numbers. */
 export const pastTenantsQuery = z.object({

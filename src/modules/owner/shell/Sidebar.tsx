@@ -1,5 +1,7 @@
 "use client";
 
+import { MessageNavBadge, useAcknowledge } from "@/modules/messaging/ui/MessageNavBadge";
+
 import { LogOut } from "lucide-react";
 import { clsx } from "clsx";
 import { useTranslations } from "next-intl";
@@ -20,6 +22,7 @@ export function Sidebar({ onNavigate, onLogout, loggingOut, compact = false }: P
   const t = useTranslations("owner.nav");
   const to = useTranslations("owner");
   const pathname = usePathname();
+  const acknowledge = useAcknowledge();
   const { me, unread } = useOwner();
   const label = compact ? "sr-only" : "";
   const onProfile = pathname === "/home-owner/profile";
@@ -38,7 +41,7 @@ export function Sidebar({ onNavigate, onLogout, loggingOut, compact = false }: P
               const active = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
-                  key={key} href={href as never} onClick={onNavigate} title={compact ? t(key) : undefined}
+                  key={key} href={href as never} onClick={() => { if (key === "messages") acknowledge(); onNavigate?.(); }} title={compact ? t(key) : undefined}
                   aria-current={active ? "page" : undefined}
                   className={clsx(
                     "group relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-[0.95rem] font-medium transition-all duration-300",
@@ -50,6 +53,7 @@ export function Sidebar({ onNavigate, onLogout, loggingOut, compact = false }: P
                 >
                   <Icon className="size-5 shrink-0" aria-hidden />
                   <span className={label}>{t(key)}</span>
+                  {key === "messages" && <MessageNavBadge compact={compact} />}
                   {badge === "notifications" && unread > 0 && (
                     <span className={clsx("size-2 shrink-0 rounded-full bg-red-500", compact ? "absolute right-3 top-2.5" : "ml-0.5")}>
                       <span className="sr-only">{to("unread", { count: unread })}</span>

@@ -2,6 +2,7 @@ import type { Prisma, PlanAudience } from "@prisma/client";
 import { db } from "../db";
 import { AppError } from "../errors";
 import type { Actor } from "../auth/require-actor";
+import { ownerGaps, raiseOwnerRestriction, resolveOwnerNotices } from "./owner-readiness";
 
 export interface Limits {
   propertyLimit: number;
@@ -78,10 +79,17 @@ export async function assertEntitlement(
   }
   const ent = await getEntitlement(actor.id, audience, opts.tx);
 
+  // An apartment owner is fully unlocked only with an active plan, an approved payment and a verified NID with a complete profile.
+  // Whatever is missing is told in the notification center (and stays there until it is done).
+  const gaps = actor.role === "OWNER" ? await ownerGaps(actor.id, opts.tx) : [];
+  if (gaps.length > 0) await raiseOwnerRestriction(actor.id, gaps);
+
   if (ent.status === "NONE") {
-    throw new AppError(kind === "listing" ? "LISTING_ENTITLEMENT_REQUIRED" : "SUBSCRIPTION_REQUIRED");
+    throw new AppError(kind === "listing" ? "LISTING_ENTITLEMENT_REQUIRED" : "SUBSCRIPTION_REQUIRED", { missing: gaps });
   }
   if (ent.status === "GRACE") throw new AppError("SUBSCRIPTION_GRACE_RESTRICTED");
+  if (gaps.length > 0) throw new AppError("OWNER_NOT_READY", { missing: gaps });
+  if (actor.role === "OWNER") await resolveOwnerNotices(actor.id);
 
   const map = {
     property: [ent.usage.properties, ent.limits.propertyLimit],

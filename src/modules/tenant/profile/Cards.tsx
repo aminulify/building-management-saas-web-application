@@ -93,7 +93,7 @@ export function DocumentsCard({ data, onNid, onAgreement }: { data: TenantOvervi
   const locale = useLocale();
   const d = data.documents;
   const nid = (s: DocState | null, kind: "NID_FRONT" | "NID_BACK", title: string) => (
-    <DocRow key={kind} title={title} sub={s ? formatDate(locale, s.date) : t("notUploaded")} state={s ? s.status : "NONE"} label={s ? t(`state.${s.status}`) : t("state.NONE")} onClick={() => onNid(kind)} />
+    <DocRow key={kind} title={title} sub={s ? formatDate(locale, s.date) : t("notUploaded")} state={s ? s.status : "NONE"} label={s ? t(`state.${s.status}`) : t("state.NONE")} onClick={s?.status === "VERIFIED" ? undefined : () => onNid(kind)} />
   );
   const ag = d.agreement;
   return (
@@ -106,9 +106,10 @@ export function DocumentsCard({ data, onNid, onAgreement }: { data: TenantOvervi
           ? <DocRow title={t("agreement")} sub={t("noAgreement")} state="NONE" action={<button type="button" onClick={onAgreement} className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-md bg-[#0A84F0] px-3 text-[0.68rem] font-extrabold uppercase tracking-wide text-white shadow-[0_6px_14px_-6px_rgba(10,132,240,0.7)] transition-colors duration-300 hover:bg-[#0873D6]"><UploadCloud className="size-3.5" aria-hidden />{t("upload")}</button>} />
           : ag.source === "LANDLORD"
             ? <DocRow title={t("agreement")} sub={t("landlordCopy", { date: formatDate(locale, ag.date) })} state="VERIFIED" label={t("state.AVAILABLE")} />
-            : <DocRow title={t("agreement")} sub={formatDate(locale, ag.date)} state={ag.status} label={t(`state.${ag.status}`)} onClick={onAgreement} />}
+            : <DocRow title={t("agreement")} sub={formatDate(locale, ag.date)} state={ag.status} label={t(`state.${ag.status}`)} onClick={ag.status === "VERIFIED" ? undefined : onAgreement} />}
       </ul>
       <p className="mt-3 text-[0.7rem] text-label">{t("hint")}</p>
+      <p className="mt-1 text-[0.7rem] text-label">{t("lockedHint")}</p>
     </Reveal>
   );
 }

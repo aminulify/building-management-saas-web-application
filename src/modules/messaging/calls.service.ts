@@ -6,6 +6,7 @@ import { notify } from "@/lib/notify";
 import type { Actor } from "@/lib/auth/require-actor";
 import { loadConversation } from "./access";
 import type { CallAction, callRequestSchema } from "./schema";
+import { shownAvatar, shownName } from "./identity";
 
 const MIN_LEAD_MS = 5 * 60_000;
 const MAX_LEAD_MS = 30 * 86400_000;
@@ -28,7 +29,7 @@ export async function requestCall(actor: Actor, input: z.infer<typeof callReques
   const cr = await db.callRequest.create({
     data: { conversationId: conv.id, requesterId: actor.id, recipientId: recipient.userId, kind: input.kind, scheduledFor: input.scheduledFor, note: input.note },
   });
-  await notify([recipient.userId], { type: "call.requested", titleKey: "notifications.callRequested", params: { from: actor.fullName, at: input.scheduledFor.toISOString() }, link: `/messages/${conv.id}`, priority: "HIGH" });
+  await notify([recipient.userId], { type: "call.requested", titleKey: "notifications.callRequested", params: { from: shownName(actor), at: input.scheduledFor.toISOString() }, link: `/messages/${conv.id}`, priority: "HIGH" });
   return cr;
 }
 
@@ -56,6 +57,6 @@ export async function actOnCall(actor: Actor, id: string, action: CallAction) {
 
   const out = await db.callRequest.update({ where: { id }, data: { status: rule.to } });
   const other = cr.requesterId === actor.id ? cr.recipientId : cr.requesterId;
-  await notify([other], { type: "call.updated", titleKey: "notifications.callUpdated", params: { status: rule.to, by: actor.fullName }, link: `/messages/${cr.conversationId}` });
+  await notify([other], { type: "call.updated", titleKey: "notifications.callUpdated", params: { status: rule.to, by: shownName(actor) }, link: `/messages/${cr.conversationId}` });
   return out;
 }

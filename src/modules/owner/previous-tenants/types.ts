@@ -1,6 +1,6 @@
 /** Shapes returned by GET /tenancies/past and GET /tenancies/:id/history. */
 export type Behavior = "EXCELLENT" | "GOOD" | "AVERAGE" | "UGLY" | "BAD" | "VERY_BAD";
-export type LeaveReason = "JOB_TRANSFER" | "PURCHASED_HOME" | "UPGRADED_UNIT" | "LEASE_EXPIRED" | "OTHER";
+export type LeaveReason = "JOB_TRANSFER" | "PURCHASED_HOME" | "UPGRADED_UNIT" | "LEASE_EXPIRED" | "POLICY_VIOLATION" | "BUSINESS_CLOSED" | "EVICTED" | "OTHER";
 export type LedgerStatus = "PAID_ON_TIME" | "PAID_LATE" | "DEFAULTED";
 
 export interface PastRow {

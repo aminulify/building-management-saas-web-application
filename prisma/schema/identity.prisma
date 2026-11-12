@@ -22,8 +22,14 @@ model User {
   locale             String             @default("bn")
   preferences        Json               @default("{}")
   lastSeenAt         DateTime?          @db.Timestamptz
+  /// set while the account is under a Super Admin warning (it can still sign in); cleared when it is set back to Active or Suspended
+  warnedAt           DateTime?          @db.Timestamptz
   archivedAt         DateTime?          @db.Timestamptz
   archiveReason      String?
+  /// Previous Owners page: SUBSCRIPTION_CANCELLED, POLICY_VIOLATION_FRAUD, BUSINESS_CLOSED, SOLD_ALL_PROPERTIES, ACCOUNT_DELETED_BY_USER, NON_PAYMENT, DORMANT, OWNER_REQUEST, OTHER
+  archiveReasonCode  String?
+  /// the day the account left the active lists (archived, banned, inactive or deleted); cleared on reactivation
+  leftAt             DateTime?          @db.Timestamptz
   createdAt          DateTime           @default(now()) @db.Timestamptz
   updatedAt          DateTime           @updatedAt @db.Timestamptz
 
@@ -38,8 +44,12 @@ model User {
   properties          Property[]
   listings            Listing[]
   notifications       Notification[]
+  boosts              ListingBoost[]
+  statusLogs          AccountStatusLog[]       @relation("LogTarget")
+  statusLogsMade      AccountStatusLog[]       @relation("LogAdmin")
 
   @@index([role, status])
+  @@index([role, leftAt])
   /// Super Admin dashboard: the Active Plans list, filtered by role, newest first
   @@index([role, id(sort: Desc)])
 }
@@ -115,4 +125,21 @@ model VerificationDocument {
   createdAt  DateTime           @default(now()) @db.Timestamptz
 
   @@index([ownerType, ownerId])
+}
+
+/// Permanent comment log of an account: every warning, suspension, restore and archive, with the reason, the admin and the time
+model AccountStatusLog {
+  id            String        @id @default(uuid(7)) @db.Uuid
+  userId        String        @db.Uuid
+  adminId       String        @db.Uuid
+  /// the admin's username when it was written (so the log still reads right if the account changes)
+  adminUsername String
+  action        AccountAction
+  comment       String?
+  createdAt     DateTime      @default(now()) @db.Timestamptz
+
+  user  User @relation("LogTarget", fields: [userId], references: [id])
+  admin User @relation("LogAdmin", fields: [adminId], references: [id])
+
+  @@index([userId, createdAt(sort: Desc)])
 }

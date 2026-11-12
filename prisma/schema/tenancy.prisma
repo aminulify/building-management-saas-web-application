@@ -26,6 +26,15 @@ model RentalAgreement {
   ownerNotes           String?
   historyHiddenAt      DateTime?       @db.Timestamptz
   /**
+   * Super Admin Previous Tenants: a ruling on the unpaid rent (CLEARED, DUE_1, DUE_2, DUE_3_PLUS); empty = worked out from the rent ledger
+   */
+  clearanceStatus      String?
+  adminNote            String?
+  /**
+   * Super Admin deleted the record from Previous Tenants (kept for the money trail, hidden everywhere)
+   */
+  adminHiddenAt        DateTime?       @db.Timestamptz
+  /**
    * the owner asked the tenant to sign the agreement (Owner Profile → Agreements)
    */
   signatureRequestedAt DateTime?       @db.Timestamptz
@@ -39,6 +48,7 @@ model RentalAgreement {
   @@index([tenantId, status])
   @@index([ownerId, status])
   @@index([ownerId, status, endDate])
+  @@index([status, adminHiddenAt])
 }
 
 model TenantInvitation {

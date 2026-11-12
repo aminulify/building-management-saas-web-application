@@ -34,7 +34,7 @@ export function SellModal({ open, editId, onClose, onDone }: Props) {
   return <Modal open={open} onClose={onClose} labelledBy="mk-sell-title" maxWidth="max-w-[840px]">{open && <Body editId={editId} onClose={onClose} onDone={onDone} />}</Modal>;
 }
 
-type Gate = { state: "loading" } | { state: "ok"; usage: number; limit: number } | { state: "blocked"; reason: "plan" | "limit" } | { state: "error" };
+type Gate = { state: "loading" } | { state: "ok"; usage: number; limit: number } | { state: "blocked"; reason: "plan" | "limit" | "notReady" } | { state: "error" };
 
 function Body({ editId, onClose, onDone }: Omit<Props, "open">) {
   const t = useTranslations("owner.marketplace.sell");
@@ -69,7 +69,7 @@ function Body({ editId, onClose, onDone }: Omit<Props, "open">) {
     let off = false;
     authApi<{ usage: number; limit: number }>("/listings/eligibility")
       .then((r) => { if (!off) setGate({ state: "ok", usage: r.usage, limit: r.limit }); })
-      .catch((e) => { if (!off) setGate(e instanceof ApiError && (e.code === "LISTING_ENTITLEMENT_REQUIRED" || e.status === 403) ? { state: "blocked", reason: "plan" } : e instanceof ApiError && e.code === "PLAN_LIMIT_REACHED" ? { state: "blocked", reason: "limit" } : { state: "error" }); });
+      .catch((e) => { if (!off) setGate(e instanceof ApiError && e.code === "OWNER_NOT_READY" ? { state: "blocked", reason: "notReady" } : e instanceof ApiError && (e.code === "LISTING_ENTITLEMENT_REQUIRED" || e.status === 403) ? { state: "blocked", reason: "plan" } : e instanceof ApiError && e.code === "PLAN_LIMIT_REACHED" ? { state: "blocked", reason: "limit" } : { state: "error" }); });
     return () => { off = true; };
   }, [tick]);
 
@@ -109,6 +109,7 @@ function Body({ editId, onClose, onDone }: Omit<Props, "open">) {
 
   function explain(e: unknown) {
     if (e instanceof ApiError) {
+      if (e.code === "OWNER_NOT_READY") { setGate({ state: "blocked", reason: "notReady" }); return; }
       if (e.code === "LISTING_ENTITLEMENT_REQUIRED") { setGate({ state: "blocked", reason: "plan" }); return; }
       if (e.code === "PLAN_LIMIT_REACHED") { setGate({ state: "blocked", reason: "limit" }); return; }
       if (e.status === 422 && e.issues.length) {

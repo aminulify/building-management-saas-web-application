@@ -6,11 +6,11 @@ import { useTranslations } from "next-intl";
 import { Modal } from "@/components/feedback/Modal";
 import { useToast } from "@/components/feedback/Toast";
 
-interface Props { open: boolean; busy: boolean; onCancel: () => void; onConfirm: () => Promise<void>; onDone: () => void }
+interface Props { /** which texts to use: the owner wording (default) or the Super Admin wording */ scope?: "owner" | "admin"; open: boolean; busy: boolean; onCancel: () => void; onConfirm: () => Promise<void>; onDone: () => void }
 
 /** "Are you sure you want to logout?": Cancel closes it; Yes ends the session, shows a toast and goes to the public homepage. */
-export function LogoutModal({ open, busy, onCancel, onConfirm, onDone }: Props) {
-  const t = useTranslations("owner.logout");
+export function LogoutModal({ scope = "owner", open, busy, onCancel, onConfirm, onDone }: Props) {
+  const t = useTranslations(scope === "admin" ? "admin.logout" : "owner.logout");
   const toast = useToast();
   const [done, setDone] = useState(false);
 

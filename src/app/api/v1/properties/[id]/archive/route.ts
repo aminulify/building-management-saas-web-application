@@ -6,5 +6,5 @@ import { archiveSchema } from "@/modules/properties/schema";
 
 export const POST = route<{ id: string }>(async (req, { params }) => {
   const actor = await requireActor(req);
-  return archiveProperty(actor, idParam((await params).id), (await parseBody(req, archiveSchema)).reason, req);
+  return archiveProperty(actor, idParam((await params).id), await parseBody(req, archiveSchema), req);
 });

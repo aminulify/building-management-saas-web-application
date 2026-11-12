@@ -11,6 +11,7 @@ import { propertyCreateSchema } from "@/modules/properties/schema";
 import { keyBelongsTo, keyPurpose, signStorageKey } from "@/modules/uploads/service";
 import type { Actor } from "@/lib/auth/require-actor";
 import { revertToTenantFree } from "@/modules/tenancy/roles";
+import { ARCHIVE_REASONS, REASON_TEXT, type ArchiveReasonCode } from "@/modules/properties/archive-reasons";
 import { allAmenities, amenitiesSchema } from "./amenities";
 import { occupancyRate, propertyState, STATE_FIELDS } from "./status";
 
@@ -117,30 +118,44 @@ export async function setPropertyState(actor: Actor, id: string, input: z.infer<
 }
 
 /**
- * Delete from the Super Admin page: a soft delete (the row moves to Previous Properties, nothing is erased).
- * Tenants who still live there are moved out first: their lease ends, they are told, and a tenant with no other
- * home goes back to a Tenant-Free account.
+ * Takes a building out of service: tenants who still live there are moved out (the lease ends, they are told, and a tenant with
+ * no other home goes back to a Tenant-Free account) and every unit is archived. Returns how many tenants were moved out.
  */
-export async function deleteProperty(actor: Actor, id: string, req: Request) {
+export async function archiveBuilding(tx: Prisma.TransactionClient, id: string, actor: Actor, req: Request, now = new Date()) {
+  const leases = await tx.rentalAgreement.findMany({ where: { unit: { propertyId: id }, status: { in: ["ACTIVE", "INVITED"] } }, select: { id: true, tenantId: true, status: true, unit: { select: { unitNumber: true } } } });
+  for (const l of leases) {
+    await tx.rentalAgreement.update({ where: { id: l.id }, data: { status: l.status === "ACTIVE" ? "ENDED" : "TERMINATED", endDate: now } });
+    if (l.status === "ACTIVE") {
+      await notify([l.tenantId], { type: "tenancy.ended", titleKey: "notifications.tenancyEnded", params: { unit: l.unit.unitNumber } }, tx);
+      await revertToTenantFree(tx, l.tenantId, actor, req);
+    }
+  }
+  await tx.unit.updateMany({ where: { propertyId: id, archivedAt: null }, data: { archivedAt: now, availability: "ARCHIVED" } });
+  return leases.filter((l) => l.status === "ACTIVE").length;
+}
+
+/**
+ * Delete from the Super Admin page: a soft delete (the row moves to Previous Properties, nothing is erased).
+ * Tenants who still live there are moved out first (see archiveBuilding).
+ */
+export const adminDeleteSchema = z
+  .object({ reasonCode: z.enum(ARCHIVE_REASONS).default("OTHER"), note: z.string().trim().min(3).max(300).optional() })
+  .strict()
+  .refine((v) => v.reasonCode !== "OTHER" || !!v.note, { path: ["note"], message: "note_required" });
+export type AdminDelete = { reasonCode: ArchiveReasonCode; note?: string };
+
+export async function deleteProperty(actor: Actor, id: string, req: Request, input: AdminDelete = { reasonCode: "OTHER" }) {
   requireRole(actor, "SUPER_ADMIN");
   const p = await db.property.findFirst({ where: { id, ...live } });
   if (!p) throw new AppError("NOT_FOUND");
-  const reason = "Removed by Super Admin";
+  const reason = input.note ?? (input.reasonCode === "OTHER" ? "Removed by Super Admin" : REASON_TEXT[input.reasonCode]);
   const movedOut = await db.$transaction(async (tx) => {
-    const leases = await tx.rentalAgreement.findMany({ where: { unit: { propertyId: id }, status: { in: ["ACTIVE", "INVITED"] } }, select: { id: true, tenantId: true, status: true, unit: { select: { unitNumber: true } } } });
     const today = new Date();
-    for (const l of leases) {
-      await tx.rentalAgreement.update({ where: { id: l.id }, data: { status: l.status === "ACTIVE" ? "ENDED" : "TERMINATED", endDate: today } });
-      if (l.status === "ACTIVE") {
-        await notify([l.tenantId], { type: "tenancy.ended", titleKey: "notifications.tenancyEnded", params: { unit: l.unit.unitNumber } }, tx);
-        await revertToTenantFree(tx, l.tenantId, actor, req);
-      }
-    }
-    await tx.unit.updateMany({ where: { propertyId: id, archivedAt: null }, data: { archivedAt: today, availability: "ARCHIVED" } });
-    await tx.property.update({ where: { id }, data: { archivedAt: today, archiveReason: reason, status: "ARCHIVED" } });
-    await notify([p.ownerId], { type: "property.review", titleKey: "notifications.propertyRemoved", params: { name: p.name }, link: "/home-owner/properties" }, tx);
-    await writeAudit({ actor, action: "property.archive", resourceType: "Property", resourceId: id, after: { reason, by: "super_admin", tenantsMovedOut: leases.filter((l) => l.status === "ACTIVE").length }, req }, tx);
-    return leases.filter((l) => l.status === "ACTIVE").length;
+    const n = await archiveBuilding(tx, id, actor, req, today);
+    await tx.property.update({ where: { id }, data: { archivedAt: today, deactivatedAt: today, archiveReason: reason, archiveReasonCode: input.reasonCode, status: "ARCHIVED" } });
+    await notify([p.ownerId], { type: "property.review", titleKey: "notifications.propertyRemovedReason", params: { name: p.name, reason }, link: "/home-owner/properties" }, tx);
+    await writeAudit({ actor, action: "property.archive", resourceType: "Property", resourceId: id, after: { reason, reasonCode: input.reasonCode, by: "super_admin", tenantsMovedOut: n }, req }, tx);
+    return n;
   });
   return { id, deleted: true, tenantsMovedOut: movedOut };
 }

@@ -99,11 +99,11 @@ export function PortfolioCard({ data, onOpen }: { data: OwnerOverview; onOpen: (
   );
 }
 
-function DocRow({ title, state, label, date, onClick }: { title: string; state: keyof typeof DOC_STYLE; label: string; date: string | null; onClick: () => void }) {
+function DocRow({ title, state, label, date, onClick }: { title: string; state: keyof typeof DOC_STYLE; label: string; date: string | null; onClick?: () => void }) {
   const locale = useLocale();
   return (
     <li>
-      <button type="button" onClick={onClick} className={clsx("flex w-full items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-[#48BDFA] motion-reduce:hover:translate-y-0", DOC_ROW[state])}>
+      <button type="button" onClick={onClick} aria-disabled={!onClick || undefined} className={clsx(!onClick && "cursor-default hover:!translate-y-0 hover:!shadow-none", "flex w-full items-center justify-between gap-3 rounded-lg border px-3.5 py-2.5 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-md focus-visible:outline-2 focus-visible:outline-[#48BDFA] motion-reduce:hover:translate-y-0", DOC_ROW[state])}>
         <span className="min-w-0"><span className="block truncate text-sm font-semibold text-navy">{title}</span><span className="block text-[0.68rem] text-slate-500">{date ? formatDate(locale, date) : "—"}</span></span>
         <span className={clsx("inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-0.5 text-[0.62rem] font-extrabold uppercase tracking-wide", DOC_STYLE[state])}><i aria-hidden className="size-1.5 rounded-full bg-current" />{label}</span>
       </button>
@@ -114,7 +114,7 @@ function DocRow({ title, state, label, date, onClick }: { title: string; state: 
 export function DocumentsCard({ data, onNid, onAgreement }: { data: OwnerOverview; onNid: (k: DocKind) => void; onAgreement: () => void }) {
   const t = useTranslations("owner.profile.documents");
   const d = data.documents;
-  const nid = (s: DocState | null, kind: DocKind, title: string) => <DocRow key={kind} title={title} state={s ? s.status : "NONE"} label={s ? t(`state.${s.status}`) : t("state.NONE")} date={s?.date ?? null} onClick={() => onNid(kind)} />;
+  const nid = (s: DocState | null, kind: DocKind, title: string) => <DocRow key={kind} title={title} state={s ? s.status : "NONE"} label={s ? t(`state.${s.status}`) : t("state.NONE")} date={s?.date ?? null} onClick={s?.status === "VERIFIED" ? undefined : () => onNid(kind)} />;
   const ag = d.agreement;
   return (
     <Reveal label={t("title")} delay={0.08}>
@@ -125,6 +125,7 @@ export function DocumentsCard({ data, onNid, onAgreement }: { data: OwnerOvervie
         <DocRow title={t("agreement")} state={ag.status === "UPLOADED" ? "VERIFIED" : ag.status === "PENDING" ? "PENDING" : "NONE"} label={ag.status === "NONE" ? t("state.NONE") : t("agreementCount", { done: ag.uploaded, total: ag.total })} date={ag.date} onClick={onAgreement} />
       </ul>
       <p className="mt-3 text-[0.7rem] text-label">{t("hint")}</p>
+      <p className="mt-1 text-[0.7rem] text-label">{t("lockedHint")}</p>
     </Reveal>
   );
 }

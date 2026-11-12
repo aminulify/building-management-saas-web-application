@@ -1,3 +1,4 @@
+import { expireBoosts } from "@/modules/boost/service";
 import type { z } from "zod";
 import { db } from "@/lib/db";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
@@ -67,6 +68,7 @@ export async function aiSearch(actor: Actor | null, input: z.infer<typeof aiSear
     categories: p.categories, landType: p.landType, area: p.area, areaUnit: p.areaUnit, nearby: p.nearby, amenities: p.amenities, furnishing: p.furnishing, sort: p.sort,
   };
 
+  await expireBoosts();
   const candidates = await db.listing.findMany({
     where: { status: "PUBLISHED", type },
     orderBy: { id: "desc" }, take: 400,

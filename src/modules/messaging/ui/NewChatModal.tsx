@@ -5,6 +5,7 @@ import { AlertTriangle, Search, UsersRound } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { Modal } from "@/components/feedback/Modal";
 import { PersonAvatar } from "./PersonAvatar";
+import { RoleChips, type RoleFilter } from "./RoleChips";
 import { useContacts } from "./use-contacts";
 import type { Contact } from "./types";
 
@@ -15,14 +16,16 @@ export function NewChatModal({ open, role, busy, onClose, onPick }: Props) {
   const t = useTranslations("chat.new");
   const rt = useTranslations("chat.roles");
   const [q, setQ] = useState("");
+  const [kind, setKind] = useState<RoleFilter>("all");
   const admin = role === "SUPER_ADMIN" || role === "GOV_ADMIN";
-  const { items, state } = useContacts(q, open && (!admin || q.trim().length >= 2));
+  const { items, state } = useContacts(q, open && (!admin || q.trim().length >= 2 || kind !== "all"), kind);
 
   return (
     <Modal open={open} onClose={onClose} labelledBy="chat-new-title" busy={busy} maxWidth="max-w-[460px]">
       <h2 id="chat-new-title" className="pr-10 text-lg font-bold text-navy">{t("title")}</h2>
       <p className="mt-1 text-sm text-slate-600">{t(admin ? "adminHint" : role === "TENANT" ? "tenantHint" : "ownerHint")}</p>
-      <label className="relative mt-4 block">
+      {admin && <RoleChips value={kind} onChange={setKind} className="mt-3" />}
+      <label className="relative mt-3 block">
         <span className="sr-only">{t("search")}</span>
         <Search aria-hidden className="pointer-events-none absolute left-3 top-1/2 size-[1.1rem] -translate-y-1/2 text-slate-400" />
         <input data-autofocus type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={t("search")} autoComplete="off" className="glass-input h-11 w-full rounded-xl pl-10 pr-3 text-sm" />

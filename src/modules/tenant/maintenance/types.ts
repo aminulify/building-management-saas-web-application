@@ -2,7 +2,7 @@ import type { Issue as OwnerIssue, IssueStatus, Priority, Stats } from "../../ow
 
 export type { IssueStatus, Priority, Stats };
 export type Tab = "all" | "active" | "completed";
-export type Category = "PLUMBING" | "ELECTRICAL" | "GAS" | "LIFT" | "PAINT" | "SECURITY" | "CLEANING" | "OTHER";
+export type Category = "PLUMBING" | "ELECTRICAL" | "WATER" | "GAS" | "LIFT" | "PAINT" | "SECURITY" | "CLEANING" | "OTHER";
 
 /** One request in the tenant's list (GET /maintenance). */
 export type Issue = OwnerIssue & { preferredAt: string | null };

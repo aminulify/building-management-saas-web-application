@@ -1,3 +1,4 @@
+import { resolveOwnerNotices } from "@/lib/authz/owner-readiness";
 import { Prisma } from "@prisma/client";
 import type { z } from "zod";
 import { db } from "@/lib/db";
@@ -141,6 +142,7 @@ export async function approve(actor: Actor, id: string, req: Request) {
     await tx.invoice.create({ data: { transactionId: txn.id, number: `INV-${invNo}` } });
 
     await notify([r.userId], { type: "upgrade.approved", titleKey: "notifications.upgradeApproved", params: { plan: r.plan.code }, link: r.plan.audience === "OWNER" ? "/home-owner/dashboard" : "/marketplace/create", priority: "HIGH" }, tx);
+    if (r.plan.audience === "OWNER") await resolveOwnerNotices(r.userId, ["plan", "payment"], tx);
     await tx.outboxEvent.create({ data: { type: "account.upgraded", payload: { userId: r.userId, requestId: id } } }); // realtime + SMS
     await writeAudit({ actor, action: "upgrade.approve", resourceType: "UpgradeRequest", resourceId: id, before: { status: "PENDING", role: r.fromRole }, after: { status: "APPROVED", subscriptionId: sub.id, ownerCode: ownerCode ?? null }, req }, tx);
     return { requestId: id, subscriptionId: sub.id, startsAt, endsAt, ownerCode: ownerCode ?? null, invoice: `INV-${invNo}` };

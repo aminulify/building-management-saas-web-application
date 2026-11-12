@@ -1,3 +1,4 @@
+import { discoverableWhere } from "@/modules/users/discoverable";
 import type { Prisma } from "@prisma/client";
 import { AppError } from "@/lib/errors";
 import { writeAudit } from "@/lib/audit";
@@ -24,7 +25,7 @@ export async function assignTenantInTx(
   const active = await tx.rentalAgreement.count({ where: { unitId, status: "ACTIVE" } });
   if (active > 0) throw new AppError("INVALID_STATE", { reason: "unit_not_available" });
 
-  const tenant = await tx.user.findUnique({ where: { id: tenantId }, select: { id: true, role: true, status: true } });
+  const tenant = await tx.user.findFirst({ where: { id: tenantId, ...(actor.role === "OWNER" ? discoverableWhere : {}) }, select: { id: true, role: true, status: true } });
   if (!tenant || tenant.status !== "ACTIVE" || (tenant.role !== "TENANT" && tenant.role !== "GENERAL_USER") || tenant.id === actor.id) {
     throw new AppError("VALIDATION_ERROR", [{ path: "tenantId", code: "not_a_tenant" }]);
   }

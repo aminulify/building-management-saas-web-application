@@ -9,6 +9,7 @@ import { isConnected, publish } from "./hub";
 import { serializeMessages } from "./serialize";
 import { assertCanTalk, avatarUrls, messagesLink } from "./service";
 import type { CallLiveAction, callSignalSchema } from "./schema";
+import { shownAvatar, shownName } from "./identity";
 
 const RING_MS = 60_000;
 const TALK_MAX_MS = 4 * 3600_000;
@@ -43,9 +44,9 @@ async function finish(callId: string, status: "ENDED" | "MISSED" | "REJECTED") {
   publish([call.callerId, call.calleeId], { type: "message:new", data: { conversationId: call.conversationId, message: out } });
   publish([call.callerId, call.calleeId], { type: "call:ended", data: { callId, status, durationSec } });
   if (status === "MISSED") {
-    const caller = await db.user.findUnique({ where: { id: call.callerId }, select: { fullName: true } });
+    const caller = await db.user.findUnique({ where: { id: call.callerId }, select: { fullName: true, role: true } });
     const callee = await db.user.findUnique({ where: { id: call.calleeId }, select: { role: true } });
-    await notify([call.calleeId], { type: "call.missed", titleKey: "notifications.callMissed", params: { from: caller?.fullName ?? "", conversationId: call.conversationId }, link: messagesLink(callee?.role ?? "OWNER", call.conversationId), priority: "HIGH" });
+    await notify([call.calleeId], { type: "call.missed", titleKey: "notifications.callMissed", params: { from: caller ? shownName(caller) : "", conversationId: call.conversationId }, link: messagesLink(callee?.role ?? "OWNER", call.conversationId), priority: "HIGH" });
   }
   return { status, durationSec };
 }
@@ -64,10 +65,10 @@ export async function startCall(actor: Actor, conversationId: string) {
   if (busy > 0) throw new AppError("INVALID_STATE", { reason: "busy" });
 
   const call = await db.call.create({ data: { conversationId, callerId: actor.id, calleeId: other.userId, kind: "AUDIO" } });
-  const me = await db.user.findUnique({ where: { id: actor.id }, select: { fullName: true, avatarKey: true } });
+  const me = await db.user.findUnique({ where: { id: actor.id }, select: { fullName: true, avatarKey: true, role: true } });
   const avatar = await avatarUrls([me?.avatarKey ?? null]);
   const reachable = isConnected(other.userId);
-  if (reachable) publish([other.userId], { type: "call:incoming", data: { callId: call.id, conversationId, caller: { id: actor.id, fullName: me?.fullName ?? actor.fullName, avatarUrl: avatar(me?.avatarKey ?? null) } } });
+  if (reachable) publish([other.userId], { type: "call:incoming", data: { callId: call.id, conversationId, caller: { id: actor.id, fullName: shownName(me ?? actor), avatarUrl: shownAvatar(me ?? actor, avatar(me?.avatarKey ?? null)) } } });
   else await finish(call.id, "MISSED"); // nobody has the app open: recorded as a missed call and notified
   return { id: call.id, reachable };
 }

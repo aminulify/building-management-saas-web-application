@@ -15,7 +15,7 @@ const money = (v: number) => `BDT ${new Intl.NumberFormat("en-US", { minimumFrac
 const day = (iso: string | null | undefined) => (iso ? new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeZone: "UTC" }).format(new Date(iso)) : "-");
 const month = (iso: string) => new Intl.DateTimeFormat("en-GB", { month: "short", year: "numeric", timeZone: "UTC" }).format(new Date(iso));
 const STATUS = { PAID_ON_TIME: "Paid on time", PAID_LATE: "Paid late", DEFAULTED: "Defaulted" } as const;
-const REASON = { JOB_TRANSFER: "Job transfer", PURCHASED_HOME: "Purchased home", UPGRADED_UNIT: "Upgraded unit", LEASE_EXPIRED: "Lease expired", OTHER: "Other reason" } as const;
+const REASON = { JOB_TRANSFER: "Job transfer", PURCHASED_HOME: "Purchased home", UPGRADED_UNIT: "Upgraded unit", LEASE_EXPIRED: "Lease expired", POLICY_VIOLATION: "Policy violation", BUSINESS_CLOSED: "Business closed", EVICTED: "Evicted", OTHER: "Other reason" } as const;
 const RATING = { EXCELLENT: "Excellent", GOOD: "Good", AVERAGE: "Average", UGLY: "Ugly", BAD: "Bad", VERY_BAD: "Very bad" } as const;
 
 async function logo(): Promise<{ data: string; w: number; h: number } | null> {

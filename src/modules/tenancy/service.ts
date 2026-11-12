@@ -9,6 +9,7 @@ import { rateLimit } from "@/lib/rate-limit";
 import { requireRole } from "@/lib/authz/authorize";
 import { signStorageKey } from "@/modules/uploads/service";
 import type { Actor } from "@/lib/auth/require-actor";
+import { discoverableWhere } from "@/modules/users/discoverable";
 import { loadUnit } from "@/modules/properties/access";
 import { ensureRentRecords, monthStart } from "@/modules/rent/billing";
 import { retargetLinks, revertToTenantFree } from "./roles";
@@ -132,14 +133,15 @@ export async function endTenancy(actor: Actor, id: string, input: z.infer<typeof
 const maskEmail = (e: string | null) => (e ? e.replace(/^(.).*(@.*)$/, "$1•••$2") : null);
 
 /**
- * Owner finds a registered tenant by their FULL phone number or exact e-mail (rate limited), so accounts
+ * Owner finds a registered tenant by their FULL phone number, exact e-mail or Tenant ID (rate limited), so accounts
  * cannot be browsed. Returns just enough to confirm it is the right person (e-mail is masked).
  */
-export async function lookupTenant(actor: Actor, q: { phone?: string; email?: string }) {
+export async function lookupTenant(actor: Actor, q: { phone?: string; email?: string; tenantCode?: string }) {
   requireRole(actor, "OWNER");
   rateLimit(`tenant-lookup:${actor.id}`, 30, 60_000);
   const u = await db.user.findFirst({
-    where: { ...(q.phone ? { phone: q.phone } : { email: q.email }), status: "ACTIVE", role: { in: ["TENANT", "GENERAL_USER"] }, id: { not: actor.id } },
+    // a tenant who has not finished the profile and been verified by the Super Admin is not found, whatever is typed (same answer as "no such person")
+    where: { AND: [discoverableWhere, q.phone ? { phone: q.phone } : q.tenantCode ? { tenantCode: q.tenantCode } : { email: q.email }], status: "ACTIVE", role: { in: ["TENANT", "GENERAL_USER"] }, id: { not: actor.id } },
     select: { id: true, fullName: true, phone: true, email: true, avatarKey: true },
   });
   if (!u) return { found: false as const };

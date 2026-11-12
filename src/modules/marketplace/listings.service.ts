@@ -1,3 +1,4 @@
+import { boostInfoFor } from "@/modules/boost/service";
 import type { ListingStatus, Prisma } from "@prisma/client";
 import type { z } from "zod";
 import { db } from "@/lib/db";
@@ -128,9 +129,10 @@ export async function myListings(actor: Actor, q: z.infer<typeof myListingsQuery
   });
   const res = pageResult(rows, page.limit);
   const covers = await signStorageKeys(res.items.flatMap((l) => (l.images[0] ? [l.images[0].storageKey] : [])), 3600);
+  const boosts = await boostInfoFor(res.items.map((l) => l.id)); // Active / Pending / Rejected, for the Boost button
   return {
     ...res,
-    items: res.items.map(({ _count, ...l }) => ({ ...l, photos: _count.images, saves: _count.favorites, visitRequests: _count.visits, coverUrl: (l.images[0] && covers.get(l.images[0].storageKey)) || null })),
+    items: res.items.map(({ _count, ...l }) => ({ ...l, photos: _count.images, saves: _count.favorites, visitRequests: _count.visits, coverUrl: (l.images[0] && covers.get(l.images[0].storageKey)) || null, boost: boosts.get(l.id) ?? null })),
   };
 }
 

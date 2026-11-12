@@ -12,6 +12,7 @@ import { authApi } from "@/lib/auth-client";
 import { useAuthQuery } from "@/lib/use-auth-query";
 import { AddModal } from "./AddModal";
 import { ConfirmModal, EditModal, type Choice } from "./EditModals";
+import { DeleteModal } from "./DeleteModal";
 import { PropertyKpis } from "./PropertyKpis";
 import { PropertyTable } from "./PropertyTable";
 import type { PropertyRow, PropertyStats, Tab } from "./types";
@@ -35,9 +36,25 @@ export function PropertiesView() {
   const [choice, setChoice] = useState<Choice>("ACTIVE");
   const [confirming, setConfirming] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [deleting, setDeleting] = useState<PropertyRow | null>(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
 
   const openEdit = (r: PropertyRow) => { setEditing(r); setChoice(r.state === "ACTIVE" ? "ACTIVE" : "PENDING"); setConfirming(false); };
   const closeEdit = () => { setEditing(null); setConfirming(false); };
+
+  /** Delete with a reason and a note (from the Delete button or the Delete choice of Edit) */
+  async function remove(row: PropertyRow, input: { reasonCode: string; note?: string }) {
+    setDeleteBusy(true);
+    try {
+      const res = await authApi<{ tenantsMovedOut: number }>(`/admin/properties/${row.id}`, { method: "DELETE", body: input });
+      pages.remove(row.id);
+      toast("success", res.tenantsMovedOut > 0 ? t("toast.deletedTenants", { name: row.name, count: res.tenantsMovedOut }) : t("toast.deleted", { name: row.name }));
+      setDeleting(null); stats.reload();
+    } catch (e) {
+      toast("error", e instanceof ApiError && e.code === "NOT_FOUND" ? t("toast.gone") : t("toast.failed"));
+      if (e instanceof ApiError && e.code === "NOT_FOUND") { pages.remove(row.id); stats.reload(); setDeleting(null); }
+    } finally { setDeleteBusy(false); }
+  }
 
   /** the change is made only here, after "Yes" */
   async function apply() {
@@ -74,10 +91,11 @@ export function PropertiesView() {
 
       <PropertyKpis data={stats.data} state={stats.state} onRetry={stats.reload} />
 
-      <Reveal><PropertyTable tab={tab} onTab={setTab} pages={pages} onView={setViewing} onEdit={openEdit} /></Reveal>
+      <Reveal><PropertyTable tab={tab} onTab={setTab} pages={pages} onView={setViewing} onEdit={openEdit} onDelete={setDeleting} /></Reveal>
 
+      <DeleteModal row={deleting} busy={deleteBusy} onClose={() => setDeleting(null)} onConfirm={(r, i) => void remove(r, i)} />
       <ViewModal row={viewing} onClose={() => setViewing(null)} />
-      <EditModal row={editing} open={!!editing && !confirming} choice={choice} onChoice={setChoice} onSave={() => setConfirming(true)} onClose={closeEdit} />
+      <EditModal row={editing} open={!!editing && !confirming} choice={choice} onChoice={setChoice} onSave={() => { if (choice === "DELETE" && editing) { setDeleting(editing); closeEdit(); } else setConfirming(true); }} onClose={closeEdit} />
       <ConfirmModal row={editing} open={!!editing && confirming} choice={choice} onConfirm={apply} onBack={() => setConfirming(false)} />
       <AddModal open={adding} onClose={() => setAdding(false)} onCreated={() => { pages.reload(); stats.reload(); }} />
     </div>

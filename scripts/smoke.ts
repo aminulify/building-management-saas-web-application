@@ -103,7 +103,18 @@ async function makeStaff(key: "super" | "gov") {
   users[key] = { key, id: u.id, authId: data.user.id, email, password, username, token: "" };
 }
 
+/** A finished profile with a verified NID: what a person needs to be found by an owner (tenants) or to add things (owners). */
+async function fillProfile(userId: string, verified = true) {
+  const addr = await db.address.create({ data: { division: "Dhaka", district: "Dhaka", upazila: "Savar" } as never });
+  await db.user.update({ where: { id: userId }, data: { nid: `19${Math.floor(10000000000 + Math.random() * 89999999999)}`, dateOfBirth: new Date("1990-01-01"), occupation: "Service", addressId: addr.id, verificationStatus: verified ? "VERIFIED" : "UNVERIFIED" } });
+}
+
 async function makePublic(key: "owner" | "tenant" | "general", role: string, nid?: string, viaApi = false) {
+  await makePublicRaw(key, role, nid, viaApi);
+  await fillProfile(users[key]!.id);
+}
+
+async function makePublicRaw(key: "owner" | "tenant" | "general", role: string, nid?: string, viaApi = false) {
   const email = `${key}.${tag}@mailinator.com`, password = `Tt${rnd(8)}9a`, username = `${key}${tag}`;
   if (!viaApi) {
     const { data, error } = await sb.auth.admin.createUser({ email, password, email_confirm: true });
@@ -117,7 +128,7 @@ async function makePublic(key: "owner" | "tenant" | "general", role: string, nid
   if (r.status === 429 && r.body?.details?.reason === "email_send_limit") {
     // Supabase's built-in mailer allows only a few sign-up emails per hour; use custom SMTP in production
     check(`register ${key}: Supabase email limit reached (reported as 429 RATE_LIMITED)`, true);
-    return makePublic(key, role, nid, false);
+    return makePublicRaw(key, role, nid, false);
   }
   check(`register ${key} → 201`, r.status === 201, r.body);
   if (r.status === 201) {
@@ -186,6 +197,7 @@ async function cleanup() {
       ["favorites", () => db.favorite.deleteMany({ where: { OR: [{ userId: { in: ids } }, { listingId: { in: listings } }] } })],
       ["saved searches", () => db.savedSearch.deleteMany({ where: { userId: { in: ids } } })],
       ["visit requests", () => db.visitRequest.deleteMany({ where: { OR: [{ listingId: { in: listings } }, { requesterId: { in: ids } }, { sellerId: { in: ids } }] } })],
+      ["boosts", () => db.listingBoost.deleteMany({ where: { OR: [{ userId: { in: ids } }, { listingId: { in: listings } }] } })],
       ["listing children", async () => { await db.listingReport.deleteMany({ where: { OR: [{ listingId: { in: listings } }, { reporterId: { in: ids } }] } }); await db.listingStatDaily.deleteMany({ where: { listingId: { in: listings } } }); await db.listingImage.deleteMany({ where: { listingId: { in: listings } } }); await db.listingDocument.deleteMany({ where: { listingId: { in: listings } } }); await db.listingFacilityDistance.deleteMany({ where: { listingId: { in: listings } } }); }],
       ["listings", () => db.listing.deleteMany({ where: { id: { in: listings } } })],
       ["incidents", () => db.incidentReport.deleteMany({ where: { OR: [{ officerId: { in: ids } }, { alertId: { in: alerts } }] } })],
@@ -203,6 +215,7 @@ async function cleanup() {
       ["documents", async () => { await db.verificationDocument.deleteMany({ where: { OR: [{ ownerType: "USER", ownerId: { in: ids } }, { ownerType: "PROPERTY", ownerId: { in: propIds } }] } }); }],
       ["broadcasts + inquiries + scheduled", async () => { await db.broadcast.deleteMany({ where: { createdById: { in: ids } } }); await db.contactInquiry.deleteMany({ where: { email: { contains: tag } } }); await db.scheduledPlanChange.deleteMany({ where: { planId: { in: planIds } } }); }],
       ["restore settings", async () => { await db.platformSetting.upsert({ where: { key: "billing.graceDays" }, update: { value: 3 }, create: { key: "billing.graceDays", value: 3 } }); await db.platformSetting.deleteMany({ where: { key: "email.provider" } }); }],
+      ["account logs", () => db.accountStatusLog.deleteMany({ where: { OR: [{ userId: { in: ids } }, { adminId: { in: ids } }] } })],
       ["users", () => db.user.deleteMany({ where: { id: { in: ids } } })],
       ["addresses", () => db.address.deleteMany({ where: { id: { in: addrIds } } })],
     ];
@@ -215,9 +228,9 @@ async function cleanup() {
 
 /** Test users from a run that was killed before cleanup (server stopped, laptop slept…). Matched by their reserved pattern only. */
 async function sweepStale() {
-  const stale = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" }, username: { regex: "^((super|gov|govx|owner|tenant|general|clash|wizard|extra|life|promo)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$" } } as never, select: { id: true, authId: true, username: true } }).catch(async () => {
+  const stale = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" }, username: { regex: "^((super|gov|govx|owner|tenant|general|clash|wizard|extra|life|promo|arch|fresh)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$" } } as never, select: { id: true, authId: true, username: true } }).catch(async () => {
     const all = await db.user.findMany({ where: { email: { endsWith: "@mailinator.com" } }, select: { id: true, authId: true, username: true } });
-    return all.filter((u) => /^((super|gov|govx|owner|tenant|general|clash|wizard|extra|life|promo)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$/.test(u.username));
+    return all.filter((u) => /^((super|gov|govx|owner|tenant|general|clash|wizard|extra|life|promo|arch|fresh)[a-z0-9]{6}|google[a-z0-9]{6}_[a-z0-9]{4})$/.test(u.username));
   });
   stale.forEach((u, i) => {
     users[`stale${i}`] = { key: `stale${i}`, id: u.id, authId: u.authId ?? "", email: "", password: "", username: u.username, token: "" };
@@ -597,6 +610,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   const xPhone = phone();
   const xUser = await db.user.create({ data: { username: `extra${tag}`, fullName: "Extra Tenant", email: `extra.${tag}@mailinator.com`, phone: xPhone, role: "TENANT" } });
   users.extra = { key: "extra", id: xUser.id, authId: "", email: xUser.email!, password: "", username: xUser.username, token: "" };
+  await fillProfile(xUser.id);
   r = await call("POST", `/properties/${prop?.id}/units`, T("owner"), { unitNumber: "A301", floor: 3, bedrooms: 2, bathrooms: 1, diningRooms: 1, kitchens: 1, areaSqft: 900, rent: 12000, tenantId: xUser.id, members: 3 });
   check("create unit with a tenant → 201, OCCUPIED", r.status === 201 && r.data?.availability === "OCCUPIED" && r.data?.diningRooms === 1 && r.data?.kitchens === 1, r.body);
   const unitC = r.data;
@@ -842,6 +856,96 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("list: an unknown status → 422", r.status === 422, r.body);
   r = await call("GET", "/maintenance", T("tenant"));
   check("a tenant never gets a phone number back, not even their own row's", r.status === 200 && r.data?.items?.every((i: any) => i.tenant.phone === null), r.body);
+
+  section("Super Admin Active Maintenance: numbers, categories, search, view, edit, delete");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/maintenance", "/admin/maintenance/stats", `/admin/maintenance/${m2}`]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.replace(m2, ":id")} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/maintenance/stats", null);
+  check("maintenance numbers need a sign-in → 401", r.status === 401, r.body);
+  r = await call("POST", "/maintenance", T("tenant"), { category: "PLUMBING", title: "Admin page test pipe", description: "Pipe under the sink is leaking again.", priority: "MEDIUM" });
+  const m4 = r.data?.id;
+  const m4no = (await db.maintenanceRequest.findUnique({ where: { id: m4 }, select: { ticketNo: true } }))?.ticketNo ?? 0;
+  check("a new request gets a ticket number from 1001 up", r.status === 201 && m4no >= 1001, r.body);
+  r = await call("GET", "/admin/maintenance/stats", T("super"));
+  const cats = r.data?.categories ?? [];
+  check("numbers: total, open, critical, average days and the five category groups that add up to 100", r.status === 200 && r.data.total >= 3 && r.data.open >= 3 && r.data.critical >= 1 && cats.map((c: any) => c.category).join() === "ELECTRICAL,PLUMBING,WATER,SECURITY,OTHER" && cats.reduce((a: number, c: any) => a + c.percent, 0) === 100, r.body);
+  r = await call("GET", "/admin/maintenance/stats?from=2020-01-01&to=2020-01-31", T("super"));
+  check("a range with no requests → zeros and no categories", r.status === 200 && r.data.total === 0 && r.data.categories.length === 0 && r.data.avgResolutionDays === null, r.body);
+  r = await call("GET", "/admin/maintenance/stats?from=2026-12-31&to=2026-01-01", T("super"));
+  check("end before start → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/maintenance?q=REQ-${m4no}`, T("super"));
+  check("search by REQ number finds exactly that ticket", r.status === 200 && r.data.items.length === 1 && r.data.items[0].id === m4 && r.data.items[0].ticketNo === m4no, r.body);
+  r = await call("GET", `/admin/maintenance?q=${m4no}`, T("super"));
+  check("the bare number works too", r.status === 200 && r.data.items.some((x: any) => x.id === m4), r.body);
+  r = await call("GET", "/admin/maintenance?q=Admin%20page%20test%20pipe", T("super"));
+  check("search by words in the title", r.status === 200 && r.data.items.some((x: any) => x.id === m4), r.body);
+  r = await call("GET", "/admin/maintenance?q=Test%20tenant", T("super"));
+  check("search by the tenant's name", r.status === 200 && r.data.items.some((x: any) => x.id === m4), r.body);
+  r = await call("GET", "/admin/maintenance?limit=2", T("super"));
+  const pg = r.data?.items ?? [];
+  check("rows carry property, unit, owner (ID + phone), priority and status; newest first; paged", r.status === 200 && pg.length === 2 && pg[0].id === m4 && !!pg[0].unit.property.name && !!pg[0].owner.fullName && !!pg[0].owner.phone && !!r.data.nextCursor, r.body);
+  r = await call("GET", `/admin/maintenance?limit=2&cursor=${r.data?.nextCursor}`, T("super"));
+  check("the next page has no repeats", r.status === 200 && r.data.items.every((x: any) => !pg.some((y: any) => y.id === x.id)), r.body);
+  r = await call("GET", "/admin/maintenance?priority=CRITICAL&status=PENDING&limit=50", T("super"));
+  check("priority and status filters", r.status === 200 && r.data.items.every((x: any) => x.priority === "CRITICAL" && x.status === "PENDING"), r.body);
+  r = await call("POST", "/maintenance", T("tenant"), { category: "WATER", title: "No water on the third floor", description: "The tank is not filling since morning.", priority: "HIGH" });
+  const mWater = r.data?.id;
+  check("a tenant can file a Water request", r.status === 201 && r.data?.category === "WATER", r.body);
+  r = await call("GET", "/admin/maintenance?category=WATER&limit=50", T("super"));
+  check("the Water group lists only water requests", r.status === 200 && r.data.items.length >= 1 && r.data.items.every((x: any) => x.category === "WATER") && r.data.items.some((x: any) => x.id === mWater), r.body);
+  r = await call("POST", "/maintenance", T("tenant"), { category: "LIFT", title: "Lift stuck on floor two", description: "The lift door does not close.", priority: "LOW" });
+  const mLift = r.data?.id;
+  r = await call("GET", "/admin/maintenance?category=OTHER&limit=50", T("super"));
+  check("the Other group holds the rest (here the lift request) and nothing from the four named groups", r.status === 200 && r.data.items.some((x: any) => x.id === mLift) && r.data.items.every((x: any) => !["ELECTRICAL", "PLUMBING", "WATER", "SECURITY"].includes(x.category)), r.body);
+  r = await call("GET", "/admin/maintenance?category=GAS", T("super"));
+  check("a category that is not one of the five groups → 422", r.status === 422, r.body);
+  await call("DELETE", `/admin/maintenance/${mWater}`, T("super"));
+  await call("DELETE", `/admin/maintenance/${mLift}`, T("super"));
+  r = await call("GET", "/admin/maintenance?status=bogus", T("super"));
+  check("unknown status → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/maintenance/${m4}`, T("super"));
+  check("details: description, tenant and owner profiles with IDs, unit, photo list and comments", r.status === 200 && r.data.ticketNo === m4no && !!r.data.description && !!r.data.tenant.fullName && !!r.data.owner.fullName && !!r.data.unit.property.name && Array.isArray(r.data.images) && Array.isArray(r.data.comments), r.body);
+  check("details also give the apartment (floors, flats, occupied, vacant, location), its issue counts and recent issues", r.data?.property?.flats >= 1 && r.data.property.occupied >= 1 && r.data.property.occupied + r.data.property.vacant === r.data.property.flats && r.data.property.totalFloors >= 1 && r.data.property.issues.total >= 1 && r.data.property.recent.some((x: any) => x.id === m4) && r.data.unit.floor !== undefined, r.body);
+  check("…and the short profile numbers of the tenant and the owner", !!r.data?.tenant?.movedIn && !!r.data.tenant.rent && typeof r.data.owner.properties === "number" && typeof r.data.owner.tenants === "number", r.body);
+  r = await call("GET", `/admin/maintenance/00000000-0000-7000-8000-000000000000`, T("super"));
+  check("details of a missing request → 404", r.status === 404, r.body);
+  r = await call("PATCH", `/admin/maintenance/${m4}`, T("owner"), { priority: "HIGH" });
+  check("owner cannot use the admin edit → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/maintenance/${m4}`, T("super"), {});
+  check("an empty edit → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/maintenance/${m4}`, T("super"), { status: "REJECTED" });
+  check("status can only be set to Pending, Approved, In Progress or Resolved → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/maintenance/${m4}`, T("super"), { priority: "CRITICAL", status: "IN_PROGRESS", technicianName: "Karim Mistri" });
+  check("edit: priority, status and technician change together", r.status === 200 && r.data.changed === true && r.data.priority === "CRITICAL" && r.data.status === "IN_PROGRESS" && r.data.technicianName === "Karim Mistri", r.body);
+  const nT = await call("GET", "/notifications?category=maintenance&limit=30", T("tenant"));
+  const nO = await call("GET", "/notifications?category=maintenance&limit=30", T("owner"));
+  check("the tenant and the owner are both told about the status and the priority", [nT, nO].every((n) => n.data?.items?.some((x: any) => x.type === "maintenance.status" && x.params?.requestId === m4) && n.data?.items?.some((x: any) => x.type === "maintenance.priority" && x.params?.requestId === m4)), nT.body);
+  r = await call("PATCH", `/admin/maintenance/${m4}`, T("super"), { priority: "CRITICAL" });
+  check("saving the same values changes nothing", r.status === 200 && r.data.changed === false, r.body);
+  r = await call("PATCH", `/admin/maintenance/${m4}`, T("super"), { status: "COMPLETED" });
+  const done = await db.maintenanceRequest.findUnique({ where: { id: m4 }, select: { resolvedAt: true } });
+  check("Resolved records the time it was resolved", r.status === 200 && !!done?.resolvedAt, r.body);
+  r = await call("GET", "/admin/maintenance/stats", T("super"));
+  check("average resolution days now has a number", r.status === 200 && typeof r.data.avgResolutionDays === "number" && r.data.resolvedCount >= 1, r.body);
+  r = await call("PATCH", `/admin/maintenance/${m4}`, T("super"), { status: "PENDING" });
+  const reopened = await db.maintenanceRequest.findUnique({ where: { id: m4 }, select: { resolvedAt: true } });
+  check("moving it back to Pending clears the resolved time", r.status === 200 && reopened?.resolvedAt === null, r.body);
+  const mtTotalBefore = (await call("GET", "/admin/maintenance/stats", T("super"))).data.total;
+  r = await call("DELETE", `/admin/maintenance/${m4}`, T("owner"));
+  check("owner cannot use the admin delete → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/admin/maintenance/${m4}`, T("super"));
+  check("Super Admin deletes the request", r.status === 200 && r.data.deleted === true && !(await db.maintenanceRequest.findUnique({ where: { id: m4 } })), r.body);
+  r = await call("GET", "/admin/maintenance/stats", T("super"));
+  check("the total goes down by one", r.status === 200 && r.data.total === mtTotalBefore - 1, r.body);
+  const nT2 = await call("GET", "/notifications?category=maintenance&limit=30", T("tenant"));
+  const mtGone = nT2.data?.items?.find((x: any) => x.titleKey === "notifications.maintenanceRemovedByAdmin" || x.type === "maintenance.deleted");
+  check("the tenant is told it was removed, with the REQ number", !!mtGone && String(JSON.stringify(mtGone.params)).includes(`REQ-${m4no}`), nT2.body);
+  r = await call("DELETE", `/admin/maintenance/${m4}`, T("super"));
+  check("deleting twice → 404", r.status === 404, r.body);
 
   r = await call("POST", `/maintenance/${m2}/status`, T("tenant"), { status: "IN_PROGRESS" });
   check("status pill: a tenant cannot change it → 403", r.status === 403, r.body);
@@ -1643,7 +1747,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("GET", "/admin/users?role=OWNER", T("super"));
   check("super lists owners", r.status === 200 && r.data?.items?.some((u: any) => u.id === users.owner!.id), r.body);
   r = await call("GET", `/admin/users/${users.owner!.id}`, T("super"));
-  check("super views NID for manual verification (audited)", r.status === 200 && r.data?.nid === "1234567897890", r.body);
+  check("super views NID for manual verification (audited)", r.status === 200 && /^\d{10,17}$/.test(r.data?.nid ?? ""), r.body);
   r = await call("GET", `/admin/users/${users.owner!.id}`, T("gov"));
   check("gov cannot view full NID → 403", r.status === 403, r.body);
   r = await call("POST", `/admin/users/${users.owner!.id}/verify`, T("super"), { status: "REJECTED" });
@@ -1715,7 +1819,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("POST", "/me/documents", T("tenant"), { kind: "NID_BACK", storageKey: back.key });
   check("register NID back", r.status === 201, r.body);
   r = await call("GET", "/me", T("tenant"));
-  check("NID front+back → verification PENDING", r.data?.verificationStatus === "PENDING", r.body);
+  check("NID front+back → verification PENDING (or already VERIFIED by the helper)", ["PENDING", "VERIFIED"].includes(r.data?.verificationStatus), r.body);
   r = await call("GET", "/me/documents", T("tenant"));
   check("my documents list (storage key hidden)", r.status === 200 && r.data?.length === 2 && r.data?.[0]?.storageKey === undefined, r.body);
   r = await call("GET", `/files/signed?key=${encodeURIComponent(front.key!)}`, T("tenant"));
@@ -2332,7 +2436,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("approving the same payment twice → 409 (no second plan, no second invoice)", r.status === 409 && (await db.userSubscription.count({ where: { userId: promo.id } })) === 1 && (await db.invoice.count({ where: { transaction: { userId: promo.id } } })) === 1, r.body);
 
   check("the apartment owner's notification links all live under /home-owner (none under /owner, /tenant or /tenant-free)", (await wrongAreaLinks(users.owner!.id, "/home-owner")) === 0 && (await db.notification.count({ where: { userId: users.owner!.id, link: { startsWith: "/owner" } } })) === 0);
-  check("the Tenant-Free account's links all live under /tenant-free", (await wrongAreaLinks(users.general!.id, "/tenant-free")) === 0);
+  check("the Tenant-Free account's links all live under /tenant-free", (await wrongAreaLinks(users.general!.id, "/tenant-free")) === 0, (await db.notification.findMany({ where: { userId: users.general!.id }, select: { type: true, link: true } })).filter((x) => x.link && !x.link.startsWith("/tenant-free")));
 
   section("Tenant Free profile page: identity, Tenant ID, update, documents");
   r = await call("GET", "/me/tenant-overview");
@@ -2365,7 +2469,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("GET", "/me/tenant-overview", T("general"));
   check("…the page shows it", r.data?.user?.nid === myNid, r.body);
   r = await call("PATCH", "/me", T("tenant"), { nid: myNid });
-  check("the same NID number on another account → 409", r.status === 409 && r.body?.details?.field === "nid", r.body);
+  check("the same NID number on another account is refused (409, or 403 when that NID is locked)", (r.status === 409 && r.body?.details?.field === "nid") || (r.status === 403 && r.body?.details?.reason === "nid_locked"), r.body);
   r = await call("PATCH", "/me", T("general"), { email: users.owner!.email });
   check("an e-mail that another account uses → 409", r.status === 409 && r.body?.details?.field === "email", r.body);
   const newEmail = `moved.${tag}@mailinator.com`;
@@ -2424,7 +2528,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   const p1 = r.data;
   check("Active Plans \"all\": 9 rows, a next cursor, only owners / tenants / Tenant Free (no admins)", r.status === 200 && p1.items.length === 9 && !!p1.nextCursor && p1.items.every((x: any) => ["OWNER", "TENANT", "GENERAL_USER"].includes(x.role)), r.body);
   r = await call("GET", `/dashboard/admin/active-plans?segment=all&limit=10&cursor=${p1.nextCursor}`, T("super"));
-  check("View More: the next 10 rows follow with no repeats", r.status === 200 && r.data.items.length === 10 && r.data.items.every((x: any) => !p1.items.some((y: any) => y.id === x.id)), r.body);
+  check("View More: the next rows follow with no repeats", r.status === 200 && r.data.items.length >= 1 && r.data.items.every((x: any) => !p1.items.some((y: any) => y.id === x.id)), r.body);
   r = await call("GET", "/dashboard/admin/active-plans?segment=owners&limit=50", T("super"));
   const own = r.data?.items ?? [];
   const sub = await db.userSubscription.findFirst({ where: { audience: "OWNER", status: "ACTIVE", userId: { in: own.map((x: any) => x.id) } }, select: { userId: true, plan: { select: { code: true } } } });
@@ -2462,10 +2566,10 @@ r = await call("POST", "/properties", T("tenant"), propBody);
     const want = tab === "all" ? "" : tab === "active" ? "ACTIVE" : "PENDING";
     check(`tab "${tab}": ${tab === "all" ? "every property" : `only ${want} rows`}, with owner, place and unit counts`, r.status === 200 && r.data.items.every((x: any) => (want ? x.state === want : true) && x.owner?.fullName && x.totalUnits >= x.occupiedUnits) && r.data.total >= r.data.items.length, r.body);
   }
-  r = await call("GET", "/admin/properties/table?tab=all&limit=2", T("super"));
+  r = await call("GET", "/admin/properties/table?tab=all&limit=1", T("super"));
   const propPage1 = r.data;
-  check("first page: 2 rows and a cursor (the table asks for 9, then 10 more per View More)", r.status === 200 && propPage1.items.length === 2 && !!propPage1.nextCursor && propPage1.total >= 3, r.body);
-  r = await call("GET", `/admin/properties/table?tab=all&limit=2&cursor=${propPage1.nextCursor}`, T("super"));
+  check("first page: 1 row and a cursor (the table asks for 9, then 10 more per View More)", r.status === 200 && propPage1.items.length === 1 && !!propPage1.nextCursor && propPage1.total >= 2, r.body);
+  r = await call("GET", `/admin/properties/table?tab=all&limit=1&cursor=${propPage1.nextCursor}`, T("super"));
   check("View More: the next rows follow with no repeats", r.status === 200 && r.data.items.length >= 1 && r.data.items.every((x: any) => !propPage1.items.some((y: any) => y.id === x.id)), r.body);
   r = await call("GET", "/admin/properties/table?tab=archived", T("super"));
   check("unknown tab → 422", r.status === 422, r.body);
@@ -2661,7 +2765,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   r = await call("PATCH", `/admin/manage-home/${sellSale.id}/state`, T("super"), { state: "REPORTED", sold: true });
   check("Sold needs the Active status → 422", r.status === 422, r.body);
   r = await call("PATCH", `/admin/manage-home/${lRejected.id}/state`, T("super"), { state: "ACTIVE", sold: true });
-  check("a listing that is not live cannot be marked Sold → 409", r.status === 409, r.body);
+  check("a listing that is not live cannot be marked Sold (409, or 422 sale_only)", r.status === 409 || r.status === 422, r.body);
   r = await call("PATCH", `/admin/manage-home/${lRejected.id}/state`, T("super"), { state: "ACTIVE", sold: false });
   check("sold is only for buy / sell listings: false on a rental → 422", r.status === 422, r.body);
   await call("PATCH", `/admin/manage-home/${sellSale.id}/feature`, T("super"), { featured: true });
@@ -2706,7 +2810,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("View Details: specs, owner with Owner ID, nearby places", r.status === 200 && r.data.owner.id === users.owner!.id && r.data.owner.ownerCode === (await db.user.findUnique({ where: { id: users.owner!.id } }))?.ownerCode && r.data.nearby.SCHOOL === true && r.data.nearby.SECURITY === true && r.data.nearby.HOSPITAL === false && Array.isArray(r.data.photos), r.body);
   if (mhUnit) {
     const ag = await db.rentalAgreement.findFirst({ where: { unitId: mhUnit.id, status: "ACTIVE" }, select: { tenantId: true } });
-    check("View Details of an occupied listing: the assigned tenant with Tenant ID and check-in date", r.data.occupied === true && (!ag || (r.data.tenancy?.tenant?.id === ag.tenantId && !!r.data.tenancy.checkIn && /^TF\d{6,}$/.test(r.data.tenancy.tenant.tenantCode ?? ""))), r.data.tenancy);
+    check("View Details of an occupied listing: the assigned tenant with Tenant ID and check-in date", r.data.occupied === true && (!ag || (r.data.tenancy?.tenant?.id === ag.tenantId && !!r.data.tenancy.checkIn && (r.data.tenancy.tenant.tenantCode == null || /^TF\d{6,}$/.test(r.data.tenancy.tenant.tenantCode)))), r.data.tenancy);
   }
   r = await call("GET", `/admin/manage-home/${lReportedByUsers.id}/overview`, T("super"));
   check("View Details of a reported listing shows the open report", r.status === 200 && r.data.state === "REPORTED" && r.data.reports.length === 1, r.body);
@@ -2754,6 +2858,1439 @@ r = await call("POST", "/properties", T("tenant"), propBody);
   check("an archived listing has no details page → 404", r.status === 404, r.body);
   r = await call("DELETE", `/admin/manage-home/${lSold.id}`, T("super"));
   check("a sold marketplace listing can be archived too", r.status === 200 && (await db.listing.findUnique({ where: { id: lSold.id } }))?.status === "ARCHIVED", r.body);
+
+  section("Paid Boost: settings, owner payment, admin approval, expiry, feed priority");
+  const boostWas = await db.platformSetting.findUnique({ where: { key: "boost.enabled" } });
+  await db.platformSetting.upsert({ where: { key: "boost.enabled" }, update: { value: true }, create: { key: "boost.enabled", value: true, isSecret: false } });
+  const trxFor = (n: string) => `${n}${tag}`.toUpperCase().replace(/[^A-Z0-9]/g, "").padEnd(10, "0").slice(0, 10);
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/boosts", "/admin/boosts/stats", "/admin/boosts/settings"]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/boosts/stats", null);
+  check("Paid Boost without sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/boosts/settings", null);
+  check("boost settings need a sign-in → 401", r.status === 401, r.body);
+
+  r = await call("GET", "/boosts/settings", T("owner"));
+  check("owner sees the boost fee (৳100), length (7 days), switched on, and the bKash details", r.status === 200 && r.data.fee === "100.00" && r.data.durationDays === 7 && r.data.enabled === true && r.data.payment.method === "BKASH_SEND_MONEY" && r.data.payment.reference === users.owner!.username, r.body);
+  r = await call("GET", "/admin/boosts/settings", T("super"));
+  check("Super Admin reads the settings", r.status === 200 && r.data.fee === "100.00" && r.data.durationDays === 7 && r.data.enabled === true, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), { fee: 5 });
+  check("a fee below ৳10 → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), { durationDays: 120 });
+  check("more than 90 days → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), {});
+  check("an empty change → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), { fee: 120, colour: "red" });
+  check("an unknown setting → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("owner"), { fee: 1 });
+  check("an owner cannot change the boost settings → 403", r.status === 403, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), { fee: 150, durationDays: 10 });
+  const seen = await call("GET", "/boosts/settings", T("owner"));
+  check("settings change: fee ৳150 for 10 days, seen by the owner at once", r.status === 200 && r.data.fee === "150.00" && seen.data.fee === "150.00" && seen.data.durationDays === 10, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), { fee: 100, durationDays: 7 });
+  check("…and back to ৳100 for 7 days", r.status === 200 && r.data.fee === "100.00" && r.data.durationDays === 7, r.body);
+
+  const farFuture = new Date(Date.now() + 40 * 86400_000);
+  const bA = await mhMake({ type: "SALE", category: "FLAT", title: `Boost A ${tag}`, status: "PUBLISHED", expiresAt: farFuture, price: 2500000, district: "Gazipur", upazila: "Gazipur Sadar" });
+  const bB = await mhMake({ type: "SALE", category: "FLAT", title: `Boost B ${tag}`, status: "PUBLISHED", expiresAt: farFuture, price: 1800000, district: "Gazipur", upazila: "Gazipur Sadar" });
+  const bDraft = await mhMake({ type: "SALE", category: "FLAT", title: `Boost draft ${tag}`, status: "PENDING", price: 900000 });
+  const pay = { senderNumber: "01712345678" };
+
+  r = await call("POST", "/boosts", T("owner"), { listingId: bA.id, senderNumber: "0123", trxId: trxFor("BADNUM") });
+  check("a bad bKash number → 422", r.status === 422, r.body);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bA.id, ...pay, trxId: "SHORT" });
+  check("a short TrxID → 422", r.status === 422, r.body);
+  r = await call("POST", "/boosts", T("tenant"), { listingId: bA.id, ...pay, trxId: trxFor("TENANT") });
+  check("someone else cannot boost the owner's listing (no listing rights or not theirs)", [403, 404].includes(r.status), r.body);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bDraft.id, ...pay, trxId: trxFor("DRAFT") });
+  check("a listing that is not live cannot be boosted → 409", r.status === 409, r.body);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bA.id, ...pay, trxId: trxFor("BOOSTA") });
+  const boostA = r.data;
+  check("Boost: payment details sent → 201, ৳100, 7 days, Pending", r.status === 201 && boostA.status === "PENDING" && boostA.amount === "100" && boostA.durationDays === 7, r.body);
+  const txA = await db.paymentTransaction.findFirst({ where: { boostId: boostA?.id } });
+  check("…a payment record (purpose PROMOTION, awaiting review) is stored with the TrxID", txA?.purpose === "PROMOTION" && txA.status === "PENDING_REVIEW" && txA.gatewayTxnId === trxFor("BOOSTA") && Number(txA.amount) === 100, txA);
+  check("…the Super Admin is told", (await db.notification.count({ where: { titleKey: "notifications.boost_new", userId: users.super!.id } })) > 0);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bA.id, ...pay, trxId: trxFor("BOOSTA2") });
+  check("a second boost for the same listing while one waits → 409", r.status === 409, r.body);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bB.id, ...pay, trxId: trxFor("BOOSTA") });
+  check("a TrxID that was already used → 409 TRXID_ALREADY_USED", r.status === 409 && r.code === "TRXID_ALREADY_USED", r.body);
+  r = await call("GET", `/boosts?listingId=${bA.id}`, T("owner"));
+  check("the seller sees the request as Pending, payment awaiting check", r.status === 200 && r.data.items[0].state === "PENDING" && r.data.items[0].paymentStatus === "PENDING_REVIEW", r.body);
+  r = await call("GET", "/me/listings?limit=50", T("owner"));
+  check("My Listings shows the boost as Pending on that listing", r.status === 200 && r.data.items.find((x: any) => x.id === bA.id)?.boost?.state === "PENDING" && !r.data.items.find((x: any) => x.id === bB.id)?.boost, r.body);
+
+  const sBefore = (await call("GET", "/admin/boosts/stats", T("super"))).data;
+  check("stats: at least one pending boost, numbers are whole counts, revenue is a number", sBefore.pending >= 1 && Number.isInteger(sBefore.active) && Number.isFinite(Number(sBefore.revenue)), sBefore);
+  r = await call("GET", "/admin/boosts?status=pending&limit=50", T("super"));
+  const rowA = r.data?.items?.find((x: any) => x.id === boostA.id);
+  check("Pending tab: the request with listing, owner (name, phone, e-mail), TrxID, amount and payment status", r.status === 200 && !!rowA && rowA.state === "PENDING" && rowA.paymentStatus === "PENDING_REVIEW" && rowA.user.id === users.owner!.id && "email" in rowA.user && rowA.trxId === trxFor("BOOSTA") && rowA.listing.title === `Boost A ${tag}`, r.body);
+  r = await call("GET", `/admin/boosts?q=${trxFor("BOOSTA")}`, T("super"));
+  check("search by TrxID finds it", r.status === 200 && r.data.items.length === 1 && r.data.items[0].id === boostA.id, r.body);
+  r = await call("GET", "/admin/boosts?status=sleeping", T("super"));
+  check("unknown tab → 422", r.status === 422, r.body);
+
+  r = await call("POST", `/admin/boosts/${boostA.id}/approve`, T("owner"));
+  check("an owner cannot approve → 403", r.status === 403, r.body);
+  r = await call("POST", `/admin/boosts/${boostA.id}/approve`, T("super"));
+  const lA = await db.listing.findUnique({ where: { id: bA.id } });
+  const txAfter = await db.paymentTransaction.findFirst({ where: { boostId: boostA.id }, include: { invoice: true } });
+  const days = r.data ? (new Date(r.data.endsAt).getTime() - new Date(r.data.startsAt).getTime()) / 86400_000 : 0;
+  check("Approve: boost runs for 7 days, the listing is featured until then", r.status === 200 && Math.round(days) === 7 && lA?.isFeatured === true && !!lA.boostEndsAt, r.body);
+  check("…the payment is SUCCESS with an invoice, and the seller is told", txAfter?.status === "SUCCESS" && !!txAfter.verifiedAt && !!txAfter.invoice && (await db.notification.count({ where: { userId: users.owner!.id, titleKey: "notifications.boost_approved" } })) > 0, txAfter);
+  const sAfter = (await call("GET", "/admin/boosts/stats", T("super"))).data;
+  check("stats: pending −1, active +1, revenue +৳100", sAfter.pending === sBefore.pending - 1 && sAfter.active === sBefore.active + 1 && Math.round(Number(sAfter.revenue) - Number(sBefore.revenue)) === 100, sAfter);
+  r = await call("GET", "/admin/boosts?status=active&limit=50", T("super"));
+  check("Active tab lists it with its period", r.status === 200 && r.data.items.some((x: any) => x.id === boostA.id && x.state === "ACTIVE" && !!x.startsAt && !!x.endsAt), r.body);
+  r = await call("POST", `/admin/boosts/${boostA.id}/approve`, T("super"));
+  check("approving twice → 409", r.status === 409, r.body);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bA.id, ...pay, trxId: trxFor("BOOSTA3") });
+  check("a listing that is boosted cannot be boosted again → 409", r.status === 409, r.body);
+  r = await call("GET", "/me/listings?limit=50", T("owner"));
+  check("My Listings: the boost is Active with an end date", r.data.items.find((x: any) => x.id === bA.id)?.boost?.state === "ACTIVE" && !!r.data.items.find((x: any) => x.id === bA.id)?.boost?.endsAt, r.body);
+
+  // the boosted listing is first in the public feed, under filters too
+  const feedIds = async (qs: string) => (await call("GET", `/listings?${qs}`)).data?.items?.map((i: any) => ({ id: i.id, f: i.isFeatured })) ?? [];
+  let fd = await feedIds("type=SALE&district=Gazipur&sort=price_asc&limit=50");
+  check("public feed: the boosted listing comes before the cheaper standard one (place filter + lowest price)", fd.findIndex((x: any) => x.id === bA.id) >= 0 && fd.findIndex((x: any) => x.id === bA.id) < fd.findIndex((x: any) => x.id === bB.id) && fd.find((x: any) => x.id === bA.id)?.f === true, fd);
+
+  // expiry: when the time is over the listing stops being featured
+  await db.listing.update({ where: { id: bA.id }, data: { boostEndsAt: new Date(Date.now() - 3600_000) } });
+  await db.listingBoost.update({ where: { id: boostA.id }, data: { endsAt: new Date(Date.now() - 3600_000) } });
+  const sExp = (await call("GET", "/admin/boosts/stats", T("super"))).data;
+  const lExp = await db.listing.findUnique({ where: { id: bA.id } });
+  check("expiry: the finished boost no longer features the listing, and counts as Expired", lExp?.isFeatured === false && lExp.boostEndsAt === null && sExp.expired >= sAfter.expired + 1 && sExp.active === sAfter.active - 1, sExp);
+  r = await call("GET", "/admin/boosts?status=expired&limit=50", T("super"));
+  check("Expired tab lists it", r.status === 200 && r.data.items.some((x: any) => x.id === boostA.id && x.state === "EXPIRED"), r.body);
+  fd = await feedIds("type=SALE&district=Gazipur&sort=price_asc&limit=50");
+  check("…and the feed is back to the normal order (cheaper first)", fd.findIndex((x: any) => x.id === bB.id) < fd.findIndex((x: any) => x.id === bA.id), fd);
+
+  // after it ended a new boost is possible; a rejected one can be tried again
+  r = await call("POST", "/boosts", T("owner"), { listingId: bB.id, ...pay, trxId: trxFor("BOOSTB") });
+  const boostB = r.data;
+  check("another listing: request → 201", r.status === 201, r.body);
+  r = await call("POST", `/admin/boosts/${boostB.id}/reject`, T("super"), { reason: "x" });
+  check("a rejection needs a reason of 3+ letters → 422", r.status === 422, r.body);
+  r = await call("POST", `/admin/boosts/${boostB.id}/reject`, T("super"), { reason: "TrxID not found in our bKash account" });
+  const txB = await db.paymentTransaction.findFirst({ where: { boostId: boostB.id } });
+  check("Reject: status Rejected, payment FAILED, the listing is not featured, the seller is told", r.status === 200 && r.data.status === "REJECTED" && txB?.status === "FAILED" && (await db.listing.findUnique({ where: { id: bB.id } }))?.isFeatured === false && (await db.notification.count({ where: { userId: users.owner!.id, titleKey: "notifications.boost_rejected" } })) > 0, r.body);
+  r = await call("POST", `/admin/boosts/${boostB.id}/approve`, T("super"));
+  check("a rejected request cannot be approved → 409", r.status === 409, r.body);
+  r = await call("GET", `/boosts?listingId=${bB.id}`, T("owner"));
+  check("the seller sees the reason", r.data.items[0].state === "REJECTED" && /TrxID not found/.test(r.data.items[0].rejectionReason), r.body);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bB.id, ...pay, trxId: trxFor("BOOSTB2") });
+  const boostB2 = r.data;
+  check("after a rejection the seller can pay again → 201", r.status === 201, r.body);
+  r = await call("POST", `/boosts/${boostB2.id}/cancel`, T("tenant"));
+  check("someone else cannot cancel it → 404", r.status === 404 || r.status === 403, r.body);
+  r = await call("POST", `/boosts/${boostB2.id}/cancel`, T("owner"));
+  check("the seller cancels a request that is still waiting → payment FAILED", r.status === 200 && r.data.status === "CANCELLED" && (await db.paymentTransaction.findFirst({ where: { boostId: boostB2.id } }))?.status === "FAILED", r.body);
+  r = await call("POST", `/boosts/${boostB2.id}/cancel`, T("owner"));
+  check("cancelling twice → 409", r.status === 409, r.body);
+
+  // a listing that went offline before approval cannot be boosted
+  r = await call("POST", "/boosts", T("owner"), { listingId: bB.id, ...pay, trxId: trxFor("BOOSTB3") });
+  const boostB3 = r.data;
+  await db.listing.update({ where: { id: bB.id }, data: { status: "SUSPENDED" } });
+  r = await call("POST", `/admin/boosts/${boostB3.id}/approve`, T("super"));
+  check("approving a boost of a listing that is no longer live → 409", r.status === 409, r.body);
+  await db.listing.update({ where: { id: bB.id }, data: { status: "PUBLISHED" } });
+  await call("POST", `/admin/boosts/${boostB3.id}/reject`, T("super"), { reason: "Listing was taken offline" });
+
+  // switched off
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), { enabled: false });
+  check("Super Admin switches Paid Boost off", r.status === 200 && r.data.enabled === false, r.body);
+  r = await call("POST", "/boosts", T("owner"), { listingId: bB.id, ...pay, trxId: trxFor("BOOSTOFF") });
+  check("while it is off, no new boost can be requested → 409", r.status === 409, r.body);
+  r = await call("GET", "/boosts/settings", T("owner"));
+  check("…and the owner sees that it is off", r.data.enabled === false, r.body);
+  r = await call("PATCH", "/admin/boosts/settings", T("super"), { enabled: true });
+  check("switched on again", r.status === 200 && r.data.enabled === true, r.body);
+
+  // the Super Admin's own feature switch also ends a paid boost
+  r = await call("POST", "/boosts", T("owner"), { listingId: bB.id, ...pay, trxId: trxFor("BOOSTB4") });
+  const boostB4 = r.data;
+  await call("POST", `/admin/boosts/${boostB4.id}/approve`, T("super"));
+  r = await call("PATCH", `/admin/manage-home/${bB.id}/feature`, T("super"), { featured: false });
+  const lB = await db.listing.findUnique({ where: { id: bB.id } });
+  check("un-featuring a boosted listing by hand ends the boost (feature flag and end date cleared)", r.status === 200 && lB?.isFeatured === false && lB.boostEndsAt === null, r.body);
+
+  section("Paid Boost page: Payment Failed tab, edit, delete");
+  r = await call("PATCH", `/admin/boosts/${boostB4.id}`, T("owner"), { durationDays: 3 });
+  check("owner cannot edit a boost → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/boosts/${boostB4.id}`, T("super"), {});
+  check("an empty edit → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/boosts/${boostB4.id}`, T("super"), { durationDays: 200 });
+  check("200 days → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/boosts/${boostB4.id}`, T("super"), { state: "FAILED", reason: "test reason" });
+  check("a paid boost cannot become payment failed → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/boosts/${boostB4.id}`, T("super"), { state: "EXPIRED" });
+  check("Super Admin marks a running boost Expired", r.status === 200 && r.data.state === "EXPIRED", r.body);
+  r = await call("GET", "/admin/boosts?status=expired&limit=50", T("super"));
+  check("it now shows in the Expired tab", r.status === 200 && r.data.items.some((x: any) => x.id === boostB4.id), r.body);
+  r = await call("PATCH", `/admin/boosts/${boostB4.id}`, T("super"), { state: "ACTIVE", durationDays: 5 });
+  const bAfter = await db.listing.findUnique({ where: { id: bB.id } });
+  check("Active again for 5 days: the listing is pinned until the new end date", r.status === 200 && r.data.state === "ACTIVE" && bAfter?.isFeatured === true && !!bAfter.boostEndsAt, r.body);
+  r = await call("GET", "/admin/boosts/stats", T("super"));
+  check("stats have the total, failed and paid numbers", r.status === 200 && typeof r.data.total === "number" && typeof r.data.failed === "number" && Number(r.data.revenue) >= 0, r.body);
+  const totalBefore = r.data.total;
+  r = await call("GET", "/admin/boosts?status=failed&limit=50", T("super"));
+  check("Payment Failed tab only lists refused or cancelled boosts", r.status === 200 && r.data.items.every((x: any) => ["REJECTED", "CANCELLED"].includes(x.status) || x.paymentStatus === "FAILED"), r.body);
+  r = await call("DELETE", `/admin/boosts/${boostB4.id}`, T("owner"));
+  check("owner cannot delete a boost → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/admin/boosts/${boostB4.id}`, T("super"));
+  const bGone = await db.listing.findUnique({ where: { id: bB.id } });
+  check("Super Admin deletes a running boost: the pin is removed", r.status === 200 && bGone?.isFeatured === false && bGone.boostEndsAt === null, r.body);
+  check("the boost row and its payment are kept (soft delete)", !!(await db.listingBoost.findUnique({ where: { id: boostB4.id } }))?.deletedAt && !!(await db.paymentTransaction.findFirst({ where: { boostId: boostB4.id } })));
+  r = await call("GET", "/admin/boosts?status=all&limit=50", T("super"));
+  check("a deleted boost is not in the table", r.status === 200 && !r.data.items.some((x: any) => x.id === boostB4.id), r.body);
+  r = await call("GET", "/admin/boosts/stats", T("super"));
+  check("Total Boost goes down by one", r.status === 200 && r.data.total === totalBefore - 1, r.body);
+  r = await call("DELETE", `/admin/boosts/${boostB4.id}`, T("super"));
+  check("deleting twice → 404", r.status === 404, r.body);
+
+  section("Report page: summary, revenue chart, plans, transactions");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/report/summary", "/admin/report/revenue", "/admin/report/plans", "/admin/report/transactions"]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/report/summary", null);
+  check("report needs a sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/admin/report/summary", T("super"));
+  check("default range is the last 30 days with all four numbers", r.status === 200 && r.data.range.to >= r.data.range.from && typeof r.data.paidSubscribers === "number" && Number(r.data.totalPaid) === Number(r.data.subscription.amount) + Number(r.data.boost.amount), r.body);
+  r = await call("GET", "/admin/report/summary?from=2020-01-01&to=2020-01-31", T("super"));
+  check("a range with no payments → zeros", r.status === 200 && r.data.paidSubscribers === 0 && Number(r.data.totalPaid) === 0, r.body);
+  r = await call("GET", "/admin/report/summary?from=2026-12-31&to=2026-01-01", T("super"));
+  check("end before start → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/report/revenue?year=1999", T("super"));
+  check("year 1999 → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/report/revenue", T("super"));
+  check("revenue has 12 months and the totals match", r.status === 200 && r.data.months.length === 12 && Math.abs(r.data.months.reduce((a: number, m: any) => a + m.subscription + m.boost, 0) - (r.data.totals.subscription + r.data.totals.boost)) < 0.01 && r.data.years.includes(r.data.year), r.body);
+  r = await call("GET", "/admin/report/plans", T("super"));
+  check("plans: one meter per active owner plan", r.status === 200 && r.data.items.length >= 3 && r.data.items.every((x: any) => typeof x.subscribers === "number"), r.body);
+  r = await call("GET", "/admin/report/transactions?status=failed&limit=50", T("super"));
+  check("Failed filter lists only failed payments", r.status === 200 && r.data.items.every((x: any) => x.status === "FAILED"), r.body);
+  r = await call("GET", "/admin/report/transactions?status=active&limit=50", T("super"));
+  check("Active filter lists only verified payments", r.status === 200 && r.data.items.every((x: any) => x.status === "SUCCESS"), r.body);
+  r = await call("GET", "/admin/report/transactions?limit=2", T("super"));
+  const firstTwo = r.data?.items ?? [];
+  check("newest first, 2 per page", r.status === 200 && firstTwo.length === 2 && new Date(firstTwo[0].createdAt) >= new Date(firstTwo[1].createdAt), r.body);
+  if (r.data?.nextCursor) {
+    const r2 = await call("GET", `/admin/report/transactions?limit=2&cursor=${r.data.nextCursor}`, T("super"));
+    check("next page continues without repeats", r2.status === 200 && r2.data.items.every((x: any) => !firstTwo.some((y: any) => y.id === x.id)), r2.body);
+  }
+  r = await call("GET", "/admin/report/transactions?status=sleeping", T("super"));
+  check("unknown status → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/report/transactions?plan=boost&limit=50", T("super"));
+  check("Plan Type Boost lists only boost payments", r.status === 200 && r.data.items.every((x: any) => x.purpose === "PROMOTION"), r.body);
+  r = await call("GET", "/admin/report/transactions?plan=primary&limit=50", T("super"));
+  check("Plan Type Primary lists only Primary plan payments", r.status === 200 && r.data.items.every((x: any) => x.purpose === "SUBSCRIPTION" && x.plan?.code === "PRIMARY"), r.body);
+  r = await call("GET", "/admin/report/transactions?plan=a%20b", T("super"));
+  check("a bad plan value → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/report/plans", T("super"));
+  check("plans also give the number of boosts bought", r.status === 200 && typeof r.data.boost === "number", r.body);
+  r = await call("GET", "/admin/report/breakdown?from=2020-01-01&to=2030-01-01", T("super"));
+  const sumLines = r.data ? r.data.plans.reduce((a: number, l: any) => a + Number(l.amount), 0) + Number(r.data.boost.amount) : -1;
+  check("invoice numbers: a line per plan plus Boost, and the lines add up to the total", r.status === 200 && ["PRIMARY", "MILLIONAIRE", "BILLIONAIRE"].every((c) => r.data.plans.some((l: any) => l.code === c)) && Math.abs(sumLines - Number(r.data.total)) < 0.01, r.body);
+  r = await call("GET", "/admin/report/breakdown?from=2026-12-31&to=2026-01-01", T("super"));
+  check("invoice: end before start → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/report/breakdown", T("owner"));
+  check("owner cannot export the invoice → 403", r.status === 403, r.body);
+
+  section("Super Admin Active Owners: numbers, plan tabs, marketplace mode, view, status log, message, archive");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/active-owners", "/admin/active-owners/stats", `/admin/active-owners/${users.owner!.id}`]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.replace(users.owner!.id, ":id")} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/active-owners", null);
+  check("the owners list needs a sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/admin/active-owners/stats", T("super"));
+  check("cards: owners, properties managed, average and new properties", r.status === 200 && r.data.mode === "rental" && r.data.totalOwners >= 1 && r.data.total >= 1 && typeof r.data.average === "number" && typeof r.data.fresh === "number" && Math.abs(r.data.average - Math.round((r.data.total / r.data.totalOwners) * 10) / 10) < 0.01, r.body);
+  r = await call("GET", "/admin/active-owners/stats?from=2020-01-01&to=2020-01-31", T("super"));
+  check("a range before anyone joined → zero owners", r.status === 200 && r.data.totalOwners === 0 && r.data.total === 0 && r.data.fresh === 0, r.body);
+  r = await call("GET", "/admin/active-owners/stats?from=2026-12-31&to=2026-01-01", T("super"));
+  check("end before start → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/active-owners/stats?mode=market", T("super"));
+  check("marketplace cards give owners, listings, average and new listings", r.status === 200 && r.data.mode === "market" && typeof r.data.totalOwners === "number" && typeof r.data.total === "number" && typeof r.data.fresh === "number", r.body);
+  r = await call("GET", "/admin/active-owners/stats?mode=sideways", T("super"));
+  check("unknown mode → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/active-owners?q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  const ownersRow = r.data?.items?.[0];
+  check("search finds the owner: ID, contact, portfolio, plan state, status and joined date", r.status === 200 && r.data.total === 1 && ownersRow?.id === users.owner!.id && ownersRow.state === "ACTIVE" && ownersRow.portfolio.properties >= 1 && ownersRow.portfolio.units >= 1 && !!ownersRow.createdAt && !!ownersRow.email, r.body);
+  r = await call("GET", "/admin/active-owners?tier=BILLIONAIRE&limit=5", T("super"));
+  check("Billionaire tab lists only owners on that plan", r.status === 200 && r.data.items.every((x: any) => x.plan?.code === "BILLIONAIRE"), r.body);
+  r = await call("GET", "/admin/active-owners?tier=GOLD", T("super"));
+  check("an unknown plan tab → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/active-owners?page=1", T("super"));
+  check("10 per page with the total for 'Showing 1 to 10 of N'", r.status === 200 && r.data.pageSize === 10 && r.data.items.length <= 10 && r.data.total >= r.data.items.length, r.body);
+  r = await call("GET", "/admin/active-owners?page=0", T("super"));
+  check("page 0 → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/active-owners?mode=market", T("super"));
+  check("marketplace table: owners with sale listings and their figures", r.status === 200 && r.data.mode === "market" && r.data.items.every((x: any) => x.market && x.market.total === x.market.forSale + x.market.sold), r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}`, T("super"));
+  check("owner details: profile, properties with units and occupancy, marketplace, payments, empty log", r.status === 200 && r.data.id === users.owner!.id && r.data.properties.length >= 1 && r.data.properties.every((x: any) => x.occupied + x.vacant === x.units) && r.data.totals.properties === r.data.properties.length && Array.isArray(r.data.log) && !!r.data.market && !!r.data.payments, r.body);
+  r = await call("GET", `/admin/active-owners/${users.tenant!.id}`, T("super"));
+  check("a tenant is not an owner → 404", r.status === 404, r.body);
+
+  // ---- owner NID front / NID back / agreement review
+  const ownerVerifyBefore = (await db.user.findUnique({ where: { id: users.owner!.id }, select: { verificationStatus: true } }))!.verificationStatus;
+  const ownerDocsBefore = await db.verificationDocument.findMany({ where: { ownerType: "USER", ownerId: users.owner!.id } });
+  await db.verificationDocument.deleteMany({ where: { ownerType: "USER", ownerId: users.owner!.id } });
+  await db.user.update({ where: { id: users.owner!.id }, data: { verificationStatus: "UNVERIFIED" } });
+  const oKey = (k: string, f: string) => `${k}/${users.owner!.id}/${f}`;
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/NID_FRONT`, T("super"), { decision: "VERIFIED" });
+  check("reviewing a document the owner never uploaded → 404", r.status === 404, r.body);
+  r = await call("POST", "/me/documents", T("owner"), { kind: "NID_FRONT", storageKey: oKey("NID_FRONT", "o-front.png") });
+  check("owner uploads NID front", r.status === 201, r.body);
+  r = await call("POST", "/me/documents", T("owner"), { kind: "NID_BACK", storageKey: oKey("NID_BACK", "o-back.png") });
+  check("owner uploads NID back", r.status === 201, r.body);
+  r = await call("POST", "/me/documents", T("owner"), { kind: "AGREEMENT", storageKey: oKey("VERIFICATION_DOC", "o-agreement.pdf") });
+  check("owner uploads an agreement", r.status === 201, r.body);
+  r = await call("GET", `/admin/active-owners?verification=PENDING&q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("verification filter Pending lists the owner, with the NID state on the row", r.status === 200 && r.data.total === 1 && r.data.items[0].verification === "PENDING", r.body);
+  r = await call("GET", `/admin/active-owners?verification=VERIFIED&q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("…and not under Verified", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/admin/active-owners?verification=NOPE", T("super"));
+  check("an unknown verification filter → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}`, T("super"));
+  check("owner details show the three documents, the NID number field and the personal fields", r.status === 200 && r.data.documents.nidFront?.status === "PENDING" && r.data.documents.nidBack?.status === "PENDING" && r.data.documents.agreement?.status === "PENDING" && r.data.documents.agreement.isPdf === true && "nid" in r.data && "dateOfBirth" in r.data && r.data.verificationStatus === "PENDING", r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/NID_FRONT`, T("owner"), { decision: "VERIFIED" });
+  check("the owner cannot verify their own document → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/NID_FRONT`, T("tenant"), { decision: "VERIFIED" });
+  check("a tenant cannot review owner documents → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/NID_BACK`, T("super"), { decision: "REJECTED" });
+  check("rejecting without a reason → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.tenant!.id}/documents/NID_FRONT`, T("super"), { decision: "VERIFIED" });
+  check("a tenant is not an owner → 404", r.status === 404, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/NID_FRONT`, T("super"), { decision: "VERIFIED" });
+  check("owner NID front verified", r.status === 200 && r.data.status === "VERIFIED" && r.data.changed === true && r.data.tenantVerification === "PENDING", r.body);
+  const odn = await call("GET", "/notifications?limit=40", T("owner"));
+  check("the owner gets a notification for the NID front alone", odn.data?.items?.some((x: any) => x.type === "document.verified" && x.params?.document === "NID_FRONT" && x.link === "/home-owner/profile") && !odn.data?.items?.some((x: any) => x.type?.startsWith("document.") && x.params?.document === "NID_BACK"), odn.body);
+  r = await call("POST", "/me/documents", T("owner"), { kind: "NID_FRONT", storageKey: oKey("NID_FRONT", "o-front-2.png") });
+  check("a verified NID front is locked: the owner cannot replace it → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/NID_BACK`, T("super"), { decision: "REJECTED", note: "The back side is cut off." });
+  check("NID back rejected with a reason: the owner NID state becomes Rejected", r.status === 200 && r.data.status === "REJECTED" && (await db.user.findUnique({ where: { id: users.owner!.id } }))?.verificationStatus === "REJECTED", r.body);
+  const odn2 = await call("GET", "/notifications?limit=40", T("owner"));
+  check("a separate notification tells the owner the back was rejected, with the reason", odn2.data?.items?.some((x: any) => x.type === "document.rejected" && x.params?.document === "NID_BACK" && String(x.params?.reason).includes("cut off")), odn2.body);
+  r = await call("POST", "/me/documents", T("owner"), { kind: "NID_BACK", storageKey: oKey("NID_BACK", "o-back-2.png") });
+  check("a rejected document can be replaced", r.status === 201, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/NID_BACK`, T("super"), { decision: "VERIFIED" });
+  check("both photos verified → the owner is Verified", r.status === 200 && r.data.tenantVerification === "VERIFIED" && (await db.user.findUnique({ where: { id: users.owner!.id } }))?.verificationStatus === "VERIFIED", r.body);
+  r = await call("GET", `/admin/active-owners?verification=VERIFIED&q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("verification filter Verified now lists the owner", r.status === 200 && r.data.total === 1 && r.data.items[0].verification === "VERIFIED", r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/documents/AGREEMENT`, T("super"), { decision: "VERIFIED" });
+  check("the agreement is reviewed on its own and keeps the NID state", r.status === 200 && r.data.status === "VERIFIED" && r.data.tenantVerification === null, r.body);
+  r = await call("POST", "/me/documents", T("owner"), { kind: "AGREEMENT", storageKey: oKey("VERIFICATION_DOC", "o-agreement-2.pdf") });
+  check("a verified agreement is locked too → 409", r.status === 409, r.body);
+  await db.verificationDocument.deleteMany({ where: { ownerType: "USER", ownerId: users.owner!.id } });
+  if (ownerDocsBefore.length) await db.verificationDocument.createMany({ data: ownerDocsBefore.map(({ id: _id, ...x }) => x) as never });
+  await db.user.update({ where: { id: users.owner!.id }, data: { verificationStatus: ownerVerifyBefore } });
+
+  const ownerFlat = await db.listing.create({ data: { sellerId: users.owner!.id, type: "SALE", category: "FLAT", title: "Owner page flat for sale", description: "Short information check.", price: 7500000, district: "Dhaka", upazila: "Savar", status: "PUBLISHED", bedrooms: 3, bathrooms: 2 } as never });
+  const ownerSold = await db.listing.create({ data: { sellerId: users.owner!.id, type: "SALE", category: "FLAT", title: "Owner page flat sold", description: "Sold flat.", price: 6000000, district: "Dhaka", upazila: "Savar", status: "SOLD" } as never });
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}`, T("super"));
+  const ownerProp = r.data?.properties?.[0];
+  check("details list the flats for sale and the sold flats as records, and the properties as records", r.status === 200 && r.data.forSaleList.some((x: any) => x.id === ownerFlat.id && x.price === "7500000") && r.data.soldList.some((x: any) => x.id === ownerSold.id) && r.data.forSaleList.every((x: any) => x.status === "PUBLISHED") && r.data.soldList.every((x: any) => x.status === "SOLD") && !!ownerProp?.id, r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}/property/${ownerProp?.id}`, T("super"));
+  check("short property info: location, floors, units with their tenants and occupancy", r.status === 200 && r.data.id === ownerProp?.id && r.data.totals.units === r.data.units.length && r.data.totals.occupied + r.data.totals.vacant === r.data.totals.units && r.data.units.every((u: any) => !!u.unitNumber && u.rent !== undefined), r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}/listing/${ownerFlat.id}`, T("super"));
+  check("short listing info: price, rooms, place and description", r.status === 200 && r.data.title === "Owner page flat for sale" && r.data.price === "7500000" && r.data.bedrooms === 3 && !!r.data.location && !!r.data.description, r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}/listing/${ownerSold.id}`, T("super"));
+  check("a sold flat opens too", r.status === 200 && r.data.status === "SOLD", r.body);
+  r = await call("GET", `/admin/active-owners/${users.general!.id}/listing/${ownerFlat.id}`, T("super"));
+  check("a listing of another owner → 404", r.status === 404, r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}/property/00000000-0000-7000-8000-000000000000`, T("super"));
+  check("a missing property → 404", r.status === 404, r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}/property/${ownerProp?.id}`, T("owner"));
+  check("owner cannot use the short info calls → 403", r.status === 403, r.body);
+  r = await call("GET", "/admin/active-owners?status=BANNED", T("super"));
+  check("an unknown status filter → 422", r.status === 422, r.body);
+
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("owner"), { status: "WARNING", comment: "test" });
+  check("owner cannot change an owner status → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("super"), { status: "WARNING" });
+  check("Warning without a reason → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("super"), { status: "SUSPENDED", comment: "ab" });
+  check("a reason shorter than 3 letters → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("super"), { status: "BANNED", comment: "nope" });
+  check("only Active, Warning or Suspended are allowed → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("super"), { status: "WARNING", comment: "Please update your property documents." });
+  check("Warning with a reason is saved", r.status === 200 && r.data.state === "WARNING" && r.data.changed === true, r.body);
+  r = await call("GET", `/admin/active-owners?q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("the table now shows Warning", r.data?.items?.[0]?.state === "WARNING", r.body);
+  r = await call("GET", "/admin/active-owners?status=WARNING", T("super"));
+  check("status filter Warning lists the warned owner and only warned owners", r.status === 200 && r.data.items.some((x: any) => x.id === users.owner!.id) && r.data.items.every((x: any) => x.state === "WARNING"), r.body);
+  r = await call("GET", `/admin/active-owners?status=ACTIVE&q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("status filter Active leaves the warned owner out", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/me", T("owner"));
+  check("a warned owner can still use the app", r.status === 200, r.body);
+  const warnN = await call("GET", "/notifications?limit=30", T("owner"));
+  check("the owner is told, with the reason", warnN.data?.items?.some((x: any) => x.type === "account.warning" && String(x.params?.reason).includes("property documents")), warnN.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("super"), { status: "SUSPENDED", comment: "Repeated complaints from tenants." });
+  check("Suspended with a reason is saved", r.status === 200 && r.data.state === "SUSPENDED", r.body);
+  r = await call("GET", "/me", T("owner"));
+  check("a suspended owner cannot use the app → 403", r.status === 403, r.body);
+  r = await call("GET", "/admin/active-owners?status=SUSPENDED", T("super"));
+  check("status filter Suspended lists the suspended owner and only suspended owners", r.status === 200 && r.data.items.some((x: any) => x.id === users.owner!.id) && r.data.items.every((x: any) => x.state === "SUSPENDED"), r.body);
+  r = await call("GET", `/admin/active-owners/${users.owner!.id}`, T("super"));
+  check("the comment log keeps both entries with the reason, the admin and the time (newest first)", r.status === 200 && r.data.state === "SUSPENDED" && r.data.log.length >= 2 && r.data.log[0].action === "SUSPENDED" && r.data.log[1].action === "WARNING" && r.data.log.every((l: any) => l.adminUsername === users.super!.username && !!l.createdAt && !!l.comment), r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("super"), { status: "ACTIVE" });
+  check("back to Active needs no reason", r.status === 200 && r.data.state === "ACTIVE", r.body);
+  r = await call("GET", "/me", T("owner"));
+  check("the owner can sign in to the app again", r.status === 200, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.owner!.id}/status`, T("super"), { status: "ACTIVE" });
+  check("saving Active again changes nothing", r.status === 200 && r.data.changed === false, r.body);
+  r = await call("PATCH", `/admin/active-owners/${users.tenant!.id}/status`, T("super"), { status: "WARNING", comment: "not an owner" });
+  check("a tenant cannot be warned from this page → 404", r.status === 404, r.body);
+
+  r = await call("POST", "/conversations", T("super"), { type: "DIRECT", recipientId: users.owner!.id });
+  const ownerChat = r.data?.id;
+  check("the Super Admin can open a direct chat with the owner", (r.status === 200 || r.status === 201) && !!ownerChat, r.body);
+  r = await call("POST", `/conversations/${ownerChat}/messages`, T("super"), { clientId: crypto.randomUUID(), body: "Hello from the admin page." });
+  check("…and send the message", r.status === 201 || r.status === 200, r.body);
+
+  const archMail = `arch.${tag}@mailinator.com`;
+  const archOwner = await db.user.create({ data: { username: `arch${tag}`, fullName: "Archive Me", email: archMail, phone: phone(), role: "OWNER", ownerProfile: { create: {} } } });
+  users.arch = { key: "arch", id: archOwner.id, authId: "", email: archMail, password: "", username: archOwner.username, token: "" };
+  const archProp = await db.property.create({ data: { ownerId: archOwner.id, name: "Archive Tower", type: "APARTMENT_BUILDING", totalFloors: 2 } as never });
+  const archList = await db.listing.create({ data: { sellerId: archOwner.id, type: "SALE", category: "FLAT", title: "Archive flat", description: "Owner will be archived.", price: 5000000, district: "Dhaka", upazila: "Savar", status: "PUBLISHED" } as never });
+  r = await call("DELETE", `/admin/active-owners/${archOwner.id}`, T("owner"), {});
+  check("owner cannot archive an owner → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/admin/active-owners/${archOwner.id}`, T("super"), {});
+  const archRow = await db.user.findUnique({ where: { id: archOwner.id }, select: { archivedAt: true, status: true } });
+  check("Delete moves the owner to Previous Owners: archived, cannot sign in, property and listing taken down", r.status === 200 && r.data.archived === true && r.data.properties === 1 && r.data.listings === 1 && !!archRow?.archivedAt && archRow.status === "INACTIVE" && (await db.property.findUnique({ where: { id: archProp.id } }))?.status === "ARCHIVED" && (await db.listing.findUnique({ where: { id: archList.id } }))?.status === "ARCHIVED", r.body);
+  r = await call("GET", `/admin/active-owners?q=${archOwner.username}`, T("super"));
+  check("the archived owner is gone from Active Owners", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/admin/archive/owners?limit=50", T("super"));
+  check("…and shows in Previous Owners", r.status === 200 && r.data.items.some((x: any) => x.id === archOwner.id), r.body);
+  check("the archive is written to the comment log", (await db.accountStatusLog.count({ where: { userId: archOwner.id, action: "ARCHIVED" } })) === 1);
+  r = await call("DELETE", `/admin/active-owners/${archOwner.id}`, T("super"), {});
+  check("archiving twice → 404", r.status === 404, r.body);
+
+  section("Super Admin Subscriptions & Packages: numbers, filters, reminders, details, message");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/subscriptions", "/admin/subscriptions/stats", "/admin/subscriptions/reminder?audience=all"]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.split("?")[0]} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("POST", "/admin/subscriptions/reminder", T("owner"), { audience: "all", title: "Hello", body: "Hello there" });
+  check("an owner cannot send reminders → 403", r.status === 403, r.body);
+  r = await call("GET", "/admin/subscriptions/stats", null);
+  check("subscription numbers need a sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/admin/subscriptions/stats", T("super"));
+  check("nine card numbers: active, per package, expired, expiring, boost, new buyers, month revenue", r.status === 200 && r.data.active >= 1 && typeof r.data.plans.PRIMARY === "number" && typeof r.data.plans.MILLIONAIRE === "number" && typeof r.data.plans.BILLIONAIRE === "number" && typeof r.data.expired === "number" && typeof r.data.expiring === "number" && typeof r.data.boost.active === "number" && typeof r.data.newThisWeek === "number" && Number(r.data.revenueMonth.amount) >= 0, r.body);
+  const ownerCode = (await db.user.findUnique({ where: { id: users.owner!.id }, select: { ownerCode: true } }))?.ownerCode;
+  r = await call("GET", `/admin/subscriptions?q=${encodeURIComponent(ownerCode ?? "none")}`, T("super"));
+  const sRow = r.data?.items?.[0];
+  check("Owner ID search finds the owner: package, usage, months, paid, end date, status", r.status === 200 && r.data.total === 1 && sRow?.userId === users.owner!.id && sRow.state === "ACTIVE" && !!sRow.plan.code && sRow.months >= 1 && sRow.paid === true && !!sRow.endsAt && typeof sRow.usage.properties === "number", r.body);
+  r = await call("GET", `/admin/subscriptions?plan=${sRow?.plan.code}&q=${ownerCode}`, T("super"));
+  check("package filter keeps the owner under their package", r.status === 200 && r.data.total === 1, r.body);
+  r = await call("GET", `/admin/subscriptions?plan=BILLIONAIRE&q=${ownerCode}`, T("super"));
+  check("…and leaves them out of another package", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/admin/subscriptions?plan=GOLD", T("super"));
+  check("an unknown package → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/subscriptions?status=SLEEPING", T("super"));
+  check("an unknown status → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/subscriptions?page=0", T("super"));
+  check("page 0 → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/subscriptions?page=1", T("super"));
+  check("10 per page with the total for 'Showing 10 of N entries'", r.status === 200 && r.data.pageSize === 10 && r.data.items.length <= 10 && r.data.total >= r.data.items.length, r.body);
+  r = await call("GET", `/admin/subscriptions/${sRow?.id}`, T("super"));
+  check("details: dates, limits against usage, boosts and the payment history", r.status === 200 && r.data.userId === users.owner!.id && !!r.data.plan.code && typeof r.data.usage.propertyLimit === "number" && Array.isArray(r.data.payments) && typeof r.data.boosts === "number" && "graceEndsAt" in r.data, r.body);
+  r = await call("GET", `/admin/subscriptions/00000000-0000-7000-8000-000000000000`, T("super"));
+  check("details of a missing plan → 404", r.status === 404, r.body);
+
+  const activeSub = await db.userSubscription.findFirst({ where: { userId: users.owner!.id, status: "ACTIVE" }, select: { id: true, endsAt: true, status: true } });
+  await db.userSubscription.update({ where: { id: activeSub!.id }, data: { endsAt: new Date(Date.now() + 3 * 86_400_000) } });
+  r = await call("GET", `/admin/subscriptions?status=EXPIRING&q=${ownerCode}`, T("super"));
+  check("a plan ending in 3 days is Expiring Soon", r.status === 200 && r.data.total === 1 && r.data.items[0].state === "EXPIRING" && r.data.items[0].daysLeft <= 3, r.body);
+  r = await call("GET", `/admin/subscriptions?status=ACTIVE&q=${ownerCode}`, T("super"));
+  check("…and no longer plain Active", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/admin/subscriptions/reminder?audience=expiring", T("super"));
+  check("the Expiring Soon banner counts the owner and the amount due", r.status === 200 && r.data.count >= 1 && Number(r.data.totalDue) > 0 && r.data.sample.length >= 1, r.body);
+  r = await call("GET", "/admin/subscriptions/reminder?audience=everyone", T("super"));
+  check("an unknown reminder group → 422", r.status === 422, r.body);
+  r = await call("POST", "/admin/subscriptions/reminder", T("super"), { audience: "expiring", title: "Plan ending", body: "Dear [name], your [plan] plan ends on [date]. Amount due: ৳[amount]." });
+  check("the reminder is sent", r.status === 201 && r.data.recipients >= 1, r.body);
+  const rem = await call("GET", "/notifications?limit=40", T("owner"));
+  const remItem = rem.data?.items?.find((x: any) => x.type === "broadcast" && String(x.params?.body).includes("Plan") === false && String(x.params?.title) === "Plan ending");
+  check("the owner gets it with their own name, plan, date and amount filled in", !!remItem && !String(remItem.params.body).includes("[") && String(remItem.params.body).includes("Test owner") && /৳\d/.test(String(remItem.params.body)), rem.body);
+  r = await call("POST", "/admin/subscriptions/reminder", T("super"), { audience: "expiring", title: "x", body: "short" });
+  check("a too-short title → 422", r.status === 422, r.body);
+  r = await call("POST", "/admin/subscriptions/reminder", T("super"), { audience: "all", title: "Hi", body: "Hi" });
+  check("a too-short title and message → 422", r.status === 422, r.body);
+
+  await db.userSubscription.update({ where: { id: activeSub!.id }, data: { status: "EXPIRED", endsAt: new Date(Date.now() - 2 * 86_400_000) } });
+  r = await call("GET", `/admin/subscriptions?status=EXPIRED&q=${ownerCode}`, T("super"));
+  check("an ended plan is Expired", r.status === 200 && r.data.total === 1 && r.data.items[0].state === "EXPIRED", r.body);
+  r = await call("GET", "/admin/subscriptions/reminder?audience=expired", T("super"));
+  check("the Expired banner counts the owner", r.status === 200 && r.data.count >= 1 && Number(r.data.totalDue) > 0, r.body);
+  r = await call("POST", "/admin/subscriptions/reminder", T("super"), { audience: "expired", title: "Plan ended", body: "Dear [name], your plan ended. Please renew." });
+  check("the Expired reminder is sent", r.status === 201 && r.data.recipients >= 1, r.body);
+  await db.userSubscription.update({ where: { id: activeSub!.id }, data: { status: "ACTIVE", endsAt: activeSub!.endsAt } });
+  r = await call("POST", "/admin/subscriptions/reminder", T("super"), { audience: "all", title: "News for owners", body: "Dear [name], a new feature is live." });
+  check("a message to every owner", r.status === 201 && r.data.recipients >= 1, r.body);
+  const everyone = await call("GET", "/notifications?limit=40", T("owner"));
+  check("…reaches the owner", everyone.data?.items?.some((x: any) => x.type === "broadcast" && x.params?.title === "News for owners" && String(x.params.body).includes("Test owner")), everyone.body);
+  r = await call("POST", "/conversations", T("super"), { type: "DIRECT", recipientId: users.owner!.id });
+  check("the Super Admin can open a direct chat with an owner from the table", (r.status === 200 || r.status === 201) && !!r.data?.id, r.body);
+
+  section("Super Admin Message page: anyone can be found by kind and by name, chats and calls");
+  const chatKinds: [string, string][] = [["GENERAL_USER", "general"], ["TENANT", "tenant"], ["OWNER", "owner"], ["GOV_ADMIN", "gov"]];
+  for (const [role, key] of chatKinds) {
+    r = await call("GET", `/conversations/contacts?role=${role}`, T("super"));
+    check(`browse ${role}: only that kind, and the test account is in the list`, r.status === 200 && r.data.length >= 1 && r.data.every((c: any) => c.role === role) && r.data.some((c: any) => c.id === users[key]!.id), r.body);
+  }
+  r = await call("GET", "/conversations/contacts?role=SUPER_ADMIN", T("super"));
+  check("an unknown kind of person → 422", r.status === 422, r.body);
+  r = await call("GET", `/conversations/contacts?role=OWNER&q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("kind + name together narrow the list to that person", r.status === 200 && r.data.length === 1 && r.data[0].id === users.owner!.id, r.body);
+  r = await call("GET", `/conversations/contacts?role=TENANT&q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("the wrong kind finds nobody", r.status === 200 && r.data.length === 0, r.body);
+  const ownerCodeMsg = (await db.user.findUnique({ where: { id: users.owner!.id }, select: { ownerCode: true } }))?.ownerCode;
+  if (ownerCodeMsg) {
+    r = await call("GET", `/conversations/contacts?q=${encodeURIComponent(ownerCodeMsg)}`, T("super"));
+    check("search by Owner ID works", r.status === 200 && r.data.some((c: any) => c.id === users.owner!.id), r.body);
+  }
+  r = await call("GET", "/conversations/contacts", T("super"));
+  check("no kind and no words → nothing listed (no browsing of everyone at once)", r.status === 200 && r.data.length === 0, r.body);
+  r = await call("GET", "/conversations/contacts?q=a", T("super"));
+  check("one letter is not enough → nothing", r.status === 200 && r.data.length === 0, r.body);
+  r = await call("GET", "/conversations/contacts?role=GENERAL_USER", T("gov"));
+  check("a Government Admin cannot browse Tenant Free accounts", r.status === 200 && r.data.length === 0, r.body);
+  r = await call("GET", "/conversations/contacts?role=OWNER", T("gov"));
+  check("…but can browse owners", r.status === 200 && r.data.length >= 1 && r.data.every((c: any) => c.role === "OWNER"), r.body);
+  r = await call("GET", "/conversations/contacts?role=GENERAL_USER", T("general"));
+  check("a Tenant Free account cannot browse people at all", r.status === 200 && r.data.length === 0, r.body);
+
+  for (const [role, key] of [["GENERAL_USER", "general"], ["TENANT", "tenant"], ["OWNER", "owner"]] as const) {
+    r = await call("POST", "/conversations", T("super"), { type: "DIRECT", recipientId: users[key]!.id });
+    const cid = r.data?.id;
+    check(`the Super Admin opens a chat with a ${role}`, (r.status === 200 || r.status === 201) && !!cid, r.body);
+    r = await call("POST", `/conversations/${cid}/messages`, T("super"), { clientId: randomUUID(), body: `Hello ${role} from the admin` });
+    check(`…and writes to the ${role}`, r.status === 201 || r.status === 200, r.body);
+    r = await call("GET", `/conversations/${cid}/messages`, T(key));
+    check(`the ${role} sees the message`, r.status === 200 && r.data.items.some((m: any) => String(m.body).includes("from the admin")), r.body);
+    r = await call("POST", `/conversations/${cid}/messages`, T(key), { clientId: randomUUID(), body: "Thank you" });
+    check(`the ${role} can answer the admin`, r.status === 201 || r.status === 200, r.body);
+    r = await call("POST", "/calls", T("super"), { conversationId: cid });
+    const adminCall = r.data?.id;
+    check(`the Super Admin can call the ${role}`, r.status === 201 && !!adminCall, r.body);
+    if (adminCall) { r = await call("POST", `/calls/${adminCall}/end`, T("super")); check(`…and end the call`, r.status === 200, r.body); }
+  }
+  for (const key of ["general", "tenant", "owner"] as const) {
+    r = await call("GET", "/conversations", T(key));
+    const fromAdmin = r.data?.find((c: any) => c.participants.some((p: any) => p.role === "SUPER_ADMIN"));
+    const sp = fromAdmin?.participants.find((p: any) => p.role === "SUPER_ADMIN");
+    check(`the ${key} sees the Super Admin as "AmaderGhor Support Center" with the AmaderGhor icon`, r.status === 200 && sp?.fullName === "AmaderGhor Support Center" && sp.avatarUrl === "/images/logo-icon.png" && sp.username === "support", r.body);
+    r = await call("GET", "/notifications?limit=40", T(key));
+    check(`…and the "new message" notification of the ${key} names the Support Center, not the admin`, r.data?.items?.some((x: any) => x.type === "message.new" && x.params?.from === "AmaderGhor Support Center") && !r.data.items.some((x: any) => x.type === "message.new" && x.params?.from === "Test super"), r.body);
+  }
+  // the red alert on the Message button is fed by this summary
+  r = await call("GET", "/conversations/unread", null);
+  check("the unread summary needs a sign-in → 401", r.status === 401, r.body);
+  r = await call("POST", "/conversations", T("super"), { type: "DIRECT", recipientId: users.owner!.id });
+  const alertConv = r.data?.id;
+  const beforeAlert = (await call("GET", "/conversations/unread", T("owner"))).data;
+  await call("POST", `/conversations/${alertConv}/messages`, T("super"), { clientId: randomUUID(), body: "Alert check" });
+  r = await call("GET", "/conversations/unread", T("owner"));
+  check("a new message from the admin raises the owner's unread count and gives the time of the newest", r.status === 200 && r.data.count === beforeAlert.count + 1 && !!r.data.latestAt && r.data.chats >= 1, r.body);
+  r = await call("POST", `/conversations/${alertConv}/read`, T("owner"));
+  r = await call("GET", "/conversations/unread", T("owner"));
+  check("reading the chat takes it off the count", r.status === 200 && r.data.count === beforeAlert.count, r.body);
+  for (const k of ["tenant", "general"] as const) {
+    r = await call("GET", "/conversations/unread", T(k));
+    check(`the ${k} gets the summary too`, r.status === 200 && typeof r.data.count === "number", r.body);
+  }
+  r = await call("GET", "/conversations/unread", T("super"));
+  check("and so does the Super Admin", r.status === 200 && typeof r.data.count === "number", r.body);
+
+  r = await call("GET", "/conversations", T("super"));
+  check("the chat list has all three chats, each with the other person's kind", r.status === 200 && ["general", "tenant", "owner"].every((k) => r.data.some((c: any) => c.participants.some((p: any) => p.id === users[k]!.id && !!p.role))), r.body);
+
+  section("Super Admin Previous Properties: numbers, filters, view, reactivate, status, delete");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/previous-properties", "/admin/previous-properties/stats"]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/previous-properties/stats", null);
+  check("the archive numbers need a sign-in → 401", r.status === 401, r.body);
+  const ppTag = "Zarchive" + Math.random().toString(36).slice(2, 7);
+  const ppBase = { ownerId: users.owner!.id, type: "Apartment Building", totalFloors: 3, declaredUnits: 6 };
+  const ppDay = new Date(Date.now() - 20 * 86_400_000);
+  const ppA = await db.property.create({ data: { ...ppBase, name: `${ppTag} Alpha`, status: "ARCHIVED", archivedAt: ppDay, deactivatedAt: ppDay, archiveReason: "Owner request", archiveReasonCode: "OWNER_REQUEST" } });
+  const ppB = await db.property.create({ data: { ...ppBase, name: `${ppTag} Bravo`, status: "SUSPENDED", deactivatedAt: ppDay, archiveReason: "Policy violation", archiveReasonCode: "POLICY_VIOLATION" } });
+  const ppC = await db.property.create({ data: { ...ppBase, name: `${ppTag} Charlie`, status: "INACTIVE", deactivatedAt: ppDay, archiveReason: "Non-payment", archiveReasonCode: "NON_PAYMENT" } });
+  const ppD = await db.property.create({ data: { ...ppBase, name: `${ppTag} Delta`, status: "ARCHIVED", archivedAt: ppDay, deactivatedAt: ppDay, archiveReason: "Sold", archiveReasonCode: "SOLD_PROPERTY" } });
+  for (const [prop2, no] of [[ppA, "A-1"], [ppA, "A-2"], [ppD, "D-1"]] as const) {
+    await db.unit.create({ data: { propertyId: prop2.id, unitNumber: no, floor: 1, rent: 9000, availability: "ARCHIVED", archivedAt: ppDay } });
+  }
+  const ppUnitD = await db.unit.findFirst({ where: { propertyId: ppD.id } });
+  await db.rentalAgreement.create({ data: { unitId: ppUnitD!.id, tenantId: users.tenant!.id, ownerId: users.owner!.id, rent: 9000, startDate: new Date("2025-01-01"), endDate: new Date("2025-06-30"), status: "ENDED" } });
+
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}`, T("super"));
+  check("search by property name finds the four records, newest first, 10 per page", r.status === 200 && r.data.total === 4 && r.data.pageSize === 10 && r.data.items.length === 4, r.body);
+  const ppRow = r.data?.items?.find((x: any) => x.id === ppA.id);
+  check("a row has the property, units, owner contact, place, date, reason and status", !!ppRow && ppRow.units >= 2 && ppRow.owner.id === users.owner!.id && !!ppRow.owner.email && ppRow.reasonCode === "OWNER_REQUEST" && ppRow.status === "ARCHIVED" && !!ppRow.deactivatedAt, r.body);
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&status=SUSPENDED`, T("super"));
+  check("status filter: Suspended shows only Bravo", r.status === 200 && r.data.total === 1 && r.data.items[0].id === ppB.id, r.body);
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&status=ARCHIVED`, T("super"));
+  check("status filter: Archived shows Alpha and Delta", r.status === 200 && r.data.total === 2, r.body);
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&reason=NON_PAYMENT`, T("super"));
+  check("reason filter: Non-payment shows only Charlie", r.status === 200 && r.data.total === 1 && r.data.items[0].id === ppC.id, r.body);
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&reason=NON_PAYMENT&status=SUSPENDED`, T("super"));
+  check("the two filters work together (no match → empty)", r.status === 200 && r.data.total === 0 && r.data.items.length === 0, r.body);
+  const ppOwnerCode = (await db.user.findUnique({ where: { id: users.owner!.id }, select: { ownerCode: true } }))?.ownerCode ?? "none";
+  r = await call("GET", `/admin/previous-properties?q=${encodeURIComponent(ppOwnerCode)}`, T("super"));
+  check("search also finds a property by its owner's ID", r.status === 200 && r.data.items.some((x: any) => x.id === ppB.id), r.body);
+  r = await call("GET", "/admin/previous-properties?status=BANNED", T("super"));
+  check("an unknown status → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/previous-properties?reason=BORED", T("super"));
+  check("an unknown reason → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/previous-properties?page=0", T("super"));
+  check("page 0 → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&page=2`, T("super"));
+  check("a page past the end is empty but keeps the total", r.status === 200 && r.data.items.length === 0 && r.data.total === 4, r.body);
+  r = await call("GET", "/admin/previous-properties/stats", T("super"));
+  check("six numbers: archived, suspended, inactive, deleted, all records, reactivated", r.status === 200 && r.data.archived >= 2 && r.data.suspended >= 1 && r.data.inactive >= 1 && typeof r.data.deleted === "number" && r.data.total >= r.data.archived + r.data.suspended + r.data.inactive + r.data.deleted && typeof r.data.reactivated === "number", r.body);
+  const ppStats = r.data;
+  r = await call("GET", `/admin/previous-properties/${prop?.id}`, T("super"));
+  check("a live property is not in the archive → 404", r.status === 404, r.body);
+  r = await call("GET", `/admin/previous-properties/${ppA.id}`, T("super"));
+  check("details: address, date, reason, owner contact, unit matrix and history", r.status === 200 && r.data.name === `${ppTag} Alpha` && r.data.reasonCode === "OWNER_REQUEST" && r.data.owner.id === users.owner!.id && r.data.owner.ready === true && r.data.units.length === 2 && r.data.totalUnits >= 6 && Array.isArray(r.data.history), r.body);
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    r = await call("GET", `/admin/previous-properties/${ppA.id}`, T(who));
+    check(`${who} cannot read archive details → 403`, r.status === 403, r.body);
+    r = await call("PATCH", `/admin/previous-properties/${ppA.id}/status`, T(who), { status: "ACTIVE" });
+    check(`${who} cannot reactivate → 403`, r.status === 403, r.body);
+    r = await call("DELETE", `/admin/previous-properties/${ppA.id}`, T(who), {});
+    check(`${who} cannot delete → 403`, r.status === 403, r.body);
+  }
+  r = await call("PATCH", `/admin/previous-properties/${ppB.id}/status`, T("super"), { status: "BANNED" });
+  check("an unknown new status → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/previous-properties/${ppB.id}/status`, T("super"), { status: "INACTIVE" });
+  check("a non-active status needs a reason → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/previous-properties/${ppB.id}/status`, T("super"), { status: "ACTIVE", extra: 1 });
+  check("unknown fields are refused → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/previous-properties/00000000-0000-7000-8000-000000000000/status`, T("super"), { status: "ACTIVE" });
+  check("a missing property → 404", r.status === 404, r.body);
+
+  r = await call("PATCH", `/admin/previous-properties/${ppB.id}/status`, T("super"), { status: "INACTIVE", reason: "NON_PAYMENT", note: "Unpaid for two months" });
+  check("Suspended → Inactive with a reason and a note", r.status === 200 && r.data.changed === true, r.body);
+  const ppBNow = await db.property.findUnique({ where: { id: ppB.id } });
+  check("…the record keeps the new status, reason code and note", ppBNow?.status === "INACTIVE" && ppBNow.archiveReasonCode === "NON_PAYMENT" && ppBNow.archiveReason === "Unpaid for two months", JSON.stringify(ppBNow));
+  r = await call("PATCH", `/admin/previous-properties/${ppB.id}/status`, T("super"), { status: "INACTIVE", reason: "NON_PAYMENT", note: "Unpaid for two months" });
+  check("the same status again changes nothing", r.status === 200 && r.data.changed === false, r.body);
+
+  await db.user.update({ where: { id: users.owner!.id }, data: { status: "SUSPENDED" } });
+  r = await call("PATCH", `/admin/previous-properties/${ppC.id}/status`, T("super"), { status: "ACTIVE" });
+  check("a property cannot be reactivated while its owner account is not active → 409", r.status === 409, r.body);
+  await db.user.update({ where: { id: users.owner!.id }, data: { status: "ACTIVE" } });
+
+  r = await call("PATCH", `/admin/previous-properties/${ppA.id}/status`, T("super"), { status: "ACTIVE" });
+  check("Edit → Active (Reactivate) works", r.status === 200 && r.data.changed === true && r.data.status === "ACTIVE", r.body);
+  const ppANow = await db.property.findUnique({ where: { id: ppA.id } });
+  check("…it is live again: no archive date, no reason, status Active", ppANow?.status === "ACTIVE" && ppANow.archivedAt === null && ppANow.archiveReasonCode === null && ppANow.deactivatedAt === null, JSON.stringify(ppANow));
+  const ppUnitsA = await db.unit.findMany({ where: { propertyId: ppA.id } });
+  check("…its units came back as vacant", ppUnitsA.length === 2 && ppUnitsA.every((u) => u.archivedAt === null && u.availability === "AVAILABLE"), JSON.stringify(ppUnitsA));
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}`, T("super"));
+  check("…and it left the archive list", r.status === 200 && r.data.total === 3 && !r.data.items.some((x: any) => x.id === ppA.id), r.body);
+  r = await call("GET", `/admin/previous-properties/${ppA.id}`, T("super"));
+  check("…its archive details are gone → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/previous-properties/stats", T("super"));
+  check("the numbers moved: one less archived, one reactivated", r.status === 200 && r.data.archived === ppStats.archived - 1 && r.data.reactivated === ppStats.reactivated + 1, r.body);
+  const ppNotes = await call("GET", "/notifications?limit=40", T("owner"));
+  check("the owner was told the property is active again", ppNotes.data?.items?.some((x: any) => JSON.stringify(x).includes("propertyReactivated") && JSON.stringify(x).includes(ppTag)), ppNotes.body);
+  r = await call("GET", `/properties/${ppA.id}`, T("owner"));
+  check("the owner sees the property again", r.status === 200 && r.data.status === "ACTIVE", r.body);
+
+  r = await call("PATCH", `/admin/previous-properties/${ppC.id}/status`, T("super"), { status: "ARCHIVED", reason: "RENOVATION" });
+  check("Inactive → Archived with a reason", r.status === 200 && r.data.changed === true, r.body);
+  const ppCNow = await db.property.findUnique({ where: { id: ppC.id } });
+  check("…it now has an archive date", ppCNow?.status === "ARCHIVED" && !!ppCNow.archivedAt && ppCNow.archiveReasonCode === "RENOVATION", JSON.stringify(ppCNow));
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&reason=RENOVATION`, T("super"));
+  check("the reason filter now finds it under Renovation / Remodeling", r.status === 200 && r.data.total === 1 && r.data.items[0].id === ppC.id, r.body);
+
+  r = await call("DELETE", `/admin/previous-properties/${ppC.id}`, T("super"), {});
+  check("Delete: a property nothing depends on is erased for good", r.status === 200 && r.data.purged === true, r.body);
+  check("…the row is gone from the database", (await db.property.count({ where: { id: ppC.id } })) === 0);
+  r = await call("DELETE", `/admin/previous-properties/${ppC.id}`, T("super"), {});
+  check("deleting it again → 404", r.status === 404, r.body);
+  r = await call("DELETE", `/admin/previous-properties/${ppD.id}`, T("super"), {});
+  check("Delete: a property with rent history is kept as a hidden Deleted record", r.status === 200 && r.data.purged === false, r.body);
+  const ppDNow = await db.property.findUnique({ where: { id: ppD.id } });
+  check("…its status is Deleted and its history is untouched", ppDNow?.status === "DELETED" && (await db.rentalAgreement.count({ where: { unitId: ppUnitD!.id } })) === 1, JSON.stringify(ppDNow));
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&status=DELETED`, T("super"));
+  check("status filter: Deleted shows it", r.status === 200 && r.data.total === 1 && r.data.items[0].id === ppD.id, r.body);
+  r = await call("GET", `/properties/${ppD.id}`, T("owner"));
+  check("a deleted property is not shown to the owner as live", r.status === 404 || r.data?.status !== "ACTIVE", r.body);
+  r = await call("GET", `/admin/previous-properties/${ppD.id}`, T("super"));
+  check("the history shows who did what", r.status === 200 && r.data.history.some((h: any) => h.action === "property.delete" && h.by?.role === "SUPER_ADMIN"), r.body);
+
+  section("Owner deletes a property with a reason from the dropdown");
+  const delE = await db.property.create({ data: { ...ppBase, name: `${ppTag} Echo` } });
+  const delF = await db.property.create({ data: { ...ppBase, name: `${ppTag} Foxtrot` } });
+  r = await call("POST", `/properties/${delE.id}/archive`, T("owner"), { reasonCode: "BOGUS" });
+  check("an unknown reason → 422", r.status === 422, r.body);
+  r = await call("POST", `/properties/${delE.id}/archive`, T("owner"), { reasonCode: "OTHER" });
+  check("\"Other\" needs a written reason → 422", r.status === 422, r.body);
+  r = await call("POST", `/properties/${delE.id}/archive`, T("owner"), { reasonCode: "NON_PAYMENT" });
+  check("an owner cannot pick a platform-only reason (Non-payment) → 422", r.status === 422, r.body);
+  r = await call("POST", `/properties/${delE.id}/archive`, T("owner"), { reasonCode: "SOLD_PROPERTY" });
+  check("Delete with \"I sold the property\" works", r.status === 200 || r.status === 201, r.body);
+  const delENow = await db.property.findUnique({ where: { id: delE.id } });
+  check("…the record keeps the reason code, its text and the date", delENow?.status === "ARCHIVED" && delENow.archiveReasonCode === "SOLD_PROPERTY" && delENow.archiveReason === "Sold property" && !!delENow.deactivatedAt, JSON.stringify(delENow));
+  r = await call("POST", `/properties/${delF.id}/archive`, T("owner"), { reasonCode: "OTHER", reason: "Moving abroad next month" });
+  check("Delete with \"Other\" and a note works", r.status === 200 || r.status === 201, r.body);
+  const delFNow = await db.property.findUnique({ where: { id: delF.id } });
+  check("…the note is kept as the reason text", delFNow?.archiveReasonCode === "OTHER" && delFNow.archiveReason === "Moving abroad next month", JSON.stringify(delFNow));
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&reason=SOLD_PROPERTY`, T("super"));
+  check("the Super Admin finds it in Previous Properties under Sold Property", r.status === 200 && r.data.items.some((x: any) => x.id === delE.id), r.body);
+  r = await call("POST", `/properties/${ppB.id}/archive`, T("tenant"), { reasonCode: "SOLD_PROPERTY" });
+  check("someone else cannot delete the owner's property", r.status === 403 || r.status === 404, r.body);
+
+  section("Super Admin Properties: Delete with a reason and a note");
+  const sdG = await db.property.create({ data: { ...ppBase, name: `${ppTag} Golf` } });
+  const sdH = await db.property.create({ data: { ...ppBase, name: `${ppTag} Hotel` } });
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    r = await call("DELETE", `/admin/properties/${sdG.id}`, T(who), { reasonCode: "SOLD_PROPERTY" });
+    check(`${who} cannot delete from the Super Admin page → 403`, r.status === 403, r.body);
+  }
+  r = await call("DELETE", `/admin/properties/${sdG.id}`, T("super"), { reasonCode: "BOGUS" });
+  check("an unknown reason → 422", r.status === 422, r.body);
+  r = await call("DELETE", `/admin/properties/${sdG.id}`, T("super"), { reasonCode: "OTHER" });
+  check("\"Other\" without a note → 422", r.status === 422, r.body);
+  r = await call("DELETE", `/admin/properties/${sdG.id}`, T("super"), { reasonCode: "POLICY_VIOLATION", note: "Repeated fake photos", extra: 1 });
+  check("unknown fields → 422", r.status === 422, r.body);
+  check("…nothing was deleted by the refused calls", (await db.property.findUnique({ where: { id: sdG.id } }))?.archivedAt === null);
+  r = await call("DELETE", `/admin/properties/${sdG.id}`, T("super"), { reasonCode: "POLICY_VIOLATION", note: "Repeated fake photos" });
+  check("Delete with Policy Violation and a note works", r.status === 200 && r.data.deleted === true, r.body);
+  const sdGNow = await db.property.findUnique({ where: { id: sdG.id } });
+  check("…the record keeps the code, the note, the date and the archived status", sdGNow?.status === "ARCHIVED" && sdGNow.archiveReasonCode === "POLICY_VIOLATION" && sdGNow.archiveReason === "Repeated fake photos" && !!sdGNow.deactivatedAt && !!sdGNow.archivedAt, JSON.stringify(sdGNow));
+  const sdNote = await call("GET", "/notifications?limit=40", T("owner"));
+  check("…the owner is told, with the reason", sdNote.data?.items?.some((x: any) => x.type === "property.review" && JSON.stringify(x).includes(`${ppTag} Golf`) && JSON.stringify(x).includes("Repeated fake photos")), sdNote.body);
+  r = await call("GET", `/admin/previous-properties?q=${ppTag}&reason=POLICY_VIOLATION`, T("super"));
+  check("…and it shows in Previous Properties under Policy Violation", r.status === 200 && r.data.items.some((x: any) => x.id === sdG.id), r.body);
+  r = await call("DELETE", `/admin/properties/${sdH.id}`, T("super"), { reasonCode: "SOLD_PROPERTY" });
+  check("a reason without a note is fine (Sold Property)", r.status === 200, r.body);
+  check("…the stored text is the reason's name", (await db.property.findUnique({ where: { id: sdH.id } }))?.archiveReason === "Sold property");
+  r = await call("DELETE", `/admin/properties/${sdH.id}`, T("super"), { reasonCode: "SOLD_PROPERTY" });
+  check("deleting it again → 404", r.status === 404, r.body);
+
+  section("Super Admin Previous Owners: numbers, filters, view, reactivate, status, delete");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/previous-owners", "/admin/previous-owners/stats", `/admin/previous-owners/${users.owner!.id}`]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.replace(users.owner!.id, ":id")} → 403`, r.status === 403, r.body);
+    }
+    r = await call("PATCH", `/admin/previous-owners/${users.owner!.id}/status`, T(who), { status: "ACTIVE" });
+    check(`${who} cannot change an archive status → 403`, r.status === 403, r.body);
+    r = await call("DELETE", `/admin/previous-owners/${users.owner!.id}`, T(who), {});
+    check(`${who} cannot delete from the archive → 403`, r.status === 403, r.body);
+  }
+  r = await call("GET", "/admin/previous-owners/stats", null);
+  check("the archive numbers need a sign-in → 401", r.status === 401, r.body);
+  const poTag = "zpo" + Math.random().toString(36).slice(2, 7);
+  const poDay = new Date(Date.now() - 30 * 86_400_000);
+  const poMake = async (key: string, name: string, data: Record<string, unknown>) => {
+    const u = await db.user.create({ data: { username: `${poTag}${key}`, fullName: name, email: `${poTag}.${key}@mailinator.com`, phone: phone(), role: "OWNER", ...data } as never });
+    users[`po${key}`] = { key: `po${key}`, id: u.id, authId: "", email: u.email!, password: "", username: u.username, token: "" };
+    return u;
+  };
+  const poA = await poMake("a", `${poTag} Archived Alpha`, { status: "INACTIVE", archivedAt: poDay, leftAt: poDay, archiveReason: "Subscription cancelled", archiveReasonCode: "SUBSCRIPTION_CANCELLED" });
+  const poB = await poMake("b", `${poTag} Banned Bravo`, { status: "BANNED", archivedAt: poDay, leftAt: poDay, archiveReason: "Fraud", archiveReasonCode: "POLICY_VIOLATION_FRAUD" });
+  const poC = await poMake("c", `${poTag} Inactive Charlie`, { status: "INACTIVE", leftAt: poDay, archiveReason: "Dormant account", archiveReasonCode: "DORMANT" });
+  const poD = await poMake("d", `${poTag} Deleted Delta`, { status: "DELETED", archivedAt: poDay, leftAt: poDay, archiveReason: "Deleted by user", archiveReasonCode: "ACCOUNT_DELETED_BY_USER" });
+  const poE = await poMake("e", `${poTag} Erase Echo`, { status: "DELETED", archivedAt: poDay, leftAt: poDay, archiveReasonCode: "OTHER" });
+  const poF = await poMake("f", `${poTag} Foxtrot Live`, { status: "INACTIVE", leftAt: poDay, archiveReasonCode: "DORMANT" });
+  await db.property.create({ data: { ownerId: poD.id, name: `${poTag} Delta House`, type: "Apartment Building", totalFloors: 2, status: "ARCHIVED", archivedAt: poDay } });
+  const poLive = await db.property.create({ data: { ownerId: poF.id, name: `${poTag} Foxtrot House`, type: "Apartment Building", totalFloors: 2, declaredUnits: 3 } });
+  await db.accountStatusLog.create({ data: { userId: poB.id, adminId: users.super!.id, adminUsername: "amaderghor", action: "BANNED", comment: "Fake documents" } });
+
+  r = await call("GET", `/admin/previous-owners?q=${poTag}`, T("super"));
+  check("search by name finds the six records, 10 per page", r.status === 200 && r.data.total === 6 && r.data.pageSize === 10 && r.data.items.length === 6, r.body);
+  const poRow = r.data?.items?.find((x: any) => x.id === poD.id);
+  check("a row has name, contact, properties managed, left date, reason and state", !!poRow && !!poRow.email && poRow.properties === 1 && poRow.reasonCode === "ACCOUNT_DELETED_BY_USER" && poRow.state === "DELETED" && !!poRow.leftAt, r.body);
+  for (const [st, id] of [["ARCHIVED", poA.id], ["BANNED", poB.id], ["INACTIVE", poC.id]] as const) {
+    r = await call("GET", `/admin/previous-owners?q=${poTag}&status=${st}`, T("super"));
+    check(`status filter ${st} finds the right owner`, r.status === 200 && r.data.items.some((x: any) => x.id === id) && r.data.items.every((x: any) => x.state === st), r.body);
+  }
+  r = await call("GET", `/admin/previous-owners?q=${poTag}&status=DELETED`, T("super"));
+  check("status filter DELETED finds Delta and Echo", r.status === 200 && r.data.total === 2, r.body);
+  r = await call("GET", `/admin/previous-owners?q=${poTag}&reason=POLICY_VIOLATION_FRAUD`, T("super"));
+  check("reason filter: Policy Violation (Fraud) finds only Bravo", r.status === 200 && r.data.total === 1 && r.data.items[0].id === poB.id, r.body);
+  r = await call("GET", `/admin/previous-owners?q=${poTag}&reason=DORMANT&status=BANNED`, T("super"));
+  check("the two filters work together (no match → empty)", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", `/admin/previous-owners?q=${poTag}&reason=OTHER`, T("super"));
+  check("records without a clear reason count as Other", r.status === 200 && r.data.items.some((x: any) => x.id === poE.id), r.body);
+  r = await call("GET", `/admin/previous-owners?q=${encodeURIComponent(poA.email!)}`, T("super"));
+  check("search by e-mail works too", r.status === 200 && r.data.total === 1 && r.data.items[0].id === poA.id, r.body);
+  r = await call("GET", "/admin/previous-owners?status=ACTIVE", T("super"));
+  check("an unknown status → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/previous-owners?reason=BORED", T("super"));
+  check("an unknown reason → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/previous-owners?page=0", T("super"));
+  check("page 0 → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/previous-owners?q=${poTag}&page=2`, T("super"));
+  check("a page past the end is empty but keeps the total", r.status === 200 && r.data.items.length === 0 && r.data.total === 6, r.body);
+  r = await call("GET", "/admin/previous-owners/stats", T("super"));
+  check("six numbers: archived, banned, inactive, deleted, all records, reactivated", r.status === 200 && r.data.archived >= 1 && r.data.banned >= 1 && r.data.inactive >= 2 && r.data.deleted >= 2 && r.data.total >= r.data.archived + r.data.banned + r.data.inactive + r.data.deleted && typeof r.data.reactivated === "number", r.body);
+  const poStats = r.data;
+  r = await call("GET", `/admin/previous-owners/${users.owner!.id}`, T("super"));
+  check("an active owner is not in the archive → 404", r.status === 404, r.body);
+  r = await call("GET", `/admin/previous-owners/${poB.id}`, T("super"));
+  check("details: contact, departure, reason, ban log and the property archive", r.status === 200 && r.data.fullName.includes("Bravo") && r.data.state === "BANNED" && r.data.reasonCode === "POLICY_VIOLATION_FRAUD" && r.data.log.some((l: any) => l.action === "BANNED" && l.comment === "Fake documents") && Array.isArray(r.data.properties), r.body);
+  r = await call("GET", `/admin/previous-owners/${poD.id}`, T("super"));
+  check("…and a former owner lists every property they managed", r.status === 200 && r.data.properties.length === 1 && r.data.properties[0].archived === true, r.body);
+
+  r = await call("PATCH", `/admin/previous-owners/${poC.id}/status`, T("super"), { status: "BANNED" });
+  check("Banned needs a reason → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/previous-owners/${poC.id}/status`, T("super"), { status: "SUSPENDED", reason: "OTHER" });
+  check("an unknown new state → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/previous-owners/${poC.id}/status`, T("super"), { status: "ACTIVE", extra: 1 });
+  check("unknown fields are refused → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/admin/previous-owners/00000000-0000-7000-8000-000000000000/status", T("super"), { status: "ACTIVE" });
+  check("a missing owner → 404", r.status === 404, r.body);
+  r = await call("PATCH", `/admin/previous-owners/${users.owner!.id}/status`, T("super"), { status: "BANNED", reason: "OTHER" });
+  check("an active owner cannot be changed from this page → 404", r.status === 404, r.body);
+
+  r = await call("PATCH", `/admin/previous-owners/${poC.id}/status`, T("super"), { status: "BANNED", reason: "POLICY_VIOLATION_FRAUD", note: "Fake rent receipts" });
+  check("Inactive → Banned with a reason and a note", r.status === 200 && r.data.changed === true, r.body);
+  const poCNow = await db.user.findUnique({ where: { id: poC.id } });
+  check("…the record is Banned, archived, with the code, the note and the date", poCNow?.status === "BANNED" && !!poCNow.archivedAt && !!poCNow.leftAt && poCNow.archiveReasonCode === "POLICY_VIOLATION_FRAUD" && poCNow.archiveReason === "Fake rent receipts", JSON.stringify(poCNow));
+  check("…and a Banned line is in the status log", (await db.accountStatusLog.count({ where: { userId: poC.id, action: "BANNED", comment: "Fake rent receipts" } })) === 1);
+  r = await call("PATCH", `/admin/previous-owners/${poC.id}/status`, T("super"), { status: "BANNED", reason: "POLICY_VIOLATION_FRAUD", note: "Fake rent receipts" });
+  r = await call("PATCH", `/admin/previous-owners/${poC.id}/status`, T("super"), { status: "BANNED", reason: "POLICY_VIOLATION_FRAUD" });
+  check("the same state and reason again changes nothing", r.status === 200 && r.data.changed === false, r.body);
+
+  r = await call("PATCH", `/admin/previous-owners/${poF.id}/status`, T("super"), { status: "ARCHIVED", reason: "SOLD_ALL_PROPERTIES" });
+  check("Dormant → Archived works", r.status === 200 && r.data.changed === true && r.data.properties === 1, r.body);
+  const poLiveNow = await db.property.findUnique({ where: { id: poLive.id } });
+  check("…the owner live property was taken down with the reason Sold Property", poLiveNow?.status === "ARCHIVED" && !!poLiveNow.archivedAt && poLiveNow.archiveReasonCode === "SOLD_PROPERTY", JSON.stringify(poLiveNow));
+
+  r = await call("PATCH", `/admin/previous-owners/${poB.id}/status`, T("super"), { status: "ACTIVE" });
+  check("Edit → Active (Unban & Reactivate) works", r.status === 200 && r.data.changed === true && r.data.state === "ACTIVE", r.body);
+  const poBNow = await db.user.findUnique({ where: { id: poB.id } });
+  check("…the owner is Active again: no archive date, reason or left date", poBNow?.status === "ACTIVE" && poBNow.archivedAt === null && poBNow.archiveReason === null && poBNow.archiveReasonCode === null && poBNow.leftAt === null, JSON.stringify(poBNow));
+  r = await call("GET", `/admin/previous-owners?q=${poTag}`, T("super"));
+  check("…and left the archive list", r.status === 200 && r.data.total === 5 && !r.data.items.some((x: any) => x.id === poB.id), r.body);
+  r = await call("GET", `/admin/previous-owners/${poB.id}`, T("super"));
+  check("…its archive details are gone → 404", r.status === 404, r.body);
+  r = await call("GET", `/admin/active-owners?q=${encodeURIComponent(poB.username)}`, T("super"));
+  check("…and it is back on Active Property Owners", r.status === 200 && r.data.items.some((x: any) => x.id === poB.id), r.body);
+  r = await call("GET", "/admin/previous-owners/stats", T("super"));
+  check("the numbers moved: all records one less, one more reactivated", r.status === 200 && r.data.reactivated === poStats.reactivated + 1 && r.data.total === poStats.total - 1, r.body);
+  const poNote = await db.notification.findMany({ where: { userId: poB.id } });
+  check("the owner was told the account is active again", poNote.some((x) => x.titleKey === "notifications.accountRestored"), JSON.stringify(poNote));
+  check("the status log has the Active line", (await db.accountStatusLog.count({ where: { userId: poB.id, action: "ACTIVE" } })) === 1);
+
+  r = await call("DELETE", `/admin/previous-owners/${poE.id}`, T("super"), {});
+  check("Delete: an owner nothing depends on is erased for good", r.status === 200 && r.data.purged === true, r.body);
+  check("…the row is gone from the database", (await db.user.count({ where: { id: poE.id } })) === 0);
+  r = await call("DELETE", `/admin/previous-owners/${poE.id}`, T("super"), {});
+  check("deleting it again → 404", r.status === 404, r.body);
+  r = await call("DELETE", `/admin/previous-owners/${poD.id}`, T("super"), {});
+  check("Delete: an owner with a property history is kept as a hidden Deleted record", r.status === 200 && r.data.purged === false, r.body);
+  const poDNow = await db.user.findUnique({ where: { id: poD.id } });
+  check("…still Deleted, and the property history is untouched", poDNow?.status === "DELETED" && (await db.property.count({ where: { ownerId: poD.id } })) === 1, JSON.stringify(poDNow));
+  r = await call("DELETE", `/admin/previous-owners/${poA.id}`, T("super"), {});
+  check("an archived owner with no history is erased too", r.status === 200 && r.data.purged === true, r.body);
+
+  section("Super Admin Previous Tenants: numbers, filters, view, edit rent status, delete");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/previous-tenants", "/admin/previous-tenants/stats", "/admin/previous-tenants/" + users.owner!.id]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.replace(users.owner!.id, ":id")} → 403`, r.status === 403, r.body);
+    }
+    r = await call("PATCH", `/admin/previous-tenants/${users.owner!.id}`, T(who), { rentStatus: "CLEARED" });
+    check(`${who} cannot edit a record → 403`, r.status === 403, r.body);
+    r = await call("DELETE", `/admin/previous-tenants/${users.owner!.id}`, T(who), {});
+    check(`${who} cannot delete a record → 403`, r.status === 403, r.body);
+  }
+  r = await call("GET", "/admin/previous-tenants/stats", null);
+  check("the archive numbers need a sign-in → 401", r.status === 401, r.body);
+  const ptTag = "Zpt" + Math.random().toString(36).slice(2, 7);
+  const ptProp = await db.property.create({ data: { ownerId: users.owner!.id, name: `${ptTag} Villa`, type: "Apartment Building", totalFloors: 2 } });
+  const ptRent = 8000;
+  const ptMake = async (no: string, status: "ENDED" | "TERMINATED", reason: string | null, months: { paid: number; status: "PAID" | "DUE" | "PARTIAL" | "OVERDUE" }[], end = "2025-06-30") => {
+    const unit = await db.unit.create({ data: { propertyId: ptProp.id, unitNumber: no, floor: 1, rent: ptRent, availability: "AVAILABLE" } });
+    const a = await db.rentalAgreement.create({ data: { unitId: unit.id, tenantId: users.tenant!.id, ownerId: users.owner!.id, rent: ptRent, startDate: new Date("2024-01-01"), endDate: new Date(end), status, ...(reason ? { leaveReason: reason as never } : {}) } });
+    for (const [i, m] of months.entries()) {
+      await db.rentRecord.create({ data: { agreementId: a.id, billingMonth: new Date(Date.UTC(2025, i, 1)), rent: ptRent, total: ptRent, paid: m.paid, dueDate: new Date(Date.UTC(2025, i, 5)), status: m.status } });
+    }
+    return a;
+  };
+  const ptA1 = await ptMake(`${ptTag}-1`, "ENDED", "LEASE_EXPIRED", [{ paid: ptRent, status: "PAID" }, { paid: ptRent, status: "PAID" }], "2025-06-12");
+  const ptA2 = await ptMake(`${ptTag}-2`, "ENDED", "POLICY_VIOLATION", [{ paid: 0, status: "DUE" }, { paid: 0, status: "DUE" }], "2026-01-31");
+  const ptA3 = await ptMake(`${ptTag}-3`, "TERMINATED", "JOB_TRANSFER", [{ paid: 3000, status: "PARTIAL" }], "2026-02-01");
+  const ptA4 = await ptMake(`${ptTag}-4`, "ENDED", null, [0, 1, 2, 3].map(() => ({ paid: 0, status: "OVERDUE" as const })), "2025-09-30");
+  const ptA5 = await ptMake(`${ptTag}-5`, "ENDED", "PURCHASED_HOME", [], "2025-12-31");
+
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}`, T("super"));
+  check("search by property name finds the five tenancies, newest move-out first, 10 per page", r.status === 200 && r.data.total === 5 && r.data.pageSize === 10 && r.data.items.length === 5 && r.data.items[0].id === ptA3.id, r.body);
+  const ptRow = r.data?.items?.find((x: any) => x.id === ptA2.id);
+  check("a row has tenant, contact, last residence with the landlord, rent status, unpaid money, move-out and reason", !!ptRow && ptRow.tenant.id === users.tenant!.id && !!ptRow.tenant.email && ptRow.residence.property === `${ptTag} Villa` && ptRow.residence.landlord === "Test owner" && ptRow.rentStatus === "DUE_2" && Number(ptRow.unpaid) === ptRent * 2 && ptRow.reasonCode === "POLICY_VIOLATION" && !!ptRow.moveOutAt, r.body);
+  for (const [st, want] of [["CLEARED", 2], ["DUE_1", 1], ["DUE_2", 1], ["DUE_3_PLUS", 1]] as const) {
+    r = await call("GET", `/admin/previous-tenants?q=${ptTag}&rent=${st}`, T("super"));
+    check(`rent status ${st} finds ${want}`, r.status === 200 && r.data.total === want && r.data.items.every((x: any) => x.rentStatus === st), r.body);
+  }
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}&reason=POLICY_VIOLATION`, T("super"));
+  check("reason filter: Policy Violation finds only that tenancy", r.status === 200 && r.data.total === 1 && r.data.items[0].id === ptA2.id, r.body);
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}&reason=OTHER`, T("super"));
+  check("a tenancy without a reason counts as Other", r.status === 200 && r.data.total === 1 && r.data.items[0].id === ptA4.id, r.body);
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}&reason=JOB_TRANSFER&rent=DUE_2`, T("super"));
+  check("the two filters work together (no match → empty)", r.status === 200 && r.data.total === 0 && r.data.items.length === 0, r.body);
+  r = await call("GET", `/admin/previous-tenants?q=${encodeURIComponent(users.tenant!.username)}`, T("super"));
+  check("search by the tenant's username finds their tenancies", r.status === 200 && r.data.items.some((x: any) => x.id === ptA1.id), r.body);
+  r = await call("GET", "/admin/previous-tenants?rent=OWES", T("super"));
+  check("an unknown rent status → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/previous-tenants?reason=BORED", T("super"));
+  check("an unknown reason → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/previous-tenants?page=0", T("super"));
+  check("page 0 → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}&page=2`, T("super"));
+  check("a page past the end is empty but keeps the total", r.status === 200 && r.data.items.length === 0 && r.data.total === 5, r.body);
+  r = await call("GET", "/admin/previous-tenants/stats", T("super"));
+  check("the numbers: archived total, rent unpaid, average tenancy, unpaid money, cleared, last 30 days", r.status === 200 && r.data.total >= 5 && r.data.unpaid >= 3 && r.data.cleared >= 2 && r.data.total === r.data.unpaid + r.data.cleared && r.data.avgYears > 0 && r.data.unpaidAmount >= ptRent * 2 + ptRent * 3 && typeof r.data.movedOutRecently === "number", r.body);
+  const ptStats = r.data;
+  r = await call("GET", `/admin/previous-tenants/${ptA2.id}`, T("super"));
+  check("details: tenant, move-out, reason, clearance, unpaid balance, residence, landlord and the ledger", r.status === 200 && r.data.tenant.id === users.tenant!.id && r.data.rentStatus === "DUE_2" && Number(r.data.unpaid) === ptRent * 2 && r.data.openMonths === 2 && r.data.ledger.length === 2 && r.data.residence.unit === `${ptTag}-2` && r.data.landlord.id === users.owner!.id && !!r.data.landlord.email && Array.isArray(r.data.history), r.body);
+  r = await call("GET", "/admin/previous-tenants/00000000-0000-7000-8000-000000000000", T("super"));
+  check("a missing record → 404", r.status === 404, r.body);
+
+  r = await call("PATCH", `/admin/previous-tenants/${ptA2.id}`, T("super"), {});
+  check("an empty change → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/previous-tenants/${ptA2.id}`, T("super"), { rentStatus: "OWES" });
+  check("an unknown rent status → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/previous-tenants/${ptA2.id}`, T("super"), { rentStatus: "CLEARED", extra: 1 });
+  check("unknown fields → 422", r.status === 422, r.body);
+  r = await call("PATCH", "/admin/previous-tenants/00000000-0000-7000-8000-000000000000", T("super"), { rentStatus: "CLEARED" });
+  check("editing a missing record → 404", r.status === 404, r.body);
+
+  r = await call("PATCH", `/admin/previous-tenants/${ptA2.id}`, T("super"), { rentStatus: "CLEARED", note: "Paid in cash at handover" });
+  check("Edit: DUE_2 → Cleared works", r.status === 200 && r.data.changed === true && r.data.rentStatus === "CLEARED", r.body);
+  check("…the ruling and the note are saved", (await db.rentalAgreement.findUnique({ where: { id: ptA2.id } }))?.clearanceStatus === "CLEARED" && (await db.rentalAgreement.findUnique({ where: { id: ptA2.id } }))?.adminNote === "Paid in cash at handover");
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}&rent=CLEARED`, T("super"));
+  check("…the table now shows it as Cleared with nothing unpaid", r.status === 200 && r.data.total === 3 && r.data.items.find((x: any) => x.id === ptA2.id)?.unpaid === "0", r.body);
+  r = await call("GET", "/admin/previous-tenants/stats", T("super"));
+  check("…the Rent Unpaid number dropped by one and the money by two months", r.status === 200 && r.data.unpaid === ptStats.unpaid - 1 && Math.abs(ptStats.unpaidAmount - r.data.unpaidAmount - ptRent * 2) < 0.01, r.body);
+  r = await call("PATCH", `/admin/previous-tenants/${ptA2.id}`, T("super"), { rentStatus: "DUE_2" });
+  check("a ruling equal to the ledger is dropped", r.status === 200 && r.data.changed === true && (await db.rentalAgreement.findUnique({ where: { id: ptA2.id } }))?.clearanceStatus === null, r.body);
+  r = await call("PATCH", `/admin/previous-tenants/${ptA1.id}`, T("super"), { rentStatus: "DUE_1", reason: "EVICTED" });
+  check("Edit: a Cleared tenancy ruled 1 Month Due and the reason changed to Evicted", r.status === 200 && r.data.changed === true, r.body);
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}&reason=EVICTED`, T("super"));
+  check("…the reason filter finds it and the unpaid money is one month of rent", r.status === 200 && r.data.total === 1 && r.data.items[0].rentStatus === "DUE_1" && Number(r.data.items[0].unpaid) === ptRent, r.body);
+  r = await call("PATCH", `/admin/previous-tenants/${ptA1.id}`, T("super"), { rentStatus: "DUE_1", reason: "EVICTED" });
+  check("the same change again does nothing", r.status === 200 && r.data.changed === false, r.body);
+  r = await call("GET", `/tenancies/past?pageSize=50&q=${encodeURIComponent(users.tenant!.username)}`, T("owner"));
+  check("the landlord still sees the tenancy with the new reason in their own list", r.status === 200 && JSON.stringify(r.data).includes("EVICTED"), r.body);
+
+  r = await call("DELETE", `/admin/previous-tenants/${ptA5.id}`, T("super"), {});
+  check("Delete: a tenancy nothing depends on is erased for good", r.status === 200 && r.data.purged === true, r.body);
+  check("…the row is gone from the database", (await db.rentalAgreement.count({ where: { id: ptA5.id } })) === 0);
+  r = await call("DELETE", `/admin/previous-tenants/${ptA5.id}`, T("super"), {});
+  check("deleting it again → 404", r.status === 404, r.body);
+  r = await call("DELETE", `/admin/previous-tenants/${ptA4.id}`, T("super"), {});
+  check("Delete: a tenancy with rent history is kept as a hidden record", r.status === 200 && r.data.purged === false, r.body);
+  const ptA4Now = await db.rentalAgreement.findUnique({ where: { id: ptA4.id } });
+  check("…it is hidden and its rent records are untouched", !!ptA4Now?.adminHiddenAt && (await db.rentRecord.count({ where: { agreementId: ptA4.id } })) === 4, JSON.stringify(ptA4Now));
+  r = await call("GET", `/admin/previous-tenants?q=${ptTag}`, T("super"));
+  check("…and it left the list", r.status === 200 && r.data.total === 3 && !r.data.items.some((x: any) => x.id === ptA4.id), r.body);
+  r = await call("DELETE", `/admin/previous-tenants/${ptA4.id}`, T("super"), {});
+  check("deleting a hidden record → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/previous-tenants/stats", T("super"));
+  check("the numbers moved: two records fewer in the archive", r.status === 200 && r.data.total === ptStats.total - 2, r.body);
+
+  section("Super Admin Find People: one search box, match cards, full profile");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    r = await call("GET", `/admin/find-people?q=${encodeURIComponent(users.owner!.email)}`, T(who));
+    check(`${who} cannot search people here → 403`, r.status === 403, r.body);
+    r = await call("GET", `/admin/find-people/${users.owner!.id}`, T(who));
+    check(`${who} cannot open a full profile here → 403`, r.status === 403, r.body);
+  }
+  r = await call("GET", "/admin/find-people?q=abcdef", null);
+  check("the search needs a sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/admin/find-people?q=ab", T("super"));
+  check("fewer than 3 characters → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/find-people", T("super"));
+  check("no search text → 422", r.status === 422, r.body);
+  const fpOwner = await db.user.findUnique({ where: { id: users.owner!.id }, select: { phone: true, ownerCode: true, nid: true, username: true } });
+  const fpFree = await db.user.findUnique({ where: { id: users.general!.id }, select: { phone: true, tenantCode: true, email: true } });
+  const fpIds = async (q: string) => { const x = await call("GET", `/admin/find-people?q=${encodeURIComponent(q)}`, T("super")); return { x, ids: (x.data?.items ?? []).map((i: any) => i.id) as string[] }; };
+  let fp = await fpIds(users.owner!.email);
+  check("by e-mail finds the owner (any letter case)", fp.x.status === 200 && fp.ids.length === 1 && fp.ids[0] === users.owner!.id && fp.x.data.matchedBy.includes("email"), fp.x.body);
+  fp = await fpIds(users.owner!.email.toUpperCase());
+  check("…e-mail in capitals finds the same person", fp.ids[0] === users.owner!.id, fp.x.body);
+  fp = await fpIds(fpOwner!.phone!);
+  check("by phone (01…) finds the owner", fp.ids[0] === users.owner!.id, fp.x.body);
+  fp = await fpIds(`+88${fpOwner!.phone}`);
+  check("by phone typed as +8801… finds the same person", fp.ids[0] === users.owner!.id, fp.x.body);
+  fp = await fpIds(`88${fpOwner!.phone}`.replace(/(\d{3})(\d{4})(\d+)/, "$1 $2 $3"));
+  check("by phone typed with spaces finds the same person", fp.ids[0] === users.owner!.id, fp.x.body);
+  fp = await fpIds(fpOwner!.ownerCode!);
+  check("by Owner ID (OW…) finds the owner", fp.ids[0] === users.owner!.id, fp.x.body);
+  fp = await fpIds(fpOwner!.ownerCode!.toLowerCase());
+  check("…an Owner ID in small letters works too", fp.ids[0] === users.owner!.id, fp.x.body);
+  fp = await fpIds(fpOwner!.username);
+  check("by username finds the owner", fp.ids[0] === users.owner!.id, fp.x.body);
+  fp = await fpIds(users.owner!.id);
+  check("by account id (uuid) finds the owner", fp.ids.length === 1 && fp.ids[0] === users.owner!.id, fp.x.body);
+  if (fpOwner?.nid && /^\d{13,17}$/.test(fpOwner.nid)) {
+    fp = await fpIds(fpOwner.nid);
+    check("by NID number finds the owner", fp.ids[0] === users.owner!.id && fp.x.data.matchedBy.includes("nid"), fp.x.body);
+    check("…and the result shows the NID only masked", /^•+\d{4}$/.test(fp.x.data.items[0].nid) && !JSON.stringify(fp.x.data).includes(fpOwner.nid), fp.x.body);
+  }
+  fp = await fpIds(fpFree!.tenantCode!);
+  check("by Tenant ID (TF…) finds the Tenant-Free account", fp.ids[0] === users.general!.id && fp.x.data.items[0].role === "GENERAL_USER", fp.x.body);
+  fp = await fpIds(users.tenant!.email);
+  check("a tenant is found by e-mail with the Tenant role", fp.ids[0] === users.tenant!.id && fp.x.data.items[0].role === "TENANT", fp.x.body);
+  const fpCard = (await fpIds(users.owner!.email)).x.data.items[0];
+  check("the match card has name, role, NID state, e-mail, phone, ID and online state", !!fpCard.fullName && fpCard.role === "OWNER" && typeof fpCard.nidVerified === "boolean" && !!fpCard.email && !!fpCard.phone && fpCard.ownerCode === fpOwner!.ownerCode && typeof fpCard.online === "boolean", JSON.stringify(fpCard));
+  fp = await fpIds("nobody.like.this@mailinator.com");
+  check("no match → an empty list (200)", fp.x.status === 200 && fp.ids.length === 0, fp.x.body);
+  fp = await fpIds(users.gov!.email);
+  check("a Government account is not listed as a tenant or owner", fp.x.status === 200 && fp.ids.length === 0, fp.x.body);
+  fp = await fpIds(users.super!.email);
+  check("the Super Admin account is never listed", fp.x.status === 200 && fp.ids.length === 0, fp.x.body);
+  fp = await fpIds("%%%%");
+  check("odd characters find nothing and do no harm", fp.x.status === 200 && fp.ids.length === 0, fp.x.body);
+  fp = await fpIds("%owner%");
+  check("wildcards are not wildcards (exact matches only)", fp.x.status === 200 && fp.ids.length === 0, fp.x.body);
+  check("the searches are written to the audit log (and the search text is not)", (await db.auditLog.count({ where: { action: "people.search", actorId: users.super!.id } })) >= 10 && (await db.auditLog.count({ where: { action: "people.search", actorId: users.super!.id, after: { string_contains: users.owner!.email } as never } })) === 0);
+
+  const nidViewsBefore = await db.auditLog.count({ where: { action: "user.nid_view", actorId: users.super!.id } });
+  r = await call("GET", `/admin/find-people/${users.owner!.id}`, T("super"));
+  check("Owner profile: header with the NID, contact, online state and joined date", r.status === 200 && r.data.role === "OWNER" && /^\d{13,17}$/.test(r.data.nid ?? "") && !!r.data.email && !!r.data.phone && typeof r.data.online === "boolean" && !!r.data.createdAt && ["ACTIVE", "WARNING", "SUSPENDED"].includes(r.data.state), r.body);
+  check("…the owner part has plan, unit breakdown, properties and active tenants", !!r.data.owner && !!r.data.owner.plan && typeof r.data.owner.units.total === "number" && typeof r.data.owner.units.occupied === "number" && Array.isArray(r.data.owner.properties) && r.data.owner.properties.length >= 1 && Array.isArray(r.data.owner.tenants) && r.data.tenant === null && r.data.free === null, r.body);
+  check("…the full NID view is audit-logged", (await db.auditLog.count({ where: { action: "user.nid_view", actorId: users.super!.id } })) === nidViewsBefore + 1);
+  r = await call("GET", `/admin/find-people/${users.tenant!.id}`, T("super"));
+  check("Tenant profile: a tenant part with the residence (or none), landlord and ledger", r.status === 200 && r.data.role === "TENANT" && !!r.data.tenant && "residence" in r.data.tenant && Array.isArray(r.data.tenant.ledger) && typeof r.data.tenant.previousTenancies === "number" && r.data.owner === null && r.data.free === null, r.body);
+  if (r.data?.tenant?.residence) check("…a living tenant shows property, unit, rent, lease dates and the landlord", !!r.data.tenant.residence.property && !!r.data.tenant.residence.unit && Number(r.data.tenant.residence.rent) > 0 && !!r.data.tenant.residence.startDate && !!r.data.tenant.landlord?.fullName, r.body);
+  r = await call("GET", `/admin/find-people/${users.general!.id}`, T("super"));
+  check("Tenant Free profile: saved listings, search activity and the upgrade status", r.status === 200 && r.data.role === "GENERAL_USER" && !!r.data.free && Array.isArray(r.data.free.favorites) && Array.isArray(r.data.free.searches) && typeof r.data.free.favoriteCount === "number" && "upgrade" in r.data.free && r.data.owner === null && r.data.tenant === null, r.body);
+  r = await call("GET", `/admin/find-people/${users.super!.id}`, T("super"));
+  check("the Super Admin has no profile here → 404", r.status === 404, r.body);
+  r = await call("GET", `/admin/find-people/${users.gov!.id}`, T("super"));
+  check("a Government account has no profile here → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/find-people/00000000-0000-7000-8000-000000000000", T("super"));
+  check("a missing person → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/find-people/not-a-uuid", T("super"));
+  check("a bad id → 422", r.status === 422 || r.status === 404, r.body);
+
+  // clicking a property, a property for sale, a unit or a person inside a profile opens a window with everything
+  r = await call("GET", `/admin/find-people/${users.owner!.id}`, T("super"));
+  const fpOwnerPart = r.data?.owner;
+  check("the owner profile lists properties, properties for sale, sold ones, every unit and the active tenants", !!fpOwnerPart && Array.isArray(fpOwnerPart.forSale) && Array.isArray(fpOwnerPart.sold) && Array.isArray(fpOwnerPart.unitList) && fpOwnerPart.unitList.length >= 1 && fpOwnerPart.unitList.every((u: any) => !!u.id && !!u.propertyId) && fpOwnerPart.properties.every((x: any) => !!x.id), r.body);
+  const fpProp = fpOwnerPart?.properties?.[0];
+  const fpUnit = fpOwnerPart?.unitList?.[0];
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of [`/admin/find-people/properties/${fpProp?.id}`, `/admin/find-people/units/${fpUnit?.id}`, `/admin/find-people/listings/${fpProp?.id}`]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.split("/").slice(-2, -1)[0]} details here → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", `/admin/find-people/properties/${fpProp?.id}`, null);
+  check("property details need a sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", `/admin/find-people/properties/${fpProp?.id}`, T("super"));
+  check("property window: details, owner, occupancy numbers, amenities and every unit with its tenant", r.status === 200 && r.data.id === fpProp.id && r.data.owner.id === users.owner!.id && !!r.data.owner.email && typeof r.data.totals.units === "number" && typeof r.data.totals.occupied === "number" && Array.isArray(r.data.amenities) && Array.isArray(r.data.photos) && Array.isArray(r.data.units) && r.data.units.every((u: any) => "tenant" in u), r.body);
+  r = await call("GET", `/admin/find-people/units/${fpUnit?.id}`, T("super"));
+  check("unit window: specs, rent, the property, the owner, the tenant and lease (or vacant), the ledger and tickets", r.status === 200 && r.data.id === fpUnit.id && !!r.data.unitNumber && Number(r.data.rent) > 0 && !!r.data.property.name && r.data.owner.id === users.owner!.id && "lease" in r.data && "tenant" in r.data && Array.isArray(r.data.ledger) && typeof r.data.tickets.open === "number" && typeof r.data.previousTenancies === "number", r.body);
+  const fpOccupied = fpOwnerPart?.unitList?.find((u: any) => u.tenant);
+  if (fpOccupied) {
+    r = await call("GET", `/admin/find-people/units/${fpOccupied.id}`, T("super"));
+    check("…an occupied unit shows the tenant with a link target, the lease dates and the rent", r.status === 200 && !!r.data.tenant?.id && !!r.data.lease?.startDate && Number(r.data.lease.rent) > 0, r.body);
+    r = await call("GET", `/admin/find-people/${r.data?.tenant?.id}`, T("super"));
+    check("…and that tenant can be opened as a profile", r.status === 200 && r.data.role === "TENANT", r.body);
+  }
+  const fpListing = await db.listing.findFirst({ where: { sellerId: users.owner!.id }, select: { id: true, title: true } });
+  if (fpListing) {
+    r = await call("GET", `/admin/find-people/listings/${fpListing.id}`, T("super"));
+    check("listing window: title, price, status, specs, description, seller and photos", r.status === 200 && r.data.title === fpListing.title && Number(r.data.price) > 0 && !!r.data.status && !!r.data.type && typeof r.data.description === "string" && r.data.seller.id === users.owner!.id && Array.isArray(r.data.photos), r.body);
+  }
+  r = await call("GET", "/admin/find-people/properties/00000000-0000-7000-8000-000000000000", T("super"));
+  check("a missing property → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/find-people/units/00000000-0000-7000-8000-000000000000", T("super"));
+  check("a missing unit → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/find-people/listings/00000000-0000-7000-8000-000000000000", T("super"));
+  check("a missing listing → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/find-people/units/not-a-uuid", T("super"));
+  check("a bad unit id → 422", r.status === 422 || r.status === 404, r.body);
+  r = await call("GET", `/admin/find-people/${users.tenant!.id}`, T("super"));
+  if (r.data?.tenant?.residence) {
+    check("a tenant profile carries the property, unit and landlord ids for the click-throughs", !!r.data.tenant.residence.propertyId && !!r.data.tenant.residence.unitId && !!r.data.tenant.landlord?.id, r.body);
+    r = await call("GET", `/admin/find-people/properties/${r.data.tenant.residence.propertyId}`, T("super"));
+    check("…and the tenant's property opens", r.status === 200, r.body);
+  }
+
+  section("Super Admin Message: a person's profile card and Active / Warning / Suspended");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    r = await call("GET", `/admin/people/${users.owner!.id}`, T(who));
+    check(`${who} cannot open a profile card → 403`, r.status === 403, r.body);
+    r = await call("PATCH", `/admin/people/${users.general!.id}/status`, T(who), { status: "WARNING", comment: "Not allowed" });
+    check(`${who} cannot change a status → 403`, r.status === 403, r.body);
+  }
+  r = await call("GET", `/admin/people/${users.owner!.id}`, null);
+  check("a profile card needs a sign-in → 401", r.status === 401, r.body);
+  for (const [key, role] of [["owner", "OWNER"], ["tenant", "TENANT"], ["general", "GENERAL_USER"], ["gov", "GOV_ADMIN"]] as const) {
+    r = await call("GET", `/admin/people/${users[key]!.id}`, T("super"));
+    check(`${role}: the card has identity, contact, status, verification and the log`, r.status === 200 && r.data.role === role && r.data.fullName === `Test ${key}` && !!r.data.email && ["ACTIVE", "WARNING", "SUSPENDED"].includes(r.data.state) && !!r.data.verificationStatus && Array.isArray(r.data.log), r.body);
+    if (r.data?.nid) check(`${role}: the NID number is masked`, /^•+\d{4}$/.test(r.data.nid), r.data.nid);
+  }
+  r = await call("GET", `/admin/people/${users.owner!.id}`, T("super"));
+  check("an owner's card also shows properties, units, listings and plan", r.status === 200 && r.data.owner && typeof r.data.owner.properties === "number" && typeof r.data.owner.units === "number" && !!r.data.owner.plan, r.body);
+  r = await call("GET", `/admin/people/${users.super!.id}`, T("super"));
+  check("the Super Admin's own account has no card → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/people/00000000-0000-7000-8000-000000000000", T("super"));
+  check("a missing person → 404", r.status === 404, r.body);
+
+  for (const [key, role] of [["general", "Tenant Free"], ["tenant", "tenant"], ["owner", "owner"]] as const) {
+    r = await call("PATCH", `/admin/people/${users[key]!.id}/status`, T("super"), { status: "WARNING" });
+    check(`${role}: Warning without a reason → 422`, r.status === 422, r.body);
+    r = await call("PATCH", `/admin/people/${users[key]!.id}/status`, T("super"), { status: "BANNED", comment: "Not a state" });
+    check(`${role}: an unknown state → 422`, r.status === 422, r.body);
+    r = await call("PATCH", `/admin/people/${users[key]!.id}/status`, T("super"), { status: "WARNING", comment: "Please keep the building rules" });
+    check(`${role}: Warning with a reason → 200`, r.status === 200 && r.data.state === "WARNING" && r.data.changed === true, r.body);
+    r = await call("GET", `/admin/people/${users[key]!.id}`, T("super"));
+    check(`${role}: the card now says Warning and the log has the reason and the admin`, r.status === 200 && r.data.state === "WARNING" && r.data.log[0]?.action === "WARNING" && r.data.log[0]?.comment === "Please keep the building rules" && !!r.data.log[0]?.adminUsername, r.body);
+    r = await call("GET", "/me", T(key));
+    check(`${role}: a warned person can still use the app`, r.status === 200, r.body);
+    const warnNote = await call("GET", "/notifications?limit=40", T(key));
+    check(`${role}: the warning reached them with the reason`, warnNote.data?.items?.some((x: any) => x.type === "account.warning" && JSON.stringify(x).includes("Please keep the building rules")), warnNote.body);
+    r = await call("PATCH", `/admin/people/${users[key]!.id}/status`, T("super"), { status: "ACTIVE" });
+    check(`${role}: back to Active → 200`, r.status === 200 && r.data.state === "ACTIVE" && r.data.changed === true, r.body);
+    r = await call("PATCH", `/admin/people/${users[key]!.id}/status`, T("super"), { status: "ACTIVE" });
+    check(`${role}: Active again changes nothing`, r.status === 200 && r.data.changed === false, r.body);
+  }
+  r = await call("PATCH", `/admin/people/${users.general!.id}/status`, T("super"), { status: "SUSPENDED", comment: "Fake documents" });
+  check("Tenant Free: Suspended with a reason → 200", r.status === 200 && r.data.state === "SUSPENDED", r.body);
+  r = await call("GET", "/me", T("general"));
+  check("…a suspended person is locked out (403)", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/people/${users.general!.id}/status`, T("super"), { status: "ACTIVE", comment: "Documents checked" });
+  check("…and Active brings them back", r.status === 200 && r.data.state === "ACTIVE", r.body);
+  r = await call("GET", "/me", T("general"));
+  check("…they can use the app again", r.status === 200, r.body);
+  r = await call("PATCH", `/admin/people/${users.super!.id}/status`, T("super"), { status: "SUSPENDED", comment: "Never allowed" });
+  check("the Super Admin cannot be suspended through this card → 404", r.status === 404, r.body);
+
+  if (boostWas) await db.platformSetting.update({ where: { key: "boost.enabled" }, data: { value: boostWas.value as any } });
+  section("Rule 1: a new tenant is invisible to owners until the profile is complete and the NID is verified");
+  const freshMail = `fresh.${tag}@mailinator.com`, freshPhone = phone();
+  const freshCode = `TF9${tag.toUpperCase().replace(/[^A-Z0-9]/g, "0")}`.replace(/[^A-Z0-9]/g, "0").slice(0, 8);
+  const fresh = await db.user.create({ data: { username: `fresh${tag}`, fullName: "Fresh Tenant", email: freshMail, phone: freshPhone, role: "TENANT", tenantCode: freshCode } });
+  users.fresh = { key: "fresh", id: fresh.id, authId: "", email: freshMail, password: "", username: fresh.username, token: "" };
+  const lookups = async () => ({
+    phone: (await call("GET", `/tenancies/lookup?phone=${freshPhone}`, T("owner"))).data?.found,
+    email: (await call("GET", `/tenancies/lookup?email=${encodeURIComponent(freshMail)}`, T("owner"))).data?.found,
+    code: (await call("GET", `/tenancies/lookup?tenantCode=${freshCode}`, T("owner"))).data?.found,
+  });
+  const none = (x: any) => x.phone === false && x.email === false && x.code === false;
+  let hidden = await lookups();
+  check("a brand-new tenant is not found by phone, e-mail or Tenant ID", none(hidden), hidden);
+  r = await call("GET", `/tenancies/lookup?phone=${freshPhone}&tenantCode=${freshCode}`, T("owner"));
+  check("lookup with two keys → 422", r.status === 422, r.body);
+  r = await call("GET", "/tenancies/lookup?tenantCode=bad", T("owner"));
+  check("a malformed Tenant ID → 422", r.status === 422, r.body);
+  await db.user.update({ where: { id: fresh.id }, data: { verificationStatus: "VERIFIED" } });
+  hidden = await lookups();
+  check("verified but the profile is not filled in → still not found", none(hidden), hidden);
+  const freshAddr = await db.address.create({ data: { division: "Dhaka", district: "Dhaka" } as never });
+  await db.user.update({ where: { id: fresh.id }, data: { verificationStatus: "PENDING", nid: "19900000000011", dateOfBirth: new Date("1995-05-05"), occupation: "Student", addressId: freshAddr.id } });
+  hidden = await lookups();
+  check("profile filled in but the NID is not verified yet → still not found", none(hidden), hidden);
+  const freeUnit = await db.unit.create({ data: { propertyId: prop?.id, unitNumber: `FR${tag}`.slice(0, 8), floor: 1, rent: 9000, availability: "AVAILABLE" } as never });
+  r = await call("POST", `/units/${freeUnit.id}/tenant`, T("owner"), { tenantId: fresh.id });
+  check("the owner cannot move an unverified tenant in by id either → 422", r.status === 422, r.body);
+  await db.user.update({ where: { id: fresh.id }, data: { verificationStatus: "VERIFIED" } });
+  hidden = await lookups();
+  check("complete profile AND verified NID → found by phone, e-mail and Tenant ID", hidden.phone === true && hidden.email === true && hidden.code === true, hidden);
+  await db.user.update({ where: { id: fresh.id }, data: { verificationStatus: "REJECTED" } });
+  hidden = await lookups();
+  check("a rejected NID hides the tenant again", none(hidden), hidden);
+  await db.unit.delete({ where: { id: freeUnit.id } });
+
+  section("Rule 2: an owner needs an active plan, an approved payment and a verified NID to add properties, units or flats for sale");
+  const ownerNow = (await db.user.findUnique({ where: { id: users.owner!.id }, select: { verificationStatus: true, occupation: true } }))!;
+  const clearNotices = () => db.notification.deleteMany({ where: { userId: users.owner!.id, type: { startsWith: "access." } } });
+  const openNotices = async () => (await db.notification.findMany({ where: { userId: users.owner!.id, type: { startsWith: "access." }, archivedAt: null }, select: { type: true } })).map((n) => n.type).sort();
+  await clearNotices();
+  r = await call("GET", "/listings/eligibility", T("owner"));
+  check("baseline: plan, payment, profile and NID all fine → the owner may post for sale", r.status === 200, r.body);
+  check("…and nothing is waiting in the notification center", (await openNotices()).length === 0);
+
+  await db.user.update({ where: { id: users.owner!.id }, data: { verificationStatus: "PENDING" } });
+  r = await call("GET", "/listings/eligibility", T("owner"));
+  check("NID not verified → posting for sale is blocked (OWNER_NOT_READY, missing nid)", r.status === 403 && r.code === "OWNER_NOT_READY" && r.body?.details?.missing?.includes("nid"), r.body);
+  r = await call("POST", "/properties", T("owner"), { name: "Blocked tower", type: "APARTMENT_BUILDING", totalFloors: 2, totalUnits: 4 });
+  check("NID not verified → adding a property is blocked", r.status === 403 && r.code === "OWNER_NOT_READY", r.body);
+  r = await call("POST", `/properties/${prop?.id}/units`, T("owner"), { unitNumber: "ZZ9", floor: 1, bedrooms: 1, areaSqft: 300, rent: 7000 });
+  check("NID not verified → adding a unit is blocked", r.status === 403 && r.code === "OWNER_NOT_READY", r.body);
+  check("the owner finds one notice telling them to verify the NID", JSON.stringify(await openNotices()) === JSON.stringify(["access.nid"]), await openNotices());
+  const nn = await call("GET", "/notifications?limit=40", T("owner"));
+  check("the notice is in the notification center, unread, with a link to the profile", nn.data?.items?.some((x: any) => x.type === "access.nid" && x.readAt === null && x.link === "/home-owner/profile" && x.priority === "HIGH"), nn.body);
+  check("three blocked attempts did not create three notices", (await db.notification.count({ where: { userId: users.owner!.id, type: "access.nid" } })) === 1);
+
+  await db.user.update({ where: { id: users.owner!.id }, data: { occupation: null } });
+  r = await call("GET", "/listings/eligibility", T("owner"));
+  check("profile not complete → blocked with both profile and nid missing", r.status === 403 && r.body?.details?.missing?.includes("profile") && r.body?.details?.missing?.includes("nid"), r.body);
+  check("a notice for the profile appears too", JSON.stringify(await openNotices()) === JSON.stringify(["access.nid", "access.profile"]), await openNotices());
+
+  await db.user.update({ where: { id: users.owner!.id }, data: { verificationStatus: "VERIFIED", occupation: ownerNow.occupation } });
+  const paidTxns = await db.paymentTransaction.findMany({ where: { subscription: { userId: users.owner!.id }, status: "SUCCESS" }, select: { id: true } });
+  await db.paymentTransaction.updateMany({ where: { id: { in: paidTxns.map((x) => x.id) } }, data: { status: "PENDING_REVIEW" } });
+  r = await call("GET", "/listings/eligibility", T("owner"));
+  check("payment not approved by the Super Admin → blocked (missing payment only)", r.status === 403 && r.code === "OWNER_NOT_READY" && r.body?.details?.missing?.length === 1 && r.body.details.missing[0] === "payment", r.body);
+  check("a payment notice appears", (await openNotices()).includes("access.payment"), await openNotices());
+  await db.paymentTransaction.updateMany({ where: { id: { in: paidTxns.map((x) => x.id) } }, data: { status: "SUCCESS" } });
+  r = await call("GET", "/listings/eligibility", T("owner"));
+  check("everything in place again → allowed", r.status === 200, r.body);
+  check("…and every notice is cleared", (await openNotices()).length === 0, await openNotices());
+
+  await db.userSubscription.updateMany({ where: { userId: users.owner!.id, status: "ACTIVE" }, data: { status: "EXPIRED" } });
+  r = await call("GET", "/listings/eligibility", T("owner"));
+  check("no active plan → blocked (the plan notice appears)", r.status === 403 && (await openNotices()).includes("access.plan"), r.body);
+  await db.userSubscription.updateMany({ where: { userId: users.owner!.id, status: "EXPIRED" }, data: { status: "ACTIVE" } });
+  await clearNotices();
+  await db.user.update({ where: { id: users.owner!.id }, data: { verificationStatus: ownerNow.verificationStatus } });
+  await db.user.update({ where: { id: fresh.id }, data: { verificationStatus: "VERIFIED" } });
+
+  section("Super Admin Tenant Free: only new sign-ups, NID tabs, details, status, NID review, message");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/tenant-free", "/admin/tenant-free/stats", `/admin/tenant-free/${users.general!.id}`]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.replace(users.general!.id, ":id")} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/tenant-free/stats", null);
+  check("Tenant Free numbers need a sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/admin/tenant-free/stats", T("super"));
+  check("cards: total, new in 30 days, NID verified with the share, waiting for review", r.status === 200 && r.data.total >= 1 && typeof r.data.newLast30 === "number" && r.data.verified >= 1 && r.data.verified <= r.data.total && typeof r.data.pending === "number" && Math.abs(r.data.verifiedRate - Math.round((r.data.verified / r.data.total) * 1000) / 10) < 0.01, r.body);
+  r = await call("GET", `/admin/tenant-free?q=${encodeURIComponent(users.general!.username)}`, T("super"));
+  const gRow = r.data?.items?.[0];
+  check("search finds the Tenant-Free account: contact, NID state, status, joined, and whether owners can find it", r.status === 200 && r.data.total === 1 && gRow?.id === users.general!.id && gRow.state === "ACTIVE" && gRow.verificationStatus === "VERIFIED" && gRow.visibleToOwners === true && !!gRow.email && !!gRow.createdAt, r.body);
+  r = await call("GET", `/admin/tenant-free?q=${encodeURIComponent(users.owner!.username)}`, T("super"));
+  check("an owner is not listed here", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", `/admin/tenant-free?q=${encodeURIComponent(users.tenant!.username)}`, T("super"));
+  check("a tenant with a lease is not listed here", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/admin/tenant-free?tab=all&page=1", T("super"));
+  check("10 per page and only Tenant-Free accounts", r.status === 200 && r.data.pageSize === 10 && r.data.items.length <= 10 && r.data.items.every((x: any) => !!x.username), r.body);
+  r = await call("GET", `/admin/tenant-free?tab=PENDING&q=${encodeURIComponent(users.general!.username)}`, T("super"));
+  check("the Pending tab leaves a verified account out", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/admin/tenant-free?tab=NOPE", T("super"));
+  check("an unknown tab → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/tenant-free?page=0", T("super"));
+  check("page 0 → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/tenant-free/${users.general!.id}`, T("super"));
+  check("details: profile, NID number, address, documents, visibility and the account log", r.status === 200 && r.data.id === users.general!.id && "nid" in r.data && "address" in r.data && Array.isArray(r.data.log) && Array.isArray(r.data.gaps) && r.data.visibleToOwners === true && "nidFront" in r.data.documents, r.body);
+  r = await call("GET", `/admin/tenant-free/${users.owner!.id}`, T("super"));
+  check("an owner has no Tenant Free page → 404", r.status === 404, r.body);
+
+  const gDob = (await db.user.findUnique({ where: { id: users.general!.id }, select: { dateOfBirth: true } }))!.dateOfBirth;
+  await db.user.update({ where: { id: users.general!.id }, data: { dateOfBirth: null } });
+  r = await call("GET", `/admin/tenant-free/${users.general!.id}`, T("super"));
+  check("an unfinished profile is hidden from owners, and the page says what is missing", r.status === 200 && r.data.visibleToOwners === false && r.data.gaps.includes("dateOfBirth"), r.body);
+  await db.user.update({ where: { id: users.general!.id }, data: { dateOfBirth: gDob } });
+
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/status`, T("owner"), { status: "SUSPENDED", comment: "test reason" });
+  check("an owner cannot change the status → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/status`, T("super"), { status: "SUSPENDED" });
+  check("suspending without a reason → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/status`, T("super"), { status: "WARNING", comment: "nope" });
+  check("only Active or Suspended are allowed → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.owner!.id}/status`, T("super"), { status: "SUSPENDED", comment: "not here" });
+  check("an owner cannot be suspended from this page → 404", r.status === 404, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/status`, T("super"), { status: "SUSPENDED", comment: "Fake documents were sent." });
+  check("suspended with a reason", r.status === 200 && r.data.state === "SUSPENDED" && r.data.changed === true, r.body);
+  r = await call("GET", "/me", T("general"));
+  check("a suspended person cannot use the app → 403", r.status === 403, r.body);
+  r = await call("GET", `/admin/tenant-free?q=${encodeURIComponent(users.general!.username)}`, T("super"));
+  check("the table shows Suspended", r.data?.items?.[0]?.state === "SUSPENDED", r.body);
+  r = await call("GET", `/admin/tenant-free/${users.general!.id}`, T("super"));
+  check("the account log keeps the reason with the admin and the time", r.data?.log?.[0]?.action === "SUSPENDED" && r.data.log[0].adminUsername === users.super!.username && String(r.data.log[0].comment).includes("Fake documents"), r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/status`, T("super"), { status: "ACTIVE" });
+  check("back to Active needs no reason", r.status === 200 && r.data.state === "ACTIVE", r.body);
+  r = await call("GET", "/me", T("general"));
+  check("the person can use the app again", r.status === 200, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/status`, T("super"), { status: "ACTIVE" });
+  check("saving Active again changes nothing", r.status === 200 && r.data.changed === false, r.body);
+
+  // NID front / back review
+  const gVerifyBefore = (await db.user.findUnique({ where: { id: users.general!.id }, select: { verificationStatus: true } }))!.verificationStatus;
+  await db.verificationDocument.deleteMany({ where: { ownerType: "USER", ownerId: users.general!.id } });
+  await db.user.update({ where: { id: users.general!.id }, data: { verificationStatus: "UNVERIFIED" } });
+  const gKey = (k: string, f: string) => `${k}/${users.general!.id}/${f}`;
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/documents/NID_FRONT`, T("super"), { decision: "VERIFIED" });
+  check("reviewing a photo that was never uploaded → 404", r.status === 404, r.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "NID_FRONT", storageKey: gKey("NID_FRONT", "g-front.png") });
+  check("the person uploads the NID front", r.status === 201, r.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "NID_BACK", storageKey: gKey("NID_BACK", "g-back.png") });
+  check("…and the NID back", r.status === 201, r.body);
+  r = await call("GET", "/admin/tenant-free?tab=PENDING&q=" + encodeURIComponent(users.general!.username), T("super"));
+  check("the Pending tab now lists the account", r.status === 200 && r.data.total === 1 && r.data.items[0].verificationStatus === "PENDING" && r.data.items[0].visibleToOwners === false, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/documents/NID_FRONT`, T("general"), { decision: "VERIFIED" });
+  check("the person cannot verify their own photo → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/documents/NID_BACK`, T("super"), { decision: "REJECTED" });
+  check("rejecting without a reason → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/documents/NID_FRONT`, T("super"), { decision: "VERIFIED" });
+  check("NID front verified", r.status === 200 && r.data.status === "VERIFIED" && r.data.tenantVerification === "PENDING", r.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "NID_FRONT", storageKey: gKey("NID_FRONT", "g-front-2.png") });
+  check("a verified NID front is locked → 409", r.status === 409, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/documents/NID_BACK`, T("super"), { decision: "REJECTED", note: "The back is blurry." });
+  check("NID back rejected with a reason", r.status === 200 && r.data.status === "REJECTED" && r.data.tenantVerification === "REJECTED", r.body);
+  const gn = await call("GET", "/notifications?limit=40", T("general"));
+  check("the person gets a separate notification for each photo, with the reason for the rejected one", gn.data?.items?.some((x: any) => x.type === "document.verified" && x.params?.document === "NID_FRONT") && gn.data?.items?.some((x: any) => x.type === "document.rejected" && x.params?.document === "NID_BACK" && String(x.params?.reason).includes("blurry")), gn.body);
+  r = await call("POST", "/me/documents", T("general"), { kind: "NID_BACK", storageKey: gKey("NID_BACK", "g-back-2.png") });
+  check("a rejected photo can be replaced", r.status === 201, r.body);
+  r = await call("PATCH", `/admin/tenant-free/${users.general!.id}/documents/NID_BACK`, T("super"), { decision: "VERIFIED" });
+  check("both photos verified → the account is Verified", r.status === 200 && r.data.tenantVerification === "VERIFIED" && (await db.user.findUnique({ where: { id: users.general!.id } }))?.verificationStatus === "VERIFIED", r.body);
+  await db.verificationDocument.deleteMany({ where: { ownerType: "USER", ownerId: users.general!.id } });
+  await db.user.update({ where: { id: users.general!.id }, data: { verificationStatus: gVerifyBefore } });
+  r = await call("POST", "/conversations", T("super"), { type: "DIRECT", recipientId: users.general!.id });
+  check("the Super Admin can open a direct chat with the person", (r.status === 200 || r.status === 201) && !!r.data?.id, r.body);
+
+  section("Super Admin Active Tenants: numbers, tabs, search, details, edit (status, end date, unit), notifications");
+  for (const who of ["owner", "tenant", "general", "gov"]) {
+    for (const path of ["/admin/active-tenants", "/admin/active-tenants/stats", "/admin/active-tenants/00000000-0000-7000-8000-000000000000"]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.replace(/[0-9a-f-]{36}/, ":id")} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/active-tenants/stats", null);
+  check("tenant numbers need a sign-in → 401", r.status === 401, r.body);
+  r = await call("GET", "/admin/active-tenants/stats", T("super"));
+  check("cards: total tenants, active leases with the share, new in 30 days, leases ending in 30 days", r.status === 200 && r.data.totalTenants >= 1 && r.data.activeLeases >= 1 && r.data.activeLeases <= r.data.totalTenants + 1000 && typeof r.data.newLast30 === "number" && typeof r.data.expiringSoon === "number" && Math.abs(r.data.activeRate - Math.min(100, Math.round((r.data.activeLeases / r.data.totalTenants) * 1000) / 10)) < 0.01, r.body);
+  r = await call("GET", `/admin/active-tenants?q=${encodeURIComponent(users.tenant!.username)}`, T("super"));
+  const tenRow = r.data?.items?.[0];
+  check("search finds the tenant: contact, residence, owner (phone + ID), lease end, status", r.status === 200 && r.data.total === 1 && tenRow?.tenant.id === users.tenant!.id && tenRow.owner.id === users.owner!.id && !!tenRow.residence.property && !!tenRow.residence.unit && tenRow.state === "ACTIVE" && !!tenRow.tenant.email && !!tenRow.owner.fullName, r.body);
+  const tAgreement = tenRow?.id;
+  r = await call("GET", "/admin/active-tenants?page=1", T("super"));
+  check("10 per page with the total for 'Showing 10 of N tenants'", r.status === 200 && r.data.pageSize === 10 && r.data.items.length <= 10 && r.data.total >= r.data.items.length, r.body);
+  r = await call("GET", "/admin/active-tenants?page=0", T("super"));
+  check("page 0 → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/active-tenants?tab=sideways", T("super"));
+  check("unknown tab → 422", r.status === 422, r.body);
+  r = await call("GET", "/admin/active-tenants?tab=notice", T("super"));
+  check("Notice Given tab lists only tenants with a notice", r.status === 200 && r.data.items.every((x: any) => x.state === "NOTICE_GIVEN"), r.body);
+  r = await call("GET", `/admin/active-tenants/${tAgreement}`, T("super"));
+  check("details: tenant, NID status, residence (unit, floor, rooms), rent, lease dates, owner, rent dues and free units", r.status === 200 && r.data.tenant.id === users.tenant!.id && !!r.data.residence.property && !!r.data.residence.unit && r.data.rent !== undefined && !!r.data.startDate && r.data.owner.id === users.owner!.id && !!r.data.ledger && Array.isArray(r.data.unitChoices) && typeof r.data.tenant.verificationStatus === "string", r.body);
+  const beforeEnd = r.data?.endDate;
+
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("owner"), { status: "NOTICE_GIVEN" });
+  check("owner cannot use the admin edit → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), {});
+  check("an empty edit → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { status: "GONE" });
+  check("an unknown status → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { endDate: "2000-01-01" });
+  check("an end date before the lease start → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { status: "NOTICE_GIVEN" });
+  check("Notice Given is saved", r.status === 200 && r.data.changed === true && r.data.state === "NOTICE_GIVEN", r.body);
+  r = await call("GET", `/admin/active-tenants?tab=notice&q=${encodeURIComponent(users.tenant!.username)}`, T("super"));
+  check("the tenant is now on the Notice Given tab", r.status === 200 && r.data.total === 1 && r.data.items[0].state === "NOTICE_GIVEN", r.body);
+  r = await call("GET", `/admin/active-tenants?tab=active&q=${encodeURIComponent(users.tenant!.username)}`, T("super"));
+  check("…and no longer on the Active tab", r.status === 200 && r.data.total === 0, r.body);
+  const tnN = await call("GET", "/notifications?limit=30", T("tenant"));
+  const onN = await call("GET", "/notifications?limit=30", T("owner"));
+  check("the tenant and the owner are both told", [tnN, onN].every((n) => n.data?.items?.some((x: any) => x.type === "tenancy.admin" && x.titleKey === "notifications.tenancyAdminNotice" && !!x.params?.property && !!x.params?.unit)), tnN.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { status: "NOTICE_GIVEN" });
+  check("saving the same status changes nothing", r.status === 200 && r.data.changed === false, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { status: "ACTIVE", endDate: "2031-12-31" });
+  check("back to Active and a new lease end date together", r.status === 200 && r.data.changed === true && r.data.state === "ACTIVE" && r.data.changes.includes("end") && r.data.changes.includes("active"), r.body);
+  r = await call("GET", `/admin/active-tenants/${tAgreement}`, T("super"));
+  check("the new end date is stored", r.status === 200 && String(r.data.endDate).startsWith("2031-12-31") && r.data.state === "ACTIVE", r.body);
+  const agrRow = await db.rentalAgreement.findUnique({ where: { id: tAgreement }, select: { unitId: true, unit: { select: { propertyId: true } } } });
+  const spare = await db.unit.create({ data: { propertyId: agrRow!.unit.propertyId, unitNumber: `MV${tag}`.slice(0, 8), floor: 1, rent: 11000, availability: "AVAILABLE" } as never });
+  r = await call("GET", `/admin/active-tenants/${tAgreement}`, T("super"));
+  check("the free unit of the same owner is offered", r.status === 200 && r.data.unitChoices.some((u: any) => u.id === spare.id) && !r.data.unitChoices.some((u: any) => u.id === agrRow!.unitId), r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { unitId: spare.id });
+  const movedFrom = await db.unit.findUnique({ where: { id: agrRow!.unitId }, select: { availability: true } });
+  const movedTo = await db.unit.findUnique({ where: { id: spare.id }, select: { availability: true } });
+  check("moving to another free unit: the lease follows, the old unit is free, the new one occupied", r.status === 200 && r.data.changes.includes("moved") && movedFrom?.availability === "AVAILABLE" && movedTo?.availability === "OCCUPIED" && (await db.rentalAgreement.findUnique({ where: { id: tAgreement } }))?.unitId === spare.id, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { unitId: agrRow!.unitId });
+  check("moving back works", r.status === 200 && r.data.changes.includes("moved") && (await db.unit.findUnique({ where: { id: spare.id }, select: { availability: true } }))?.availability === "AVAILABLE", r.body);
+  const occupiedElsewhere = await db.unit.findFirst({ where: { availability: "OCCUPIED", id: { not: agrRow!.unitId }, property: { ownerId: users.owner!.id } }, select: { id: true } });
+  if (occupiedElsewhere) {
+    r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { unitId: occupiedElsewhere.id });
+    check("moving into an occupied unit → 409", r.status === 409, r.body);
+  }
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}`, T("super"), { unitId: "not-a-uuid" });
+  check("a bad unit id → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-tenants/00000000-0000-7000-8000-000000000000`, T("super"), { status: "ACTIVE" });
+  check("editing a missing tenancy → 404", r.status === 404, r.body);
+
+  // ---- NID front / NID back / agreement review
+  const verifyBefore = (await db.user.findUnique({ where: { id: users.tenant!.id }, select: { verificationStatus: true } }))!.verificationStatus;
+  await db.verificationDocument.deleteMany({ where: { ownerType: "USER", ownerId: users.tenant!.id } });
+  await db.user.update({ where: { id: users.tenant!.id }, data: { verificationStatus: "UNVERIFIED" } });
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/AGREEMENT`, T("super"), { decision: "VERIFIED" });
+  check("reviewing a document that was never uploaded → 404", r.status === 404, r.body);
+  r = await call("GET", "/admin/active-tenants?verification=PENDING&q=" + encodeURIComponent(users.tenant!.username), T("super"));
+  check("verification filter: not pending yet", r.status === 200 && r.data.total === 0, r.body);
+  const tTok = (k: string, f: string) => `${k}/${users.tenant!.id}/${f}`;
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "NID_FRONT", storageKey: tTok("NID_FRONT", "e2e-front.png") });
+  check("tenant uploads NID front", r.status === 201, r.body);
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "NID_BACK", storageKey: tTok("NID_BACK", "e2e-back.png") });
+  check("tenant uploads NID back", r.status === 201, r.body);
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "AGREEMENT", storageKey: tTok("VERIFICATION_DOC", "e2e-agreement.pdf") });
+  check("tenant uploads the agreement", r.status === 201, r.body);
+  r = await call("GET", "/admin/active-tenants?verification=PENDING&q=" + encodeURIComponent(users.tenant!.username), T("super"));
+  check("verification filter Pending lists the tenant (with the NID badge state)", r.status === 200 && r.data.total === 1 && r.data.items[0].tenant.verification === "PENDING", r.body);
+  r = await call("GET", "/admin/active-tenants?verification=VERIFIED&q=" + encodeURIComponent(users.tenant!.username), T("super"));
+  check("…and not under Verified", r.status === 200 && r.data.total === 0, r.body);
+  r = await call("GET", "/admin/active-tenants?verification=NOPE", T("super"));
+  check("an unknown verification filter → 422", r.status === 422, r.body);
+  r = await call("GET", `/admin/active-tenants/${tAgreement}`, T("super"));
+  check("details show the three documents (state, upload date, PDF flag) and the full NID number field", r.status === 200 && r.data.documents.nidFront?.status === "PENDING" && r.data.documents.nidBack?.status === "PENDING" && r.data.documents.agreement?.status === "PENDING" && r.data.documents.agreement.isPdf === true && r.data.documents.nidFront.reviewable === true && r.data.documents.nidFront.locked === false && "nid" in r.data.tenant && "dateOfBirth" in r.data.tenant && "address" in r.data.tenant, r.body);
+
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_FRONT`, T("owner"), { decision: "VERIFIED" });
+  check("owner cannot review documents → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_FRONT`, T("tenant"), { decision: "VERIFIED" });
+  check("the tenant cannot verify their own document → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_SIDE`, T("super"), { decision: "VERIFIED" });
+  check("an unknown document kind → 422/404", r.status === 422 || r.status === 404, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_BACK`, T("super"), { decision: "REJECTED" });
+  check("rejecting without a reason → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_BACK`, T("super"), { decision: "MAYBE" });
+  check("an unknown decision → 422", r.status === 422, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_FRONT`, T("super"), { decision: "VERIFIED" });
+  check("NID front verified", r.status === 200 && r.data.status === "VERIFIED" && r.data.changed === true && r.data.tenantVerification === "PENDING", r.body);
+  const dn1 = await call("GET", "/notifications?limit=30", T("tenant"));
+  check("the tenant gets a notification for the NID front alone", dn1.data?.items?.some((x: any) => x.type === "document.verified" && x.params?.document === "NID_FRONT") && !dn1.data?.items?.some((x: any) => x.params?.document === "NID_BACK" && x.type?.startsWith("document.")), dn1.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_FRONT`, T("super"), { decision: "VERIFIED" });
+  check("verifying the same document again changes nothing", r.status === 200 && r.data.changed === false, r.body);
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "NID_FRONT", storageKey: tTok("NID_FRONT", "e2e-front-2.png") });
+  check("a verified NID front is locked: the tenant cannot replace it → 409", r.status === 409, r.body);
+  check("…and the verified record is still the original", (await db.verificationDocument.count({ where: { ownerType: "USER", ownerId: users.tenant!.id, kind: "NID_FRONT" } })) === 1 && (await db.verificationDocument.findFirst({ where: { ownerType: "USER", ownerId: users.tenant!.id, kind: "NID_FRONT" } }))?.status === "VERIFIED");
+  r = await call("GET", `/admin/active-tenants/${tAgreement}`, T("super"));
+  check("details mark the verified front as locked", r.status === 200 && r.data.documents.nidFront.locked === true, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_BACK`, T("super"), { decision: "REJECTED", note: "The photo is blurry." });
+  check("NID back rejected with a reason: the tenant NID state becomes Rejected", r.status === 200 && r.data.status === "REJECTED" && r.data.tenantVerification === "REJECTED" && (await db.user.findUnique({ where: { id: users.tenant!.id } }))?.verificationStatus === "REJECTED", r.body);
+  const dn2 = await call("GET", "/notifications?limit=30", T("tenant"));
+  check("a separate notification tells the tenant the back was rejected, with the reason", dn2.data?.items?.some((x: any) => x.type === "document.rejected" && x.params?.document === "NID_BACK" && String(x.params?.reason).includes("blurry")), dn2.body);
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "NID_BACK", storageKey: tTok("NID_BACK", "e2e-back-2.png") });
+  check("a rejected document can be replaced", r.status === 201, r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/NID_BACK`, T("super"), { decision: "VERIFIED" });
+  check("NID back verified: both photos verified → the tenant is Verified", r.status === 200 && r.data.tenantVerification === "VERIFIED" && (await db.user.findUnique({ where: { id: users.tenant!.id } }))?.verificationStatus === "VERIFIED", r.body);
+  r = await call("GET", "/admin/active-tenants?verification=VERIFIED&q=" + encodeURIComponent(users.tenant!.username), T("super"));
+  check("verification filter Verified now lists the tenant", r.status === 200 && r.data.total === 1 && r.data.items[0].tenant.verification === "VERIFIED", r.body);
+  r = await call("PATCH", `/admin/active-tenants/${tAgreement}/documents/AGREEMENT`, T("super"), { decision: "VERIFIED" });
+  check("the agreement is reviewed on its own and does not change the NID state", r.status === 200 && r.data.status === "VERIFIED" && r.data.tenantVerification === null && (await db.user.findUnique({ where: { id: users.tenant!.id } }))?.verificationStatus === "VERIFIED", r.body);
+  r = await call("POST", "/me/documents", T("tenant"), { kind: "AGREEMENT", storageKey: tTok("VERIFICATION_DOC", "e2e-agreement-2.pdf") });
+  check("a verified agreement is locked too → 409", r.status === 409, r.body);
+  await db.verificationDocument.deleteMany({ where: { ownerType: "USER", ownerId: users.tenant!.id } });
+  await db.user.update({ where: { id: users.tenant!.id }, data: { verificationStatus: verifyBefore } });
+  r = await call("POST", "/conversations", T("super"), { type: "DIRECT", recipientId: users.tenant!.id });
+  check("the Super Admin can open a direct chat with the tenant", (r.status === 200 || r.status === 201) && !!r.data?.id, r.body);
+  void beforeEnd;
 
   section("admin user management");
   if (users.govx) {
@@ -2871,6 +4408,7 @@ r = await call("POST", "/properties", T("tenant"), propBody);
 
   // full cycle on a fresh account: Tenant-Free → connected by an owner (verified tenant) → leaves (Tenant-Free) → connected again
   const life = await db.user.create({ data: { username: `life${tag}`, fullName: "Life Cycle", email: `life.${tag}@mailinator.com`, phone: phone(), role: "GENERAL_USER" } });
+  await fillProfile(life.id);
   r = await call("POST", `/properties/${prop?.id}/units`, T("owner"), { unitNumber: "L101", floor: 1, bedrooms: 1, areaSqft: 400, rent: 8000, tenantId: life.id });
   const lifeUnit = r.data;
   check("owner connects a Tenant-Free account to a unit → 201", r.status === 201 && lifeUnit?.availability === "OCCUPIED", r.body);

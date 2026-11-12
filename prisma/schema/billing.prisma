@@ -87,6 +87,8 @@ model PaymentTransaction {
   purpose          PaymentPurpose
   subscriptionId   String?           @db.Uuid
   upgradeRequestId String?           @db.Uuid
+  /// set when the payment is for a listing Boost (purpose PROMOTION)
+  boostId          String?           @db.Uuid
   amount           Decimal           @db.Decimal(12, 2)
   gateway          PaymentGateway
   gatewayTxnId     String            @unique
@@ -101,6 +103,7 @@ model PaymentTransaction {
   user           User              @relation(fields: [userId], references: [id])
   subscription   UserSubscription? @relation(fields: [subscriptionId], references: [id])
   upgradeRequest UpgradeRequest?   @relation(fields: [upgradeRequestId], references: [id])
+  boost          ListingBoost?     @relation(fields: [boostId], references: [id])
   invoice        Invoice?
 
   /// Super Admin dashboard: revenue of a date range

@@ -13,7 +13,7 @@ const avatar = (key: string | null) => (key ? signStorageKey(key, 3600).then((s)
 const today = () => { const n = new Date(); return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate())); };
 
 /** Finished tenancies (ended or terminated) of this owner that have not been removed from the history. */
-const past = (ownerId: string): Prisma.RentalAgreementWhereInput => ({ ownerId, status: { in: ["ENDED", "TERMINATED"] }, historyHiddenAt: null });
+const past = (ownerId: string): Prisma.RentalAgreementWhereInput => ({ ownerId, status: { in: ["ENDED", "TERMINATED"] }, historyHiddenAt: null, adminHiddenAt: null });
 
 /** Previous Tenants: past tenancies with tenant, property and unit, the reason for leaving and the owner's rating. */
 export async function listPastTenants(actor: Actor, q: z.infer<typeof pastTenantsQuery>) {

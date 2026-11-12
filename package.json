@@ -23,7 +23,9 @@
     "db:seed:user": "tsx --env-file=.env prisma/seed/demo-user-login.ts",
     "clean:test": "tsx --env-file=.env scripts/smoke.ts --sweep",
     "db:seed:admin": "tsx --env-file=.env prisma/seed/super-admin.ts",
-    "audit:roles": "tsx --env-file=.env scripts/audit-roles.ts"
+    "audit:notifications": "tsx --env-file=.env scripts/audit-notifications.ts",
+    "audit:roles": "tsx --env-file=.env scripts/audit-roles.ts",
+    "clean:demo": "tsx --env-file=.env scripts/remove-demo-data.ts"
   },
   "prisma": {
     "schema": "prisma/schema"

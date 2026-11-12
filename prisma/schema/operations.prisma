@@ -1,5 +1,7 @@
 model MaintenanceRequest {
   id             String            @id @default(uuid(7)) @db.Uuid
+  /// the number people say aloud: REQ-1001
+  ticketNo       Int               @unique @default(autoincrement())
   agreementId    String            @db.Uuid
   unitId         String            @db.Uuid
   tenantId       String            @db.Uuid
@@ -11,6 +13,8 @@ model MaintenanceRequest {
   technicianName String?
   /// the date and time the tenant would like the repair done
   preferredAt    DateTime?         @db.Timestamptz
+  /// when it was marked Completed (cleared if it is reopened): the Super Admin report averages createdAt → resolvedAt
+  resolvedAt     DateTime?         @db.Timestamptz
   createdAt      DateTime          @default(now()) @db.Timestamptz
   updatedAt      DateTime          @updatedAt @db.Timestamptz
 
@@ -22,6 +26,7 @@ model MaintenanceRequest {
   @@index([unitId, status])
   @@index([tenantId])
   @@index([tenantId, status, createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
 }
 
 model MaintenanceComment {

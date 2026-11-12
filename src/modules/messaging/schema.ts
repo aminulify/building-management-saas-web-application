@@ -26,7 +26,9 @@ export const sendMessageSchema = z
   })
   .refine((v) => v.body.length > 0 || v.attachments.length > 0, { message: "empty_message", path: ["body"] });
 
-export const contactsQuery = z.object({ q: z.string().trim().max(100).optional() });
+export const CONTACT_ROLES = ["GENERAL_USER", "TENANT", "OWNER", "GOV_ADMIN"] as const;
+/** `role` lets a Super Admin / Government Admin browse one kind of person (Tenant Free, Tenants, Owners, Government) without typing a name. */
+export const contactsQuery = z.object({ q: z.string().trim().max(100).optional(), role: z.enum(CONTACT_ROLES).optional() });
 
 export const startCallSchema = z.object({ conversationId: uuid });
 export const callSignalSchema = z.object({ data: z.object({ kind: z.enum(["offer", "answer", "ice"]), payload: z.unknown() }) });

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { uuid } from "@/lib/api/common";
 
-export const CATEGORIES = ["PLUMBING", "ELECTRICAL", "GAS", "LIFT", "PAINT", "SECURITY", "CLEANING", "OTHER"] as const;
+export const CATEGORIES = ["PLUMBING", "ELECTRICAL", "WATER", "GAS", "LIFT", "PAINT", "SECURITY", "CLEANING", "OTHER"] as const;
 
 /** When the tenant would like the repair: a moment that is not in the past (5 min grace) and within a year. */
 const preferredAt = z.iso.datetime({ offset: true }).refine((v) => {

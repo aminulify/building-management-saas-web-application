@@ -65,7 +65,7 @@ function Form({ target, onClose, onSaved, setBusy }: { target: "add" | PropertyR
       if (e instanceof ApiError && e.code === "VALIDATION_ERROR" && e.issues.some((i) => i.code === "below_existing_units")) {
         setError("totalUnits", { message: "unitsBelowExisting" });
         setFocus("totalUnits");
-      } else if (e instanceof ApiError && ["PLAN_LIMIT_REACHED", "SUBSCRIPTION_REQUIRED", "SUBSCRIPTION_GRACE_RESTRICTED"].includes(e.code)) setBanner({ text: t(`errors.${e.code}` as never), upgrade: true });
+      } else if (e instanceof ApiError && ["PLAN_LIMIT_REACHED", "SUBSCRIPTION_REQUIRED", "SUBSCRIPTION_GRACE_RESTRICTED", "OWNER_NOT_READY"].includes(e.code)) setBanner({ text: t(`errors.${e.code}` as never), upgrade: e.code !== "OWNER_NOT_READY" });
       else if (e instanceof ApiError && e.code === "RATE_LIMITED") setBanner({ text: t("errors.RATE_LIMITED") });
       else if (e instanceof ApiError && e.code === "NETWORK") setBanner({ text: t("errors.network") });
       else if (e instanceof ApiError && (e.code === "FORBIDDEN" || e.code === "ACCOUNT_SUSPENDED")) setBanner({ text: t("errors.forbidden") });

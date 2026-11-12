@@ -108,7 +108,7 @@ export async function transition(actor: Actor, id: string, action: MaintenanceAc
   return db.$transaction(async (tx) => {
     const out = await tx.maintenanceRequest.update({
       where: { id },
-      data: { status: rule.to, ...(body.technicianName ? { technicianName: body.technicianName } : {}) },
+      data: { status: rule.to, resolvedAt: rule.to === "COMPLETED" ? new Date() : null, ...(body.technicianName ? { technicianName: body.technicianName } : {}) },
     });
     if (action === "reject" && body.reason) await tx.maintenanceComment.create({ data: { requestId: id, authorId: actor.id, body: body.reason } });
     const notifyId = rule.by === "owner" ? r.tenantId : r.agreement.ownerId;
@@ -157,7 +157,7 @@ export async function updateRequest(actor: Actor, id: string, input: z.infer<typ
     if (added.length) await tx.maintenanceImage.createMany({ data: added.map((storageKey) => ({ requestId: id, storageKey })) });
     const u = await tx.maintenanceRequest.update({
       where: { id },
-      data: { ...content, ...(status ? { status } : {}), ...(preferredAt !== undefined ? { preferredAt } : {}) },
+      data: { ...content, ...(status ? { status, resolvedAt: status === "COMPLETED" ? new Date() : null } : {}), ...(preferredAt !== undefined ? { preferredAt } : {}) },
       include: { images: true },
     });
     const where = await unitLabel(tx, r.unitId);

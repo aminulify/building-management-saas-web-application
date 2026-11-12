@@ -23,6 +23,10 @@ model Property {
   verificationStatus VerificationStatus                    @default(UNVERIFIED)
   archivedAt         DateTime?                             @db.Timestamptz
   archiveReason      String?
+  /// Previous Properties page: one of OWNER_REQUEST, POLICY_VIOLATION, NON_PAYMENT, BUILDING_DEMOLISHED, SOLD_PROPERTY, RENOVATION, OTHER
+  archiveReasonCode  String?
+  /// when the property was last taken out of service (archived, suspended, inactive or deleted); cleared on reactivation
+  deactivatedAt      DateTime?                             @db.Timestamptz
   createdAt          DateTime                              @default(now()) @db.Timestamptz
   updatedAt          DateTime                              @updatedAt @db.Timestamptz
 
@@ -34,6 +38,7 @@ model Property {
   listings Listing[]
 
   @@index([ownerId, status])
+  @@index([status, deactivatedAt])
 }
 
 model PropertyImage {

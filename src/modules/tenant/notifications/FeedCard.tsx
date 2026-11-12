@@ -1,10 +1,12 @@
 "use client";
 
-import { AlarmClock, Bell, Check, Clock, DollarSign, Hourglass, Loader2, Siren, UserCheck, Wrench, Zap, type LucideIcon } from "lucide-react";
+import { useState } from "react";
+import { AlarmClock, Bell, Check, Clock, DollarSign, FileText, Hourglass, Loader2, Siren, UserCheck, Wrench, Zap, type LucideIcon } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
 import { useLocale, useTranslations } from "next-intl";
 import { formatTaka } from "../../owner/dashboard/format";
+import { NotificationDetailsModal } from "../../notifications/DetailsModal";
 import { relativeTime } from "../../owner/notifications/logic";
 import { lookOf, monthLabels, str } from "./logic";
 import type { FeedItem, Tone } from "./types";
@@ -38,6 +40,7 @@ export function FeedCard({ n, index, now, busy, onPay, onTrack, onAccept, onUnso
   const locale = useLocale();
   const reduce = useReducedMotion();
   const look = lookOf(n);
+  const [details, setDetails] = useState(false);
   const tone = TONE[look.tone];
   const taka = formatTaka(locale);
   const p = n.params;
@@ -85,6 +88,7 @@ export function FeedCard({ n, index, now, busy, onPay, onTrack, onAccept, onUnso
       </div>
 
       <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+        <button type="button" onClick={() => setDetails(true)} className={clsx(btn, "border border-slate-200 bg-white/80 text-navy hover:bg-white")}><FileText className="size-4" aria-hidden />{t("details")}</button>
         {look.badge && <span className={clsx("inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[0.72rem] font-extrabold uppercase tracking-wide", BADGE[look.badge])}>{look.badge === "PENDING_REQUEST" && <Hourglass className="size-3.5" aria-hidden />}{look.badge === "COMPLETED" && <Check className="size-3.5" aria-hidden />}{t(`badge.${look.badge}`)}</span>}
         {look.actions.includes("pay") && <button type="button" onClick={() => onPay(n)} disabled={busy} className={clsx(btn, "bg-green-600 text-white shadow-[0_6px_14px_-6px_rgba(22,163,74,0.7)] hover:bg-green-700")}>{t("action.pay")}</button>}
         {look.actions.includes("track") && <button type="button" onClick={() => onTrack(n)} disabled={busy} className={clsx(btn, "bg-yellow-400 text-navy shadow-[0_6px_14px_-6px_rgba(234,179,8,0.7)] hover:bg-yellow-500")}>{t("action.track")}</button>}
@@ -92,6 +96,7 @@ export function FeedCard({ n, index, now, busy, onPay, onTrack, onAccept, onUnso
         {look.actions.includes("unsolved") && <button type="button" onClick={() => onUnsolved(n)} disabled={busy} className={clsx(btn, "bg-slate-200 uppercase text-slate-700 hover:bg-slate-300")}>{t("action.unsolved")}</button>}
         {look.actions.includes("read") && <button type="button" onClick={() => onRead(n)} disabled={busy} className={clsx(btn, "border border-slate-200 bg-white/80 text-slate-600 hover:bg-white")}>{t("action.read")}</button>}
       </div>
+      <NotificationDetailsModal item={details ? n : null} headline={title} body={body} ago={time(`time.${unit}` as never, { n: count } as never)} onClose={() => setDetails(false)} onRead={() => onRead(n)} />
     </motion.li>
   );
 }

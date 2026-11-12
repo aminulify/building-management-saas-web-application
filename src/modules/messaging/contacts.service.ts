@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import type { Actor } from "@/lib/auth/require-actor";
 import { isOnline } from "./access";
 import { avatarUrls } from "./service";
+import { shownAvatar, shownName } from "./identity";
 
 export interface Contact { id: string; fullName: string; username: string; role: Role; avatarUrl: string | null; online: boolean; unit: string | null; property: string | null }
 
@@ -14,7 +15,7 @@ const card = { id: true, fullName: true, username: true, role: true, avatarKey: 
  *  - tenant → the owner of their active agreement
  *  - super admin / government admin → anyone they are allowed to reach, found by name or username (2+ letters)
  */
-export async function listContacts(actor: Actor, q?: string): Promise<Contact[]> {
+export async function listContacts(actor: Actor, q?: string, role?: Role): Promise<Contact[]> {
   const needle = q?.trim().toLowerCase() ?? "";
   if (actor.role === "OWNER" || actor.role === "TENANT") {
     const owner = actor.role === "OWNER";
@@ -37,14 +38,19 @@ export async function listContacts(actor: Actor, q?: string): Promise<Contact[]>
     }
     return out;
   }
-  if ((actor.role === "SUPER_ADMIN" || actor.role === "GOV_ADMIN") && needle.length >= 2) {
+  // an admin types 2+ letters, or picks one kind of person to browse
+  if ((actor.role === "SUPER_ADMIN" || actor.role === "GOV_ADMIN") && (needle.length >= 2 || !!role)) {
     const roles: Role[] = actor.role === "SUPER_ADMIN" ? ["OWNER", "TENANT", "GOV_ADMIN", "GENERAL_USER"] : ["OWNER", "TENANT", "SUPER_ADMIN", "GOV_ADMIN"];
+    if (role && !roles.includes(role)) return [];
     const users = await db.user.findMany({
-      where: { status: "ACTIVE", id: { not: actor.id }, role: { in: roles }, OR: [{ fullName: { contains: needle, mode: "insensitive" } }, { username: { contains: needle, mode: "insensitive" } }] },
-      select: card, orderBy: { fullName: "asc" }, take: 20,
+      where: {
+        status: "ACTIVE", archivedAt: null, id: { not: actor.id }, role: role ? role : { in: roles },
+        ...(needle ? { OR: [{ fullName: { contains: needle, mode: "insensitive" } }, { username: { contains: needle, mode: "insensitive" } }, { email: { contains: needle, mode: "insensitive" } }, { phone: { contains: needle } }, { ownerCode: { contains: needle, mode: "insensitive" } }, { tenantCode: { contains: needle, mode: "insensitive" } }] } : {}),
+      },
+      select: card, orderBy: { fullName: "asc" }, take: needle ? 20 : 30,
     });
     const avatar = await avatarUrls(users.map((u) => u.avatarKey));
-    return users.map((u) => ({ id: u.id, fullName: u.fullName, username: u.username, role: u.role, avatarUrl: avatar(u.avatarKey), online: isOnline(u.lastSeenAt), unit: null, property: null }));
+    return users.map((u) => ({ id: u.id, fullName: shownName(u), username: u.username, role: u.role, avatarUrl: shownAvatar(u, avatar(u.avatarKey)), online: isOnline(u.lastSeenAt), unit: null, property: null }));
   }
   return [];
 }

@@ -55,6 +55,8 @@ enum PropertyStatus {
   INACTIVE
   SUSPENDED
   ARCHIVED
+  /// Previous Properties page: removed for good (kept as a hidden record when history depends on it)
+  DELETED
 }
 
 enum Furnishing {
@@ -76,6 +78,10 @@ enum LeaveReason {
   PURCHASED_HOME
   UPGRADED_UNIT
   LEASE_EXPIRED
+  /// added for the Super Admin Previous Tenants page
+  POLICY_VIOLATION
+  BUSINESS_CLOSED
+  EVICTED
   OTHER
 }
 
@@ -225,6 +231,14 @@ enum ListingStatus {
   ARCHIVED
 }
 
+/// a paid Boost of a listing: Pending until the Super Admin checks the bKash payment
+enum BoostStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
 enum ReportStatus {
   OPEN
   REVIEWED
@@ -286,4 +300,16 @@ enum NotificationPriority {
   NORMAL
   HIGH
   CRITICAL
+}
+
+/// what the Super Admin did to an account, kept in the permanent comment log (Active Owners page)
+enum AccountAction {
+  ACTIVE
+  WARNING
+  SUSPENDED
+  ARCHIVED
+  /// Previous Owners page: the other archive states
+  BANNED
+  INACTIVE
+  DELETED
 }

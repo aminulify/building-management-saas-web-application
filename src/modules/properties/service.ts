@@ -10,6 +10,7 @@ import { pageArgs, pageResult, type pageQuery } from "@/lib/api/common";
 import { supabaseAdmin } from "@/lib/supabase";
 import { BUCKET, keyBelongsTo, keyPurpose, signStorageKey } from "@/modules/uploads/service";
 import { loadProperty } from "./access";
+import { REASON_TEXT, type ArchiveReasonCode } from "./archive-reasons";
 import type { imageSchema, propertyCreateSchema, propertyListQuery, propertyUpdateSchema } from "./schema";
 
 const joinPlace = (a: { area: string | null; upazila: string | null; district: string; division: string } | null) =>
@@ -115,15 +116,17 @@ export async function updateProperty(actor: Actor, id: string, data: z.infer<typ
 }
 
 /** Soft delete. Blocked while any unit has an ACTIVE agreement. */
-export async function archiveProperty(actor: Actor, id: string, reason: string, req: Request) {
+export async function archiveProperty(actor: Actor, id: string, input: { reasonCode: ArchiveReasonCode; reason?: string }, req: Request) {
   const p = await loadProperty(actor, id, "manage");
   if (p.archivedAt) return p;
+  const reason = input.reason ?? REASON_TEXT[input.reasonCode];
   const active = await db.rentalAgreement.count({ where: { unit: { propertyId: id }, status: "ACTIVE" } });
   if (active > 0) throw new AppError("INVALID_STATE", { reason: "active_tenancies", count: active });
   return db.$transaction(async (tx) => {
-    await tx.unit.updateMany({ where: { propertyId: id, archivedAt: null }, data: { archivedAt: new Date(), availability: "ARCHIVED" } });
-    const out = await tx.property.update({ where: { id }, data: { archivedAt: new Date(), archiveReason: reason, status: "ARCHIVED" } });
-    await writeAudit({ actor, action: "property.archive", resourceType: "Property", resourceId: id, after: { reason }, req }, tx);
+    const now = new Date();
+    await tx.unit.updateMany({ where: { propertyId: id, archivedAt: null }, data: { archivedAt: now, availability: "ARCHIVED" } });
+    const out = await tx.property.update({ where: { id }, data: { archivedAt: now, deactivatedAt: now, archiveReason: reason, archiveReasonCode: input.reasonCode, status: "ARCHIVED" } });
+    await writeAudit({ actor, action: "property.archive", resourceType: "Property", resourceId: id, after: { reason, reasonCode: input.reasonCode }, req }, tx);
     return out;
   });
 }

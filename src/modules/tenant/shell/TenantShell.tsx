@@ -1,5 +1,7 @@
 "use client";
 
+import { MessagingProvider } from "@/modules/messaging/ui/MessagingProvider";
+
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Menu, RefreshCw, X } from "lucide-react";
@@ -125,6 +127,7 @@ export function TenantShell({ children, area }: { children: React.ReactNode; /**
   return (
     <ToastProvider>
       <TenantProvider value={{ me, unread, refreshUnread, setUnread, refreshMe, updateMe }}>
+        <MessagingProvider meId={me.id}>
         <AmbientBackground />
         <div className="mx-auto flex min-h-screen max-w-[1500px] gap-4 p-3 sm:p-4 lg:gap-5 lg:p-5">
           {/* desktop sidebar */}
@@ -163,6 +166,7 @@ export function TenantShell({ children, area }: { children: React.ReactNode; /**
             </motion.div>
           )}
         </AnimatePresence>
+        </MessagingProvider>
       </TenantProvider>
     </ToastProvider>
   );

@@ -6,5 +6,6 @@ import { contactsQuery } from "@/modules/messaging/schema";
 /** People the caller may start a chat with (owner → own tenants, tenant → own owner, admins → search). */
 export const GET = route(async (req) => {
   const actor = await requireActor(req);
-  return listContacts(actor, parseQuery(req, contactsQuery).q);
+  const q = parseQuery(req, contactsQuery);
+  return listContacts(actor, q.q, q.role);
 });

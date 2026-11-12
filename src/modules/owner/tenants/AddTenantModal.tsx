@@ -28,7 +28,7 @@ export function AddTenantModal({ open, properties, propertiesState, onRetryPrope
   );
 }
 
-const PLAN_CODES = ["PLAN_LIMIT_REACHED", "SUBSCRIPTION_REQUIRED", "SUBSCRIPTION_GRACE_RESTRICTED"];
+const PLAN_CODES = ["PLAN_LIMIT_REACHED", "SUBSCRIPTION_REQUIRED", "SUBSCRIPTION_GRACE_RESTRICTED", "OWNER_NOT_READY"];
 
 function Form({ properties, propertiesState, onRetryProperties, onClose, onSaved, setBusy }: Omit<Props, "open"> & { setBusy: (b: boolean) => void }) {
   const t = useTranslations("owner.tenants.add");
@@ -70,7 +70,7 @@ function Form({ properties, propertiesState, onRetryProperties, onClose, onSaved
       if (!(e instanceof ApiError)) { setBanner({ text: t("errors.generic") }); return; }
       if (e.code === "VALIDATION_ERROR" && e.issues[0]?.code === "end_after_start") setError("endDate", { message: "leaseAfterEntry" });
       else if (e.code === "VALIDATION_ERROR") setBanner({ text: t("errors.notATenant") });
-      else if (PLAN_CODES.includes(e.code)) setBanner({ text: t(`errors.${e.code}` as never), upgrade: true });
+      else if (PLAN_CODES.includes(e.code)) setBanner({ text: t(`errors.${e.code}` as never), upgrade: e.code !== "OWNER_NOT_READY" });
       else if (e.code === "INVALID_STATE" && e.reason === "tenant_has_active_tenancy") setBanner({ text: t("errors.tenantBusy") });
       else if (e.code === "INVALID_STATE") { setBanner({ text: t("errors.unitTaken") }); units.reload(); }
       else if (e.code === "RATE_LIMITED") setBanner({ text: t("errors.rateLimited") });

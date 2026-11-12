@@ -9,46 +9,55 @@ import { useTranslations } from "next-intl";
 import { useToast } from "@/components/feedback/Toast";
 import { ApiError } from "@/lib/api-client";
 import { authApi } from "@/lib/auth-client";
-import { CallOverlay } from "./CallOverlay";
+import type { RoleFilter } from "./RoleChips";
 import { ConversationList } from "./ConversationList";
 import { NewChatModal } from "./NewChatModal";
 import { Thread } from "./Thread";
 import { otherOf } from "./logic";
-import { useCall } from "./use-call";
 import { useContacts } from "./use-contacts";
 import { useConversations } from "./use-conversations";
-import { useLiveEvents } from "./use-live";
+import { MessagingProvider, useMessaging } from "./MessagingProvider";
 import { useThread } from "./use-thread";
-import type { Contact, LiveEvent } from "./types";
+import type { Contact, LiveEvent, Person } from "./types";
 
 /**
  * Message page: chats on the left, the open conversation on the right (one at a time on phones). New messages, read
  * ticks, online dots and calls arrive live; who may write to whom is decided by the server.
  */
-export function MessagesView({ meId, role }: { meId: string; role: string }) {
+export function MessagesView(props: { meId: string; role: string; onProfile?: (p: Person) => void }) {
+  const m = useMessaging();
+  // inside a signed-in area the provider is already there; anywhere else the page brings its own
+  return m ? <MessagesPage {...props} /> : <MessagingProvider meId={props.meId}><MessagesPage {...props} /></MessagingProvider>;
+}
+
+function MessagesPage({ meId, role, onProfile }: { meId: string; role: string; onProfile?: (p: Person) => void }) {
   const t = useTranslations("chat");
   const toast = useToast();
   const reduce = useReducedMotion();
   const params = useSearchParams();
   const [activeId, setActiveId] = useState<string | null>(params.get("c"));
   const [query, setQuery] = useState("");
+  const [kind, setKind] = useState<RoleFilter>("all");
   const [newChat, setNewChat] = useState(false);
   const [opening, setOpening] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const convs = useConversations(meId, activeId);
   const thread = useThread(activeId, meId, convs.clearUnread);
-  const call = useCall();
-  const live = useLiveEvents(useCallback((e: LiveEvent) => { convs.onEvent(e); thread.onEvent(e); call.onEvent(e); }, [convs.onEvent, thread.onEvent, call.onEvent])); // eslint-disable-line react-hooks/exhaustive-deps
+  const { call, live, subscribe, alert } = useMessaging()!;
+  useEffect(() => subscribe((e: LiveEvent) => { convs.onEvent(e); thread.onEvent(e); }), [subscribe, convs.onEvent, thread.onEvent]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { alert.refresh(); }, [convs.items.length]); // eslint-disable-line react-hooks/exhaustive-deps
   const active = convs.items.find((c) => c.id === activeId) ?? null;
 
   useEffect(() => { const id = setInterval(() => setNow(Date.now()), 60_000); return () => clearInterval(id); }, []);
-  useEffect(() => { if (call.problem) { toast("error", t(`call.problem.${call.problem}` as never)); call.clearProblem(); } }, [call.problem]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // people without a chat yet who match what was typed
   const admin = role === "SUPER_ADMIN" || role === "GOV_ADMIN";
-  const contacts = useContacts(query, query.trim().length >= (admin ? 2 : 1));
+  const browse = admin && kind !== "all";
+  const contacts = useContacts(query, browse || query.trim().length >= (admin ? 2 : 1), kind);
   const known = new Set(convs.items.flatMap((c) => c.participants.map((p) => p.id)));
+  const roleOk = (c: (typeof convs.items)[number]) => !browse || otherOf(c)?.role === kind;
+  const chats = convs.items.filter(roleOk);
   const people = contacts.items.filter((c) => !known.has(c.id));
 
   const select = (id: string) => { setActiveId(id); convs.clearUnread(id); };
@@ -76,15 +85,14 @@ export function MessagesView({ meId, role }: { meId: string; role: string }) {
       <motion.div initial={{ opacity: 0, y: reduce ? 0 : 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
         className="glass-card flex h-[calc(100dvh-6.25rem)] min-h-[30rem] overflow-hidden !rounded-3xl p-0 md:h-[calc(100dvh-7.75rem)] md:min-h-[30rem]">
         <ConversationList className={clsx("w-full md:w-[35%] md:max-w-[26rem] md:flex", activeId ? "hidden" : "flex")}
-          items={convs.items} state={convs.state} query={query} onQuery={setQuery} activeId={activeId} meId={meId} now={now}
+          items={chats} state={convs.state} query={query} roleFilter={admin ? kind : undefined} onRoleFilter={admin ? setKind : undefined} onQuery={setQuery} activeId={activeId} meId={meId} now={now}
           onSelect={select} onRetry={() => void convs.reload()} onNew={() => setNewChat(true)} people={people} onPerson={(c) => void openWith(c)} />
         <Thread className={clsx("min-w-0 flex-1 md:flex", activeId ? "flex" : "hidden")} conversation={active} thread={thread} meId={meId} now={now}
-          canCall={!!active && active.type !== "SUPPORT" && !!peer && call.phase === "idle"} onBack={() => setActiveId(null)}
+          canCall={!!active && active.type !== "SUPPORT" && !!peer && call.phase === "idle"} onBack={() => setActiveId(null)} onProfile={onProfile && peer && active?.type !== "SUPPORT" ? () => onProfile(peer) : undefined}
           onCall={() => { if (peer) void call.start(active!.id, { id: peer.id, fullName: peer.fullName, avatarUrl: peer.avatarUrl }); }} />
       </motion.div>
 
       <NewChatModal open={newChat} role={role} busy={opening} onClose={() => setNewChat(false)} onPick={(c) => void openWith(c)} />
-      <CallOverlay call={call} />
     </div>
   );
 }

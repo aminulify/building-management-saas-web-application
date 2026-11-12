@@ -163,7 +163,7 @@ export async function setHomeState(actor: Actor, id: string, input: z.infer<type
   const keepSold = l.status === "SOLD" && input.sold !== false; // saving a sold listing as it already is: nothing to change
   const f = markSold || keepSold ? { status: "SOLD" as const, reason: null } : STATE_FIELDS[input.state];
   return db.$transaction(async (tx) => {
-    const data: Prisma.ListingUpdateInput = { status: f.status, rejectionReason: f.reason, ...(f.status !== "PUBLISHED" ? { isFeatured: false } : {}) }; // only a live listing can be featured
+    const data: Prisma.ListingUpdateInput = { status: f.status, rejectionReason: f.reason, ...(f.status !== "PUBLISHED" ? { isFeatured: false, boostEndsAt: null } : {}) }; // only a live listing can be featured
     const activating = input.state === "ACTIVE" && !markSold && !keepSold;
     if (activating) {
       const ent = await getEntitlement(l.sellerId, "SELLER", tx);
@@ -189,7 +189,7 @@ export async function archiveHomeListing(actor: Actor, id: string, req: Request)
   if (!l) throw new AppError("NOT_FOUND");
   const reason = "Removed by Super Admin";
   await db.$transaction(async (tx) => {
-    await tx.listing.update({ where: { id }, data: { status: "ARCHIVED", archivedAt: new Date(), archiveReason: reason, isFeatured: false } });
+    await tx.listing.update({ where: { id }, data: { status: "ARCHIVED", archivedAt: new Date(), archiveReason: reason, isFeatured: false, boostEndsAt: null } });
     await notify([l.sellerId], { type: "listing.moderated", titleKey: "notifications.listing_removed", params: { title: l.title }, link: "/home-owner/marketplace" }, tx);
     await writeAudit({ actor, action: "listing.archive", resourceType: "Listing", resourceId: id, before: { status: l.status }, after: { reason, by: "super_admin" }, req }, tx);
   });
@@ -206,7 +206,7 @@ export async function setHomeFeatured(actor: Actor, id: string, input: z.infer<t
   if (input.featured && (l.status !== "PUBLISHED" || l._count.reports > 0)) throw new AppError("INVALID_STATE", { reason: "not_live", from: l.status });
   if (l.isFeatured === input.featured) return { id, isFeatured: l.isFeatured };
   await db.$transaction(async (tx) => {
-    await tx.listing.update({ where: { id }, data: { isFeatured: input.featured } });
+    await tx.listing.update({ where: { id }, data: { isFeatured: input.featured, ...(input.featured ? {} : { boostEndsAt: null }) } });
     await writeAudit({ actor, action: input.featured ? "listing.feature" : "listing.unfeature", resourceType: "Listing", resourceId: id, before: { isFeatured: l.isFeatured }, after: { isFeatured: input.featured }, req }, tx);
   });
   return { id, isFeatured: input.featured };

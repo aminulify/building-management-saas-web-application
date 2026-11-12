@@ -79,7 +79,7 @@ export const payFormSchema = z.object({
 });
 export type PayFormValues = z.input<typeof payFormSchema>;
 
-export const REPAIR_CATEGORIES = ["PLUMBING", "ELECTRICAL", "GAS", "LIFT", "PAINT", "SECURITY", "CLEANING", "OTHER"] as const;
+export const REPAIR_CATEGORIES = ["PLUMBING", "ELECTRICAL", "WATER", "GAS", "LIFT", "PAINT", "SECURITY", "CLEANING", "OTHER"] as const;
 export const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
 export const repairFormSchema = z.object({
   category: z.enum(REPAIR_CATEGORIES),

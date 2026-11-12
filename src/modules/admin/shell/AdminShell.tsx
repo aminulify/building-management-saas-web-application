@@ -1,5 +1,7 @@
 "use client";
 
+import { MessagingProvider } from "@/modules/messaging/ui/MessagingProvider";
+
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { AlertTriangle, Menu, RefreshCw, X } from "lucide-react";
@@ -12,7 +14,7 @@ import { LangSwitch } from "@/components/layout/LangSwitch";
 import { Logo } from "@/components/layout/Logo";
 import { usePathname, useRouter } from "@/i18n/navigation";
 import { ApiError } from "@/lib/api-client";
-import { AFTER_LOGOUT_PATH, authApi, clearSession, getSession, homeFor } from "@/lib/auth-client";
+import { authApi, clearSession, getSession, homeFor } from "@/lib/auth-client";
 import { LogoutModal } from "../../owner/shell/LogoutModal";
 import { AdminProvider, type AdminMe } from "./AdminContext";
 import { AdminSidebar } from "./AdminSidebar";
@@ -88,6 +90,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <ToastProvider>
       <AdminProvider value={me}>
+        <MessagingProvider meId={me.id}>
         <AmbientBackground />
         <div className="mx-auto flex min-h-screen max-w-[1500px] gap-4 p-3 sm:p-4 lg:gap-5 lg:p-5">
           {/* desktop sidebar */}
@@ -108,7 +111,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <LogoutModal open={askLogout} busy={loggingOut} onCancel={() => { if (!loggingOut) setAskLogout(false); }} onConfirm={logout} onDone={() => { setDrawer(false); router.replace(AFTER_LOGOUT_PATH as never); }} />
+        <LogoutModal scope="admin" open={askLogout} busy={loggingOut} onCancel={() => { if (!loggingOut) setAskLogout(false); }} onConfirm={logout} onDone={() => { setDrawer(false); router.replace("/" as never); }} />
 
         {/* mobile drawer */}
         <AnimatePresence>
@@ -126,6 +129,7 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
             </motion.div>
           )}
         </AnimatePresence>
+        </MessagingProvider>
       </AdminProvider>
     </ToastProvider>
   );

@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
 import { CountUp } from "@/components/motion/CountUp";
 
-export type Tone = "green" | "sky" | "purple" | "gray" | "red" | "orange" | "amber";
+export type Tone = "green" | "sky" | "purple" | "gray" | "red" | "orange" | "amber" | "pink";
 
 /** Border colours of the design: green #16A34A, sky #0EA5E9, purple #9333EA, gray with a red dot. */
 export const TONE: Record<Tone, { card: string; num: string; chip: string }> = {
@@ -15,6 +15,7 @@ export const TONE: Record<Tone, { card: string; num: string; chip: string }> = {
   red: { card: "border-[#EF4444] bg-red-100/50", num: "text-[#EF4444]", chip: "border-red-300 bg-red-200/70 text-[#EF4444]" },
   orange: { card: "border-[#F97316] bg-orange-100/50", num: "text-[#F97316]", chip: "border-orange-300 bg-orange-200/70 text-[#F97316]" },
   amber: { card: "border-[#F59E0B] bg-amber-100/50", num: "text-[#F59E0B]", chip: "border-amber-300 bg-amber-200/70 text-[#D97706]" },
+  pink: { card: "border-[#EC4899] bg-pink-100/50", num: "text-[#EC4899]", chip: "border-pink-300 bg-pink-200/70 text-[#EC4899]" },
   gray: { card: "border-slate-300 bg-slate-100/60", num: "text-navy", chip: "border-red-200 bg-red-100/80 text-red-600" },
 };
 

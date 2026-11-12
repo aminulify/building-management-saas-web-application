@@ -8,7 +8,7 @@ export type Live =
   | { kind: "alert"; id: string; type: string; status: "NEED_ACTION" | "PROCESSING" | "SOLVED" | "FALSE_ALARM"; accepted: boolean };
 
 export interface FeedItem {
-  id: string; type: string; titleKey: string; params: Record<string, unknown>; priority: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
+  id: string; type: string; titleKey: string; params: Record<string, unknown>; link?: string | null; priority: "LOW" | "NORMAL" | "HIGH" | "CRITICAL";
   readAt: string | null; createdAt: string; tab: ItemTab; live: Live | null;
 }
 export interface FeedPage { items: FeedItem[]; nextCursor: string | null; unread: number }

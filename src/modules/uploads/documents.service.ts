@@ -19,6 +19,10 @@ export async function addMyDocument(actor: Actor, input: z.infer<typeof document
   if (purpose !== expected) throw new AppError("VALIDATION_ERROR", [{ path: "storageKey", code: "wrong_upload_purpose" }]);
 
   return db.$transaction(async (tx) => {
+    // a document the Super Admin has verified is locked: it can be neither replaced nor removed by the person who uploaded it
+    if (input.kind !== "OTHER" && (await tx.verificationDocument.findFirst({ where: { ownerType: "USER", ownerId: actor.id, kind: input.kind, status: "VERIFIED" }, select: { id: true } }))) {
+      throw new AppError("INVALID_STATE", { reason: "locked", kind: input.kind });
+    }
     // replacing a document of the same kind keeps only the newest one for review
     if (input.kind !== "OTHER") await tx.verificationDocument.deleteMany({ where: { ownerType: "USER", ownerId: actor.id, kind: input.kind, status: { not: "VERIFIED" } } });
     const doc = await tx.verificationDocument.create({ data: { ownerType: "USER", ownerId: actor.id, kind: input.kind, storageKey: input.storageKey } });

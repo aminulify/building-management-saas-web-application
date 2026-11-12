@@ -10,7 +10,7 @@ import { createClient } from "@supabase/supabase-js";
 
 const email = process.env.SUPER_ADMIN_EMAIL?.trim().toLowerCase();
 const password = process.env.SUPER_ADMIN_PASSWORD;
-const USERNAME = process.env.SUPER_ADMIN_USERNAME ?? "amarghor";
+const USERNAME = process.env.SUPER_ADMIN_USERNAME ?? "amaderghor";
 
 const db = new PrismaClient();
 const sb = createClient(process.env.SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, { auth: { persistSession: false } });

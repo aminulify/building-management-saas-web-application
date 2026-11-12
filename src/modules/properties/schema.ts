@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { OWNER_REASONS } from "./archive-reasons";
 import { coords, dateOnly, moneyOrZero, money, uuid } from "@/lib/api/common";
 
 const address = z.object({
@@ -50,7 +51,11 @@ export const propertyUpdateSchema = z
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: "empty_update" });
 
-export const archiveSchema = z.object({ reason: z.string().trim().min(3).max(300) });
+/** Delete from the owner's list: a reason from the dropdown plus an optional note ("Other" needs the note). `reason` alone still works. */
+export const archiveSchema = z
+  .object({ reasonCode: z.enum(OWNER_REASONS).default("OTHER"), reason: z.string().trim().min(3).max(300).optional() })
+  .strict()
+  .refine((v) => v.reasonCode !== "OTHER" || !!v.reason, { path: ["reason"], message: "reason_required" });
 export const imageSchema = z.object({ storageKey: z.string().trim().min(3).max(300), order: z.coerce.number().int().min(0).max(50).default(0) });
 
 export const propertyListQuery = z.object({

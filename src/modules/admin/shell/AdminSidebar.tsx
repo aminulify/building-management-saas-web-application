@@ -1,5 +1,7 @@
 "use client";
 
+import { MessageNavBadge, useAcknowledge } from "@/modules/messaging/ui/MessageNavBadge";
+
 import { LogOut } from "lucide-react";
 import { clsx } from "clsx";
 import { useTranslations } from "next-intl";
@@ -20,6 +22,7 @@ export function AdminSidebar({ onNavigate, onLogout, loggingOut, compact = false
   const t = useTranslations("admin.nav");
   const ta = useTranslations("admin");
   const pathname = usePathname();
+  const acknowledge = useAcknowledge();
   const me = useAdmin();
   const label = compact ? "sr-only" : "";
 
@@ -36,7 +39,7 @@ export function AdminSidebar({ onNavigate, onLogout, loggingOut, compact = false
               const active = pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <Link
-                  key={key} href={href as never} onClick={onNavigate} title={compact ? t(key) : undefined}
+                  key={key} href={href as never} onClick={() => { if (key === "messages") acknowledge(); onNavigate?.(); }} title={compact ? t(key) : undefined}
                   aria-current={active ? "page" : undefined}
                   className={clsx(
                     "group relative flex items-center gap-3 rounded-xl border px-3 py-2.5 text-[0.95rem] font-medium transition-all duration-300",
@@ -48,6 +51,7 @@ export function AdminSidebar({ onNavigate, onLogout, loggingOut, compact = false
                 >
                   <Icon className="size-5 shrink-0" aria-hidden />
                   <span className={label}>{t(key)}</span>
+                  {key === "messages" && <MessageNavBadge compact={compact} />}
                 </Link>
               );
             })}
