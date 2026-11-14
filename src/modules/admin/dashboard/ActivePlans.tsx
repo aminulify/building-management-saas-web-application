@@ -31,7 +31,7 @@ function Row({ r, index }: { r: PlanRow; index: number }) {
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3">
-          <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-gradient text-xs font-bold text-white">{initialsOf(r.fullName)}</span>
+          {r.avatarUrl ? <img src={r.avatarUrl} alt="" className="size-9 shrink-0 rounded-full border border-white object-cover shadow-sm" /> : <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-gradient text-xs font-bold text-white">{initialsOf(r.fullName)}</span>}
           <div className="min-w-0"><p className="truncate font-semibold text-navy">{r.fullName}</p><p className="truncate text-xs text-slate-500">{r.email ?? `@${r.username}`}</p></div>
         </div>
       </td>

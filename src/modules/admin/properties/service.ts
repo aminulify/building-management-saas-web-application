@@ -35,6 +35,11 @@ export const adminPropertiesQuery = z.object({
 /** The four numbers on top of the page. Units = the larger of the owner's declared number and the real unit rows, like the owner's list. */
 export async function adminPropertyStats(actor: Actor) {
   requireRole(actor, "SUPER_ADMIN");
+  return propertyStatsCore();
+}
+
+/** The same numbers without a role check: the Government Admin portal reads them too (its own service checks the role). */
+export async function propertyStatsCore() {
   const [props, units, pending] = await Promise.all([
     db.property.count({ where: live }),
     db.$queryRaw<{ total: bigint; occupied: bigint }[]>`
@@ -51,6 +56,10 @@ export async function adminPropertyStats(actor: Actor) {
 /** Rows of the table: property, owner, place, unit counts and state. Newest first. */
 export async function listAdminProperties(actor: Actor, q: z.infer<typeof adminPropertiesQuery>) {
   requireRole(actor, "SUPER_ADMIN");
+  return listPropertiesCore(q);
+}
+
+export async function listPropertiesCore(q: z.infer<typeof adminPropertiesQuery>) {
   const where: Prisma.PropertyWhereInput = { ...live, ...TAB_WHERE[q.tab] };
   const [rows, total] = await Promise.all([
     db.property.findMany({
@@ -77,6 +86,10 @@ export async function listAdminProperties(actor: Actor, q: z.infer<typeof adminP
 /** Everything the "View Details" window shows. Photos come as 1-hour signed links (private bucket). */
 export async function adminPropertyOverview(actor: Actor, id: string) {
   requireRole(actor, "SUPER_ADMIN");
+  return propertyOverviewCore(id);
+}
+
+export async function propertyOverviewCore(id: string) {
   const p = await db.property.findFirst({
     where: { id, ...live },
     include: {

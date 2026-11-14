@@ -92,7 +92,7 @@ function Body({ d, onMessage }: { d: ArchiveDetails; onMessage: () => void }) {
           <ol className="mt-2 max-h-44 space-y-1.5 overflow-y-auto">
             {d.history.map((l) => (
               <li key={l.id} className="rounded-lg bg-white/70 px-3 py-2 text-xs">
-                <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="font-bold text-navy">{t.has(`event.${l.action}` as never) ? t(`event.${l.action}` as never) : l.action}</span>{l.status && <span className="text-slate-500">→ {t.has(`state.${l.status}` as never) ? t(`state.${l.status}` as never) : l.status}</span>}<span className="text-slate-500">· {when(l.at)}</span></p>
+                <p className="flex flex-wrap items-center gap-x-2 gap-y-0.5"><span className="font-bold text-navy">{t.has(`event.${l.action.replace(/[.\-]/g, "_")}` as never) ? t(`event.${l.action.replace(/[.\-]/g, "_")}` as never) : l.action}</span>{l.status && <span className="text-slate-500">→ {t.has(`state.${l.status}` as never) ? t(`state.${l.status}` as never) : l.status}</span>}<span className="text-slate-500">· {when(l.at)}</span></p>
                 {l.by && <p className="text-slate-500">{t("by", { name: l.by.name })}</p>}
               </li>
             ))}

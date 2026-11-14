@@ -5503,15 +5503,15 @@
         "by": "by {name}",
         "none": "Not given",
         "event": {
-          "property.archive": "Archived",
-          "property.status_change": "Status changed",
-          "property.reactivate": "Reactivated",
-          "property.delete": "Deleted",
-          "property.purge": "Erased",
-          "property.verify": "Approved",
-          "property.set_pending": "Sent back to pending",
-          "property.update": "Details edited",
-          "property.create": "Created"
+          "property_archive": "Archived",
+          "property_status_change": "Status changed",
+          "property_reactivate": "Reactivated",
+          "property_delete": "Deleted",
+          "property_purge": "Erased",
+          "property_verify": "Approved",
+          "property_set_pending": "Sent back to pending",
+          "property_update": "Details edited",
+          "property_create": "Created"
         },
         "state": {
           "ACTIVE": "Active",
@@ -6320,6 +6320,206 @@
       "action": "Action",
       "reason": "Reason",
       "notes": "Notes"
+    }
+  },
+  "gov": {
+    "navLabel": "Government navigation",
+    "roleGov": "Government Admin",
+    "loadError": "We could not open the government portal.",
+    "retry": "Try again",
+    "loading": "Loading",
+    "openMenu": "Open the menu",
+    "closeMenu": "Close the menu",
+    "nav": {
+      "properties": "Properties",
+      "manageHome": "Manage Home",
+      "manageMarketplace": "Manage Marketplace",
+      "activeMaintenance": "Active Maintenance",
+      "activeOwners": "Active Owners",
+      "activeTenants": "Active Tenants",
+      "messages": "Message",
+      "previousProperties": "Previous Properties",
+      "previousOwners": "Previous Owners",
+      "previousTenants": "Previous Tenants",
+      "findPeople": "Find People",
+      "quickAlert": "Quick Alert",
+      "logout": "Logout",
+      "loggingOut": "Signing out…",
+      "openAlerts": "{count, plural, one {1 open alert} other {# open alerts}}"
+    },
+    "logout": {
+      "title": "Are you sure you want to log out?",
+      "text": "You will be signed out of your AmaderGhor Government Admin session and redirected to the home page.",
+      "cancel": "Cancel",
+      "confirm": "Yes, Logout",
+      "loggingOut": "Logging out…",
+      "done": "You have been logged out."
+    },
+    "roles": {
+      "SUPER_ADMIN": "Super Admin",
+      "GOV_ADMIN": "Government Admin",
+      "OWNER": "Owner",
+      "TENANT": "Tenant",
+      "GENERAL_USER": "Tenant Free"
+    },
+    "properties": {
+      "metaTitle": "All Properties",
+      "title": "All <hl>Properties</hl>",
+      "subtitle": "Manage and monitor all real estate assets on the platform.",
+      "kpi": {
+        "loading": "Loading the property numbers",
+        "error": "We could not load the property numbers.",
+        "retry": "Try again",
+        "total": "Total Properties",
+        "totalSub": "{n} added this month",
+        "units": "Total Units",
+        "unitsSub": "{n} vacant",
+        "occupancy": "Occupancy Rate",
+        "occupancySub": "{occupied} rented · {vacant} vacant",
+        "pending": "Property Pending Approval",
+        "pendingSub": "Require Action",
+        "verified": "Government Verified",
+        "verifiedSub": "Approved and active",
+        "rejected": "Rejected",
+        "rejectedSub": "{n} switched off",
+        "fresh": "New This Month",
+        "freshSub": "Added since the 1st",
+        "flagged": "Flagged Issues",
+        "flaggedSub": "Reported in the last 30 days"
+      },
+      "tableTitle": "All properties",
+      "filter": "Filter properties",
+      "tabs": {
+        "all": "All",
+        "active": "Active",
+        "pending": "Pending"
+      },
+      "summary": "Total Properties: {total}",
+      "columns": {
+        "name": "Property name",
+        "owner": "Owner",
+        "location": "Location",
+        "units": "Units",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "units": "{count, plural, one {# Unit} other {# Units}}",
+      "occupied": "{count} Occupied",
+      "viewAria": "View details of {name}",
+      "viewBtn": "View",
+      "state": {
+        "ACTIVE": "Active",
+        "PENDING": "Pending Verification",
+        "REJECTED": "Rejected",
+        "SUSPENDED": "Suspended"
+      },
+      "error": "We could not load the properties.",
+      "emptyTitle": "No properties found",
+      "empty": {
+        "all": "No property is registered yet.",
+        "active": "No active property yet.",
+        "pending": "Nothing is waiting for verification."
+      },
+      "viewMore": "View More",
+      "viewLess": "View Less",
+      "loadingMore": "Loading…",
+      "moreError": "We could not load more rows. Try again.",
+      "details": {
+        "title": "Property Details",
+        "loading": "Loading the property",
+        "error": "We could not load this property.",
+        "gone": "This property is no longer in the live list.",
+        "retry": "Try again",
+        "close": "Close",
+        "none": "Not given",
+        "verify": {
+          "VERIFIED": "Government Verified",
+          "PENDING": "Pending Verification",
+          "UNVERIFIED": "Not Yet Reviewed",
+          "REJECTED": "Verification Rejected"
+        },
+        "photo": "Photo {n}",
+        "owner": "Owner profile",
+        "ownerName": "Name",
+        "ownerId": "Owner ID",
+        "phone": "Phone",
+        "email": "E-mail",
+        "ownerNid": "Owner NID",
+        "joined": "Joined",
+        "message": "Message owner",
+        "nid": {
+          "VERIFIED": "NID verified",
+          "PENDING": "NID under review",
+          "REJECTED": "NID rejected",
+          "UNVERIFIED": "NID not verified"
+        },
+        "occupancy": "Occupancy rate",
+        "unitsTotal": "Total units",
+        "unitsOccupied": "Occupied",
+        "unitsVacant": "Vacant",
+        "matrix": "Unit matrix",
+        "noUnits": "No units were added.",
+        "floor": "Floor {n}",
+        "avail": {
+          "OCCUPIED": "Occupied",
+          "AVAILABLE": "Vacant",
+          "MAINTENANCE": "Repair"
+        },
+        "floors": "Floors",
+        "sqft": "{n} sqft",
+        "added": "Registered on",
+        "description": "Description",
+        "amenities": "Amenities",
+        "verification": "Verification and documents",
+        "reviewed": "Last reviewed {date}",
+        "notReviewed": "Not reviewed yet.",
+        "noDocs": "No ownership documents were uploaded.",
+        "docKind": {
+          "DEED": "Ownership deed",
+          "OTHER": "Other document",
+          "NID_FRONT": "NID front",
+          "NID_BACK": "NID back",
+          "AGREEMENT": "Agreement"
+        },
+        "audit": "Regulatory audit log",
+        "noAudit": "Nothing has been recorded for this property yet.",
+        "by": "by {name} ({role})",
+        "event": {
+          "property_verify": "Approved",
+          "property_reject": "Rejected",
+          "property_request_docs": "More documents requested",
+          "property_suspend": "Suspended",
+          "property_restore": "Restored",
+          "property_report_issue": "Issue reported by Government",
+          "property_archive": "Archived",
+          "property_create": "Registered",
+          "property_update": "Details edited",
+          "property_set_pending": "Sent back to pending",
+          "property_status_change": "Status changed",
+          "property_reactivate": "Reactivated",
+          "property_delete": "Deleted",
+          "property_purge": "Erased"
+        },
+        "report": {
+          "title": "Report an issue",
+          "count": "{n} earlier",
+          "hint": "This tells the Super Admin team about a problem with this property. It does not change the property.",
+          "label": "What is the problem?",
+          "placeholder": "Describe the issue (at least 3 letters)",
+          "short": "Please describe the issue (at least 3 letters).",
+          "sent": "The issue on {name} was reported to the Super Admin team.",
+          "gone": "This property is no longer available.",
+          "failed": "That did not work. Please try again.",
+          "send": "Report issue",
+          "sending": "Sending…"
+        }
+      },
+      "types": {
+        "APARTMENT_BUILDING": "Apartment",
+        "HOUSE": "Home",
+        "COMMERCIAL": "Commercial",
+        "MIXED": "Mixed"
+      }
     }
   }
 }

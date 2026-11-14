@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { requireRole } from "@/lib/authz/authorize";
 import { pageArgs, pageResult, uuid } from "@/lib/api/common";
 import type { Actor } from "@/lib/auth/require-actor";
+import { signStorageKeys } from "@/modules/uploads/service";
 import { adminRangeQuery, resolveRange } from "./admin-range";
 
 /** The six numbers on top of the Super Admin dashboard; the revenue follows the selected dates, the rest is "now". */
@@ -48,7 +49,7 @@ export async function activePlans(actor: Actor, q: z.infer<typeof activePlansQue
     db.user.findMany({
       where, ...pageArgs(q),
       select: {
-        id: true, fullName: true, username: true, email: true, role: true, status: true,
+        id: true, fullName: true, username: true, email: true, role: true, status: true, avatarKey: true,
         properties: { where: { archivedAt: null }, orderBy: { id: "desc" }, take: 1, select: { type: true } },
         subscriptions: { where: { audience: "OWNER", status: { in: ["ACTIVE", "GRACE", "PENDING"] } }, orderBy: [{ createdAt: "desc" }], take: 3, select: { status: true, plan: { select: { code: true, nameEn: true, nameBn: true } } } },
         upgradeRequests: { where: { status: "PENDING" }, orderBy: { id: "desc" }, take: 1, select: { plan: { select: { code: true, nameEn: true, nameBn: true } } } },
@@ -67,6 +68,7 @@ export async function activePlans(actor: Actor, q: z.infer<typeof activePlansQue
     return mine.find((l) => l.status === "ACTIVE") ?? mine[0] ?? null;
   };
 
+  const avatars = await signStorageKeys(page.items.flatMap((u) => (u.avatarKey ? [u.avatarKey] : [])), 3600);
   const items = page.items.map((u) => {
     let status: PlanStatus = "NONE";
     let plan: (typeof u.subscriptions)[number]["plan"] | null = null;
@@ -85,7 +87,7 @@ export async function activePlans(actor: Actor, q: z.infer<typeof activePlansQue
       status = u.upgradeRequests.length ? "PENDING" : "NONE";
     }
     if (u.status !== "ACTIVE") status = "SUSPENDED";
-    return { id: u.id, fullName: u.fullName, username: u.username, email: u.email, role: u.role as "OWNER" | "TENANT" | "GENERAL_USER", propertyType, plan, status };
+    return { id: u.id, fullName: u.fullName, username: u.username, email: u.email, avatarUrl: u.avatarKey ? avatars.get(u.avatarKey) ?? null : null, role: u.role as "OWNER" | "TENANT" | "GENERAL_USER", propertyType, plan, status };
   });
 
   return { items, nextCursor: page.nextCursor, total };

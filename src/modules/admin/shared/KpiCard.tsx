@@ -5,10 +5,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { clsx } from "clsx";
 import { CountUp } from "@/components/motion/CountUp";
 
-export type Tone = "green" | "sky" | "purple" | "gray" | "red" | "orange" | "amber" | "pink";
+export type Tone = "blue" | "green" | "sky" | "purple" | "gray" | "red" | "orange" | "amber" | "pink";
 
 /** Border colours of the design: green #16A34A, sky #0EA5E9, purple #9333EA, gray with a red dot. */
 export const TONE: Record<Tone, { card: string; num: string; chip: string }> = {
+  blue: { card: "border-[#2563EB] bg-blue-100/50", num: "text-[#2563EB]", chip: "border-blue-300 bg-blue-200/70 text-[#2563EB]" },
   green: { card: "border-[#16A34A] bg-green-100/50", num: "text-[#16A34A]", chip: "border-green-300 bg-green-200/70 text-[#16A34A]" },
   sky: { card: "border-[#0EA5E9] bg-sky-100/50", num: "text-[#0EA5E9]", chip: "border-sky-300 bg-sky-200/70 text-[#0EA5E9]" },
   purple: { card: "border-[#9333EA] bg-purple-100/50", num: "text-[#9333EA]", chip: "border-purple-300 bg-purple-200/70 text-[#9333EA]" },

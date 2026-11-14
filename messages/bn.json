@@ -5503,15 +5503,15 @@
         "by": "{name} করেছেন",
         "none": "দেওয়া নেই",
         "event": {
-          "property.archive": "আর্কাইভ করা হয়েছে",
-          "property.status_change": "স্ট্যাটাস বদলানো হয়েছে",
-          "property.reactivate": "পুনরায় চালু করা হয়েছে",
-          "property.delete": "মুছে ফেলা হয়েছে",
-          "property.purge": "স্থায়ীভাবে মোছা হয়েছে",
-          "property.verify": "অনুমোদিত",
-          "property.set_pending": "অপেক্ষমাণে ফেরানো হয়েছে",
-          "property.update": "তথ্য বদলানো হয়েছে",
-          "property.create": "তৈরি হয়েছে"
+          "property_archive": "আর্কাইভ করা হয়েছে",
+          "property_status_change": "স্ট্যাটাস বদলানো হয়েছে",
+          "property_reactivate": "পুনরায় চালু করা হয়েছে",
+          "property_delete": "মুছে ফেলা হয়েছে",
+          "property_purge": "স্থায়ীভাবে মোছা হয়েছে",
+          "property_verify": "অনুমোদিত",
+          "property_set_pending": "অপেক্ষমাণে ফেরানো হয়েছে",
+          "property_update": "তথ্য বদলানো হয়েছে",
+          "property_create": "তৈরি হয়েছে"
         },
         "state": {
           "ACTIVE": "সক্রিয়",
@@ -6320,6 +6320,206 @@
       "action": "কাজ",
       "reason": "কারণ",
       "notes": "নোট"
+    }
+  },
+  "gov": {
+    "navLabel": "সরকারি নেভিগেশন",
+    "roleGov": "সরকারি অ্যাডমিন",
+    "loadError": "সরকারি পোর্টাল খোলা যায়নি।",
+    "retry": "আবার চেষ্টা করুন",
+    "loading": "লোড হচ্ছে",
+    "openMenu": "মেনু খুলুন",
+    "closeMenu": "মেনু বন্ধ করুন",
+    "nav": {
+      "properties": "প্রপার্টি",
+      "manageHome": "হোম ম্যানেজ",
+      "manageMarketplace": "মার্কেটপ্লেস ম্যানেজ",
+      "activeMaintenance": "চলমান মেইনটেনেন্স",
+      "activeOwners": "সক্রিয় মালিক",
+      "activeTenants": "সক্রিয় ভাড়াটিয়া",
+      "messages": "মেসেজ",
+      "previousProperties": "পূর্ববর্তী প্রপার্টি",
+      "previousOwners": "পূর্ববর্তী মালিক",
+      "previousTenants": "পূর্ববর্তী ভাড়াটিয়া",
+      "findPeople": "মানুষ খুঁজুন",
+      "quickAlert": "দ্রুত সতর্কতা",
+      "logout": "লগ আউট",
+      "loggingOut": "সাইন আউট হচ্ছে…",
+      "openAlerts": "{count}টি খোলা সতর্কতা"
+    },
+    "logout": {
+      "title": "আপনি কি নিশ্চিত যে লগ আউট করতে চান?",
+      "text": "আপনি আপনার আমাদেরঘর সরকারি অ্যাডমিন সেশন থেকে সাইন আউট হবেন এবং হোম পেজে ফিরে যাবেন।",
+      "cancel": "বাতিল",
+      "confirm": "হ্যাঁ, লগ আউট",
+      "loggingOut": "লগ আউট হচ্ছে…",
+      "done": "আপনি লগ আউট হয়েছেন।"
+    },
+    "roles": {
+      "SUPER_ADMIN": "সুপার অ্যাডমিন",
+      "GOV_ADMIN": "সরকারি অ্যাডমিন",
+      "OWNER": "মালিক",
+      "TENANT": "ভাড়াটিয়া",
+      "GENERAL_USER": "ট্যানেন্ট ফ্রি"
+    },
+    "properties": {
+      "metaTitle": "সব প্রপার্টি",
+      "title": "সব <hl>প্রপার্টি</hl>",
+      "subtitle": "প্ল্যাটফর্মের সব রিয়েল এস্টেট সম্পদ পরিচালনা ও নজরদারি করুন।",
+      "kpi": {
+        "loading": "প্রপার্টির সংখ্যা লোড হচ্ছে",
+        "error": "প্রপার্টির সংখ্যা লোড করা যায়নি।",
+        "retry": "আবার চেষ্টা করুন",
+        "total": "মোট প্রপার্টি",
+        "totalSub": "এই মাসে যোগ হয়েছে {n}টি",
+        "units": "মোট ইউনিট",
+        "unitsSub": "{n}টি খালি",
+        "occupancy": "ভাড়া হার",
+        "occupancySub": "{occupied}টি ভাড়া · {vacant}টি খালি",
+        "pending": "অনুমোদনের অপেক্ষায় প্রপার্টি",
+        "pendingSub": "পদক্ষেপ দরকার",
+        "verified": "সরকারি যাচাইকৃত",
+        "verifiedSub": "অনুমোদিত ও সক্রিয়",
+        "rejected": "বাতিল",
+        "rejectedSub": "{n}টি বন্ধ করা",
+        "fresh": "এই মাসে নতুন",
+        "freshSub": "মাসের ১ তারিখ থেকে যোগ",
+        "flagged": "চিহ্নিত সমস্যা",
+        "flaggedSub": "গত ৩০ দিনে জানানো"
+      },
+      "tableTitle": "সব প্রপার্টি",
+      "filter": "প্রপার্টি ফিল্টার",
+      "tabs": {
+        "all": "সব",
+        "active": "সক্রিয়",
+        "pending": "অপেক্ষমাণ"
+      },
+      "summary": "মোট প্রপার্টি: {total}",
+      "columns": {
+        "name": "প্রপার্টির নাম",
+        "owner": "মালিক",
+        "location": "অবস্থান",
+        "units": "ইউনিট",
+        "status": "স্ট্যাটাস",
+        "actions": "অ্যাকশন"
+      },
+      "units": "{count}টি ইউনিট",
+      "occupied": "{count}টি ভাড়া",
+      "viewAria": "{name}-এর বিস্তারিত দেখুন",
+      "viewBtn": "দেখুন",
+      "state": {
+        "ACTIVE": "সক্রিয়",
+        "PENDING": "যাচাই অপেক্ষমাণ",
+        "REJECTED": "বাতিল",
+        "SUSPENDED": "স্থগিত"
+      },
+      "error": "প্রপার্টিগুলো লোড করা যায়নি।",
+      "emptyTitle": "কোনো প্রপার্টি পাওয়া যায়নি",
+      "empty": {
+        "all": "এখনো কোনো প্রপার্টি নিবন্ধিত হয়নি।",
+        "active": "এখনো কোনো সক্রিয় প্রপার্টি নেই।",
+        "pending": "যাচাইয়ের অপেক্ষায় কিছু নেই।"
+      },
+      "viewMore": "আরও দেখুন",
+      "viewLess": "কম দেখুন",
+      "loadingMore": "লোড হচ্ছে…",
+      "moreError": "আরও সারি লোড করা যায়নি। আবার চেষ্টা করুন।",
+      "details": {
+        "title": "প্রপার্টির বিস্তারিত",
+        "loading": "প্রপার্টি লোড হচ্ছে",
+        "error": "এই প্রপার্টি লোড করা যায়নি।",
+        "gone": "এই প্রপার্টি আর চালু তালিকায় নেই।",
+        "retry": "আবার চেষ্টা করুন",
+        "close": "বন্ধ করুন",
+        "none": "দেওয়া নেই",
+        "verify": {
+          "VERIFIED": "সরকারি যাচাইকৃত",
+          "PENDING": "যাচাই অপেক্ষমাণ",
+          "UNVERIFIED": "এখনো দেখা হয়নি",
+          "REJECTED": "যাচাই বাতিল"
+        },
+        "photo": "ছবি {n}",
+        "owner": "মালিকের প্রোফাইল",
+        "ownerName": "নাম",
+        "ownerId": "মালিক আইডি",
+        "phone": "ফোন",
+        "email": "ইমেইল",
+        "ownerNid": "মালিকের এনআইডি",
+        "joined": "যোগ দিয়েছেন",
+        "message": "মালিককে মেসেজ",
+        "nid": {
+          "VERIFIED": "এনআইডি যাচাই হয়েছে",
+          "PENDING": "এনআইডি যাচাই চলছে",
+          "REJECTED": "এনআইডি বাতিল",
+          "UNVERIFIED": "এনআইডি যাচাই হয়নি"
+        },
+        "occupancy": "ভাড়া হার",
+        "unitsTotal": "মোট ইউনিট",
+        "unitsOccupied": "ভাড়া দেওয়া",
+        "unitsVacant": "খালি",
+        "matrix": "ইউনিট ম্যাট্রিক্স",
+        "noUnits": "কোনো ইউনিট যোগ করা হয়নি।",
+        "floor": "{n} তলা",
+        "avail": {
+          "OCCUPIED": "ভাড়া দেওয়া",
+          "AVAILABLE": "খালি",
+          "MAINTENANCE": "মেরামত"
+        },
+        "floors": "তলা",
+        "sqft": "{n} বর্গফুট",
+        "added": "নিবন্ধনের তারিখ",
+        "description": "বিবরণ",
+        "amenities": "সুবিধা",
+        "verification": "যাচাই ও কাগজপত্র",
+        "reviewed": "সর্বশেষ দেখা হয়েছে {date}",
+        "notReviewed": "এখনো দেখা হয়নি।",
+        "noDocs": "কোনো মালিকানার কাগজ আপলোড করা হয়নি।",
+        "docKind": {
+          "DEED": "মালিকানা দলিল",
+          "OTHER": "অন্য কাগজ",
+          "NID_FRONT": "এনআইডি সামনে",
+          "NID_BACK": "এনআইডি পেছনে",
+          "AGREEMENT": "চুক্তি"
+        },
+        "audit": "নিয়ন্ত্রক অডিট লগ",
+        "noAudit": "এই প্রপার্টির জন্য এখনো কিছু রেকর্ড হয়নি।",
+        "by": "{name} ({role}) করেছেন",
+        "event": {
+          "property_verify": "অনুমোদিত",
+          "property_reject": "বাতিল",
+          "property_request_docs": "আরও কাগজ চাওয়া হয়েছে",
+          "property_suspend": "স্থগিত",
+          "property_restore": "পুনরায় চালু",
+          "property_report_issue": "সরকার সমস্যা জানিয়েছে",
+          "property_archive": "আর্কাইভ করা হয়েছে",
+          "property_create": "নিবন্ধিত",
+          "property_update": "তথ্য বদলানো হয়েছে",
+          "property_set_pending": "অপেক্ষমাণে ফেরানো হয়েছে",
+          "property_status_change": "স্ট্যাটাস বদলানো হয়েছে",
+          "property_reactivate": "পুনরায় চালু করা হয়েছে",
+          "property_delete": "মুছে ফেলা হয়েছে",
+          "property_purge": "স্থায়ীভাবে মোছা হয়েছে"
+        },
+        "report": {
+          "title": "সমস্যা জানান",
+          "count": "আগে {n}টি",
+          "hint": "এটি সুপার অ্যাডমিন টিমকে এই প্রপার্টির সমস্যার কথা জানায়। প্রপার্টিতে কোনো পরিবর্তন হয় না।",
+          "label": "সমস্যা কী?",
+          "placeholder": "সমস্যাটি লিখুন (কমপক্ষে ৩ অক্ষর)",
+          "short": "সমস্যাটি লিখুন (কমপক্ষে ৩ অক্ষর)।",
+          "sent": "{name}-এর সমস্যা সুপার অ্যাডমিন টিমকে জানানো হয়েছে।",
+          "gone": "এই প্রপার্টি আর পাওয়া যাচ্ছে না।",
+          "failed": "কাজটি হয়নি। আবার চেষ্টা করুন।",
+          "send": "সমস্যা জানান",
+          "sending": "পাঠানো হচ্ছে…"
+        }
+      },
+      "types": {
+        "APARTMENT_BUILDING": "অ্যাপার্টমেন্ট",
+        "HOUSE": "বাড়ি",
+        "COMMERCIAL": "বাণিজ্যিক",
+        "MIXED": "মিশ্র"
+      }
     }
   }
 }

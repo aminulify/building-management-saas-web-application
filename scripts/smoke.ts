@@ -3932,6 +3932,88 @@ r = await call("POST", "/properties", T("tenant"), propBody);
     check("…and the tenant's property opens", r.status === 200, r.body);
   }
 
+  section("Government Admin: All Properties (numbers, tabs, View More, details, report an issue)");
+  r = await call("GET", "/gov/properties/stats", null);
+  check("the government numbers need a sign-in → 401", r.status === 401, r.body);
+  const govProp = await db.property.create({ data: { ownerId: users.owner!.id, name: `Gov${tag} Tower`, type: "APARTMENT_BUILDING", totalFloors: 3, declaredUnits: 4, status: "ACTIVE", verificationStatus: "PENDING", reviewNotes: "Documents are being checked" } });
+  const govUnits = [] as { id: string }[];
+  for (const [i, av] of (["OCCUPIED", "AVAILABLE", "AVAILABLE", "MAINTENANCE"] as const).entries()) govUnits.push(await db.unit.create({ data: { propertyId: govProp.id, unitNumber: `G-${i + 1}`, floor: 1 + (i % 2), rent: 7000, availability: av } }));
+  await db.verificationDocument.create({ data: { ownerType: "PROPERTY", ownerId: govProp.id, kind: "DEED", storageKey: `PROPERTY_DOC/${users.owner!.id}/deed-${tag}.pdf`, status: "PENDING" } });
+  for (const who of ["owner", "tenant", "general", "super"]) {
+    for (const path of ["/gov/properties/stats", "/gov/properties/table", "/gov/summary", `/gov/properties/${govProp.id}/overview`]) {
+      r = await call("GET", path, T(who));
+      check(`${who} cannot open ${path.replace(govProp.id, ":id")} → 403`, r.status === 403, r.body);
+    }
+  }
+  r = await call("GET", "/admin/properties/stats", T("gov"));
+  check("a Government Admin cannot use the Super Admin property numbers → 403", r.status === 403, r.body);
+  r = await call("DELETE", `/admin/properties/${govProp.id}`, T("gov"), { reasonCode: "OTHER", note: "no" });
+  check("…nor delete a property → 403", r.status === 403, r.body);
+  r = await call("PATCH", `/admin/properties/${govProp.id}/status`, T("gov"), { status: "ACTIVE" });
+  check("…nor approve one → 403", r.status === 403, r.body);
+
+  const superStats = (await call("GET", "/admin/properties/stats", T("super"))).data;
+  r = await call("GET", "/gov/properties/stats", T("gov"));
+  check("the four numbers match the platform: total properties, total units, occupancy, pending approval", r.status === 200 && r.data.totalProperties === superStats.totalProperties && r.data.totalUnits === superStats.totalUnits && r.data.occupancyRate === superStats.occupancyRate && r.data.pendingApproval === superStats.pendingApproval && r.data.pendingApproval >= 1, r.body);
+  check("…and the extra ones add up: vacant units, approved, rejected, switched off, new this month, flagged, open alerts", r.data.vacantUnits === r.data.totalUnits - r.data.occupiedUnits && ["verified", "rejected", "suspended", "newThisMonth", "flaggedLast30", "openAlerts"].every((k) => typeof r.data[k] === "number" && r.data[k] >= 0) && r.data.newThisMonth >= 1, r.body);
+  const govStats = r.data;
+  r = await call("GET", "/gov/summary", T("gov"));
+  check("the sidebar number is the count of open emergency alerts", r.status === 200 && r.data.openAlerts === (await db.emergencyAlert.count({ where: { status: { in: ["NEED_ACTION", "PROCESSING"] } } })), r.body);
+
+  r = await call("GET", "/gov/properties/table?tab=all&limit=9", T("gov"));
+  check("the table starts with up to 9 rows, a total and a cursor when more exist", r.status === 200 && r.data.items.length <= 9 && r.data.total >= 1 && (r.data.total <= 9 ? r.data.nextCursor === null : !!r.data.nextCursor), r.body);
+  const govRow = (await call("GET", "/gov/properties/table?tab=pending&limit=50", T("gov"))).data.items.find((x: any) => x.id === govProp.id);
+  check("a row has name, type, owner with phone, location, unit counts and state", !!govRow && govRow.type === "APARTMENT_BUILDING" && govRow.owner.id === users.owner!.id && !!govRow.owner.phone && govRow.totalUnits >= 4 && govRow.occupiedUnits === 1 && govRow.state === "PENDING", JSON.stringify(govRow));
+  r = await call("GET", "/gov/properties/table?tab=all&limit=1", T("gov"));
+  const gFirst = r.data;
+  check("View More: one row and a cursor", r.status === 200 && gFirst.items.length === 1 && (gFirst.total < 2 || !!gFirst.nextCursor), r.body);
+  if (gFirst.nextCursor) {
+    r = await call("GET", `/gov/properties/table?tab=all&limit=1&cursor=${gFirst.nextCursor}`, T("gov"));
+    check("…the next row follows with no repeat", r.status === 200 && r.data.items.length === 1 && r.data.items[0].id !== gFirst.items[0].id, r.body);
+  }
+  r = await call("GET", "/gov/properties/table?tab=active&limit=50", T("gov"));
+  check("tab Active: only active rows", r.status === 200 && r.data.items.every((x: any) => x.state === "ACTIVE") && r.data.total === govStats.verified, r.body);
+  r = await call("GET", "/gov/properties/table?tab=pending&limit=50", T("gov"));
+  check("tab Pending: only rows waiting for verification", r.status === 200 && r.data.items.length >= 1 && r.data.items.every((x: any) => x.state === "PENDING") && r.data.total === govStats.pendingApproval, r.body);
+  r = await call("GET", "/gov/properties/table?tab=sleeping", T("gov"));
+  check("an unknown tab → 422", r.status === 422, r.body);
+  r = await call("GET", "/gov/properties/table?limit=0", T("gov"));
+  check("a page of 0 rows → 422", r.status === 422, r.body);
+  r = await call("GET", "/gov/properties/table?limit=51", T("gov"));
+  check("a page of 51 rows → 422", r.status === 422, r.body);
+  r = await call("GET", "/gov/properties/table?cursor=nope", T("gov"));
+  check("a bad cursor → 422", r.status === 422, r.body);
+
+  r = await call("GET", `/gov/properties/${govProp.id}/overview`, T("gov"));
+  check("details: asset, category, address, verification, owner profile with ID, phone and e-mail", r.status === 200 && r.data.name === `Gov${tag} Tower` && r.data.type === "APARTMENT_BUILDING" && r.data.verification.status === "PENDING" && r.data.verification.notes === "Documents are being checked" && r.data.owner.id === users.owner!.id && !!r.data.owner.email && !!r.data.owner.phone && !!r.data.owner.ownerCode && !!r.data.owner.verificationStatus, r.body);
+  check("…occupancy metrics and the unit matrix", r.data.occupancy.totalUnits === 4 && r.data.occupancy.occupiedUnits === 1 && r.data.occupancy.vacantUnits === 3 && r.data.occupancy.rate === 25 && r.data.units.length === 4 && r.data.units.every((u: any) => !!u.unitNumber && !!u.availability), r.body);
+  check("…documents, audit log and the earlier issue reports", r.data.documents.length === 1 && r.data.documents[0].kind === "DEED" && r.data.documents[0].status === "PENDING" && Array.isArray(r.data.audit) && r.data.issueReports === 0 && Array.isArray(r.data.photos) && Array.isArray(r.data.amenities), r.body);
+  r = await call("GET", "/gov/properties/00000000-0000-7000-8000-000000000000/overview", T("gov"));
+  check("a missing property → 404", r.status === 404, r.body);
+  r = await call("GET", "/gov/properties/not-a-uuid/overview", T("gov"));
+  check("a bad id → 422", r.status === 422 || r.status === 404, r.body);
+
+  r = await call("POST", `/gov/properties/${govProp.id}/report`, T("gov"), { notes: "ab" });
+  check("reporting an issue with a too-short note → 422", r.status === 422, r.body);
+  r = await call("POST", `/gov/properties/${govProp.id}/report`, T("owner"), { notes: "I should not be able to do this" });
+  check("an owner cannot report issues → 403", r.status === 403, r.body);
+  r = await call("POST", `/gov/properties/${govProp.id}/report`, T("gov"), { notes: "Boundary dispute reported by a neighbour" });
+  check("Report Issue works", r.status === 200 || r.status === 201, r.body);
+  r = await call("GET", `/gov/properties/${govProp.id}/overview`, T("gov"));
+  check("…the audit log shows who reported it (Government) and the issue count went up", r.status === 200 && r.data.issueReports === 1 && r.data.audit.some((a: any) => a.action === "property.report_issue" && a.by?.role === "GOV_ADMIN" && a.notes === "Boundary dispute reported by a neighbour"), r.body);
+  const govNote = await call("GET", "/notifications?limit=40", T("super"));
+  check("…and the Super Admin team was notified", govNote.data?.items?.some((x: any) => x.type === "property.gov_issue" && JSON.stringify(x).includes(`Gov${tag} Tower`)), govNote.body);
+  r = await call("GET", `/gov/properties/${govProp.id}/overview`, T("gov"));
+  check("a reported property is not changed (still pending verification)", r.data.verification.status === "PENDING" && r.data.state === "PENDING", r.body);
+  r = await call("GET", "/gov/properties/stats", T("gov"));
+  check("the flagged number counted the report", r.status === 200 && r.data.flaggedLast30 >= 1, r.body);
+
+  await db.property.update({ where: { id: govProp.id }, data: { archivedAt: new Date(), status: "ARCHIVED" } });
+  r = await call("GET", `/gov/properties/${govProp.id}/overview`, T("gov"));
+  check("an archived property leaves the live list → 404", r.status === 404, r.body);
+  r = await call("GET", "/gov/properties/stats", T("gov"));
+  check("…and the total drops by one", r.status === 200 && r.data.totalProperties === govStats.totalProperties - 1, r.body);
+
   section("Super Admin Message: a person's profile card and Active / Warning / Suspended");
   for (const who of ["owner", "tenant", "general", "gov"]) {
     r = await call("GET", `/admin/people/${users.owner!.id}`, T(who));

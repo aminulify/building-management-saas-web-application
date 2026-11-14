@@ -16,6 +16,7 @@ export interface PlanRow {
   fullName: string;
   username: string;
   email: string | null;
+  avatarUrl: string | null;
   role: "OWNER" | "TENANT" | "GENERAL_USER";
   propertyType: string | null;
   plan: { code: string; nameEn: string; nameBn: string } | null;
